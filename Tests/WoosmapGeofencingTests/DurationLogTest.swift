@@ -29,13 +29,14 @@ class DurationLogTest: XCTestCase {
 
     override func tearDownWithError() throws {
         // Put teardown code here. This method is called after the invocation of each test method in the class.
+        DurationLogs.deleteAll()
     }
 
     func testEntryEvent() throws {
         DurationLogs.addEntryLog(identifier: "test1")
         let count = DurationLogs.getAll().count
         XCTAssert(count > 0)
-        DurationLogs.deleteAll()
+        
     }
     
     func testExitEvent() throws {
@@ -44,12 +45,11 @@ class DurationLogTest: XCTestCase {
         let result = XCTWaiter.wait(for: [exp], timeout: 5.0)
         if result == XCTWaiter.Result.timedOut {
             let duration = DurationLogs.addExitLog(identifier: "test1")
-            print("time spend \(duration)")
             XCTAssert(duration > 5)
          } else {
              XCTFail("Delay interrupted")
          }
-        DurationLogs.deleteAll()
+        
     }
     func testExitEventWithoutEntryLog() throws {
         let exp = expectation(description: "Test after 5 seconds")
@@ -61,7 +61,7 @@ class DurationLogTest: XCTestCase {
          } else {
              XCTFail("Delay interrupted")
          }
-        DurationLogs.deleteAll()
+        
     }
     
     func testDuplicateEntryEvent() throws {
@@ -85,6 +85,5 @@ class DurationLogTest: XCTestCase {
          } else {
              XCTFail("Delay interrupted")
          }
-        DurationLogs.deleteAll()
     }
 }
