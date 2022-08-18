@@ -8,7 +8,7 @@ Pod::Spec.new do |s|
   s.source = { :git => 'https://github.com/woosmap/geofencing-core-ios-sdk.git', :tag => s.version }
   s.documentation_url = 'https://github.com/woosmap/geofencing-core-ios-sdk'
 
-  s.ios.deployment_target = '12.0'
+  s.ios.deployment_target = '11.0'
 
   s.swift_versions = ['5.1', '5.2']
   s.source_files = 'Sources/WoosmapGeofencing/*.swift', 'Sources/WoosmapGeofencing/Business Logic/*.swift'
