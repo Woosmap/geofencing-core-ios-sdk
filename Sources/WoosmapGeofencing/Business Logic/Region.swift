@@ -8,6 +8,7 @@ import Foundation
 import RealmSwift
 import CoreLocation
 
+/// Offline Databse: Region
 public class Region: Object {
     @objc public dynamic var date: Date = Date()
     @objc public dynamic var didEnter: Bool = false
@@ -23,7 +24,8 @@ public class Region: Object {
     @objc public dynamic var type = "circle";
     @objc public dynamic var origin = "";
     @objc public dynamic var eventName: String = "";
-
+    @objc public dynamic var spentTime: Double = 0;
+    
     convenience public init(latitude: Double, longitude: Double, radius: Double, dateCaptured: Date, identifier: String, didEnter: Bool, fromPositionDetection: Bool, eventName: String) {
         self.init()
         self.latitude = latitude
@@ -37,9 +39,100 @@ public class Region: Object {
     }
 }
 
+/// Offline Database: DurationLog
+public class DurationLog: Object {
+    @objc public dynamic var identifier: String = ""
+    @objc public dynamic var entryTime: Date = Date()
+    @objc public dynamic var exitTime: Date?
+}
+
+
+/// Duration Logs Controller
+public class DurationLogs {
+    
+    /// Add new entry log in DurationLog
+    ///
+    ///Sample Code:
+    ///```swift
+    ///DurationLogs.addEntryLog(identifier: "test1")
+    ///```
+    /// - Parameter identifier: ID
+    public static func addEntryLog(identifier: String){
+        do {
+            let realm = try Realm()
+            let entry = DurationLog()
+            entry.identifier = identifier
+            entry.entryTime = Date()
+            realm.beginWrite()
+            realm.add(entry)
+            try realm.commitWrite()
+        } catch {
+        }
+    }
+    
+    /// Update exit time and calculated time spent in region
+    ///
+    ///Sample Code:
+    ///```swift
+    ///let duration = DurationLogs.addExitLog(identifier: "test1")
+    ///```
+    /// - Parameter identifier: ID
+    /// - Returns: Time spend in region
+    public static func addExitLog(identifier: String) -> TimeInterval{
+        //Check Entry event for given id
+        let predicate = NSPredicate(format: "identifier == %@ AND exitTime = nil", identifier)
+        do {
+            let realm = try Realm()
+            let fetchedResults = realm.objects(DurationLog.self).filter(predicate)
+            if let log:DurationLog  = fetchedResults.first {
+                try realm.write {
+                    log.exitTime = Date()
+                }
+                return Date().timeIntervalSinceReferenceDate - log.entryTime.timeIntervalSinceReferenceDate
+            }
+        } catch {
+        }
+        return 0
+    }
+    
+    /// Fetch All Duration Logs
+    ///
+    ///Sample Code:
+    ///```swift
+    ///let logs: [DurationLog] = DurationLogs.getAll()
+    ///```
+    /// - Returns: List of Logs in offile database
+    public static func getAll() -> [DurationLog] {
+        do {
+            let realm = try Realm()
+            let regions = realm.objects(DurationLog.self)
+            return Array(regions)
+        } catch {
+        }
+        return []
+    }
+    
+    
+    /// Clear DurationLog
+    ///
+    ///Sample Code:
+    ///```swift
+    ///DurationLogs.deleteAll()
+    ///```
+    public static func deleteAll() {
+        do {
+            let realm = try Realm()
+            try realm.write {
+                realm.delete(realm.objects(DurationLog.self))
+            }
+        } catch let error as NSError {
+            print(error)
+        }
+    }
+}
 public class Regions {
     
-    public class func add(POIregion: CLRegion, didEnter: Bool, fromPositionDetection: Bool) -> Region {
+    public static func add(POIregion: CLRegion, didEnter: Bool, fromPositionDetection: Bool) -> Region {
         do {
             let realm = try Realm()
             let latRegion = (POIregion as! CLCircularRegion).center.latitude
@@ -64,6 +157,13 @@ public class Regions {
                                fromPositionDetection: fromPositionDetection,
                                eventName: eventName)
             entry.origin = origin
+            if(didEnter){
+                DurationLogs.addEntryLog(identifier: entry.identifier)
+                entry.spentTime = 0
+            }
+            else{
+                entry.spentTime = DurationLogs.addExitLog(identifier: entry.identifier)
+            }
             realm.beginWrite()
             realm.add(entry)
             try realm.commitWrite()
@@ -74,9 +174,16 @@ public class Regions {
     }
     
     
-    public class func add(classifiedRegion: Region) {
+    public static func add(classifiedRegion: Region) {
         do {
             let realm = try Realm()
+            if(classifiedRegion.didEnter){
+                DurationLogs.addEntryLog(identifier: classifiedRegion.identifier)
+                classifiedRegion.spentTime = 0
+            }
+            else{
+                classifiedRegion.spentTime = DurationLogs.addExitLog(identifier: classifiedRegion.identifier)
+            }
             realm.beginWrite()
             realm.add(classifiedRegion)
             try realm.commitWrite()
@@ -84,7 +191,7 @@ public class Regions {
         }
     }
     
-    public class func getRegionFromId(id: String) -> Region? {
+    public static func getRegionFromId(id: String) -> Region? {
         do {
             let realm = try Realm()
             var identifier = id
@@ -95,14 +202,14 @@ public class Regions {
             let predicate = NSPredicate(format: "identifier == %@", identifier)
             let fetchedResults = realm.objects(Region.self).filter(predicate)
             if let aRegion = fetchedResults.last {
-               return aRegion
+                return aRegion
             }
         } catch {
         }
         return nil
     }
-
-    public class func getAll() -> [Region] {
+    
+    public static func getAll() -> [Region] {
         do {
             let realm = try Realm()
             let regions = realm.objects(Region.self)
@@ -111,15 +218,15 @@ public class Regions {
         }
         return []
     }
-
-    public class func deleteAll() {
+    
+    public static func deleteAll() {
         do {
             let realm = try Realm()
             try realm.write {
                 realm.delete(realm.objects(Region.self))
             }
         } catch let error as NSError {
-          print(error)
+            print(error)
         }
     }
 }

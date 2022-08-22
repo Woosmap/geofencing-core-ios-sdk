@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5F5CD5EA28A6302C0074D7DD /* DurationLogTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F5CD5E928A6302C0074D7DD /* DurationLogTest.swift */; };
 		5FB3E7A32872F2BE0035653E /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FB3E7A22872F2BE0035653E /* LocationService.swift */; };
 		5FB3E7A52872F3170035653E /* LocationServiceCoreImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FB3E7A42872F3170035653E /* LocationServiceCoreImpl.swift */; };
 		A24796FF2726DF700081AADC /* Distance.swift in Sources */ = {isa = PBXBuildFile; fileRef = A24796FE2726DF700081AADC /* Distance.swift */; };
@@ -60,6 +61,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		5F5CD5E928A6302C0074D7DD /* DurationLogTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DurationLogTest.swift; sourceTree = "<group>"; };
 		5FB3E7A22872F2BE0035653E /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
 		5FB3E7A42872F3170035653E /* LocationServiceCoreImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationServiceCoreImpl.swift; sourceTree = "<group>"; };
 		A216FBA923E9CEA70003AAC8 /* WoosmapGeofencingCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = WoosmapGeofencingCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -183,6 +185,7 @@
 				A262B9C524E29ADF00EB621F /* FIGMMCreatorTests.swift */,
 				A262B9C724E29ADF00EB621F /* Info.plist */,
 				A262B9C624E29ADF00EB621F /* ZoiQualifierTests.swift */,
+				5F5CD5E928A6302C0074D7DD /* DurationLogTest.swift */,
 			);
 			name = WoosmapGeofencingTests;
 			path = Tests/WoosmapGeofencingTests;
@@ -335,6 +338,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A26E646125B98BDD00EDBA72 /* DelayDataDurationTests.swift in Sources */,
+				5F5CD5EA28A6302C0074D7DD /* DurationLogTest.swift in Sources */,
 				A262B9C824E29ADF00EB621F /* FIGMMCreatorTests.swift in Sources */,
 				A2DDC91B25C86B0C00C90486 /* DatabaseTests.swift in Sources */,
 				A262B9C924E29ADF00EB621F /* ZoiQualifierTests.swift in Sources */,
