@@ -2,43 +2,64 @@
 //  LocationServiceCoreImpl.swift
 //  WoosmapGeofencingCore
 //
-//  Created by WGS on 04/07/22.
-//  Copyright © 2022 Web Geo Services. All rights reserved.
-//
 
 import Foundation
 import CoreLocation
 
-open class LocationServiceCoreImpl: NSObject,LocationService,LocationServiceInternal, CLLocationManagerDelegate  {
-   
+/// Location service implementation
+open class LocationServiceCoreImpl: NSObject,
+                                    LocationService,
+                                    LocationServiceInternal,
+                                    CLLocationManagerDelegate  {
+    
+    /// Location Manager
     public var locationManager: LocationManagerProtocol?
+    
+    /// Current Location
     public var currentLocation: CLLocation?
+    
+    /// Last Location
     public var lastSearchLocation: LastSearhLocation = LastSearhLocation()
+    
+    /// Last POI ID
     public var lastRefreshRegionPOILocationId: String = ""
+    
+    /// Last Region
     public var lastRegionUpdate: Date?
- 
+    
+    /// Location service callback
     public weak var locationServiceDelegate: LocationServiceDelegate?
+    
+    /// Search service callback
     public weak var searchAPIDataDelegate: SearchAPIDelegate?
+    
+    /// Distance service callback
     public weak var distanceAPIDataDelegate: DistanceAPIDelegate?
+    
+    /// Region service callback
     public weak var regionDelegate: RegionsServiceDelegate?
+    
+    /// Visit service callback
     public weak var visitDelegate: VisitServiceDelegate?
     
     
-    
+    /// New Locaion service
+    /// - Parameter locationManger: location service object
     required public init(locationManger: LocationManagerProtocol?) {
-
+        
         super.init()
-
+        
         self.locationManager = locationManger
         initLocationManager()
-
+        
     }
-
+    
+    /// Interrnal location manager
     public func initLocationManager() {
         guard var myLocationManager = self.locationManager else {
             return
         }
-
+        
         myLocationManager.allowsBackgroundLocationUpdates = true
         myLocationManager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
         myLocationManager.distanceFilter = 10
@@ -48,19 +69,23 @@ open class LocationServiceCoreImpl: NSObject,LocationService,LocationServiceInte
             myLocationManager.startMonitoringVisits()
         }
     }
-
+    
+    /// Authorization request for location service
     func requestAuthorization () {
         if CLLocationManager.authorizationStatus() == .notDetermined {
             locationManager?.requestAlwaysAuthorization()
         }
     }
-
+    
+    /// Update Region service delegate
+    /// - Parameter delegate: new callback
     func setRegionDelegate(delegate: RegionsServiceDelegate) {
         self.regionDelegate = delegate
         guard let monitoredRegions = locationManager?.monitoredRegions else { return }
         delegate.updateRegions(regions: monitoredRegions)
     }
-
+    
+    /// Start Locaton service to receive new location update
     public func startUpdatingLocation() {
         self.requestAuthorization()
         self.locationManager?.startUpdatingLocation()
@@ -68,22 +93,26 @@ open class LocationServiceCoreImpl: NSObject,LocationService,LocationServiceInte
             self.locationManager?.startMonitoringVisits()
         }
     }
-
+    
+    /// Stop Locaton service to receive pause location update
     public func stopUpdatingLocation() {
         if (!modeHighfrequencyLocation) {
             self.locationManager?.stopUpdatingLocation()
         }
     }
-
+    
+    /// Monitoring Significant Location Changes
     public func startMonitoringSignificantLocationChanges() {
         self.requestAuthorization()
         self.locationManager?.startMonitoringSignificantLocationChanges()
     }
-
+    
+    /// Pause Monitoring Significant Location Changes
     public func stopMonitoringSignificantLocationChanges() {
         self.locationManager?.stopMonitoringSignificantLocationChanges()
     }
-
+    
+    /// Stop mnitoring region
     public func stopMonitoringCurrentRegions() {
         guard let monitoredRegions = locationManager?.monitoredRegions else { return }
         for region in monitoredRegions {
@@ -92,7 +121,8 @@ open class LocationServiceCoreImpl: NSObject,LocationService,LocationServiceInte
             }
         }
     }
-
+    
+    /// Start mnitoring region
     func startMonitoringCurrentRegions(regions: Set<CLRegion>) {
         self.requestAuthorization()
         for region in regions {
@@ -101,7 +131,8 @@ open class LocationServiceCoreImpl: NSObject,LocationService,LocationServiceInte
         guard let monitoredRegions = locationManager?.monitoredRegions else { return }
         self.regionDelegate?.updateRegions(regions: monitoredRegions)
     }
-
+    
+    /// Update region monitoring
     func updateRegionMonitoring () {
         if self.currentLocation != nil {
             self.stopUpdatingLocation()
@@ -111,31 +142,52 @@ open class LocationServiceCoreImpl: NSObject,LocationService,LocationServiceInte
             }
         }
     }
-
+    
+    /// Callback when new location update when user in region
+    /// - Parameters:
+    ///   - manager: Location service
+    ///   - visit: Visit info
     public func locationManager(_ manager: CLLocationManager, didVisit visit: CLVisit) {
         updateVisit(visit: visit)
         self.startUpdatingLocation()
     }
-
+    
+    /// Callback when new location receive form device
+    /// - Parameters:
+    ///   - manager: location service
+    ///   - locations: Updated locations
     public func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-
+        
         guard locations.last != nil else {
             return
         }
-
+        
         self.stopUpdatingLocation()
         updateLocation(locations: locations)
         self.updateRegionMonitoring()
     }
-
+    
+    
+    /// Change Auth status
+    /// - Parameters:
+    ///   - manager: location service
+    ///   - status: new status
     public func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {
-
-    }
         
+    }
+    
+    /// Handle all error callback in case of something wrong in service
+    /// - Parameters:
+    ///   - manager: location service
+    ///   - error: error info
     public func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         updateLocationDidFailWithError(error: error)
     }
-
+    
+    /// Fires when User existed region that monitor by app
+    /// - Parameters:
+    ///   - manager: location service
+    ///   - region: region info
     public func locationManager(_ manager: CLLocationManager, didExitRegion region: CLRegion) {
         if (modeHighfrequencyLocation) {
             self.handleRegionChange()
@@ -146,7 +198,11 @@ open class LocationServiceCoreImpl: NSObject,LocationService,LocationServiceInte
         }
         self.handleRegionChange()
     }
-
+    
+    /// Fires when User entered region that monitor by app
+    /// - Parameters:
+    ///   - manager: location service
+    ///   - region: region info
     public func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
         if (modeHighfrequencyLocation) {
             self.handleRegionChange()
@@ -157,7 +213,13 @@ open class LocationServiceCoreImpl: NSObject,LocationService,LocationServiceInte
         }
         self.handleRegionChange()
     }
-
+    
+    /// Created new circular region
+    /// - Parameters:
+    ///   - identifier: ID
+    ///   - center: center point
+    ///   - radius: area
+    /// - Returns: status
     open func addRegion(identifier: String, center: CLLocationCoordinate2D, radius: CLLocationDistance) -> (isCreate: Bool, identifier: String) {
         guard let monitoredRegions = locationManager?.monitoredRegions else { return (false, "") }
         
@@ -176,6 +238,9 @@ open class LocationServiceCoreImpl: NSObject,LocationService,LocationServiceInte
         return (true, RegionType.custom.rawValue + "<id>" + identifier)
     }
     
+    
+    /// Remove circular region
+    /// - Parameter identifier: ID
     public func removeRegion(identifier: String) {
         guard let monitoredRegions = locationManager?.monitoredRegions else { return }
         for region in monitoredRegions {
@@ -186,6 +251,13 @@ open class LocationServiceCoreImpl: NSObject,LocationService,LocationServiceInte
         }
     }
     
+    /// Created new circular region
+    /// - Parameters:
+    ///   - identifier: Id
+    ///   - center: Center point
+    ///   - radius: area
+    ///   - type: "Curcle"
+    /// - Returns: status
     open func addRegion(identifier: String, center: CLLocationCoordinate2D, radius: Int, type: String) -> (isCreate: Bool, identifier: String){
         if(type == "circle"){
             let (regionIsCreated, identifier) = addRegion(identifier: identifier, center: center, radius: Double(radius))
@@ -195,7 +267,8 @@ open class LocationServiceCoreImpl: NSObject,LocationService,LocationServiceInte
     }
     
     
-
+    /// Remove circular region form monitoring
+    /// - Parameter center: center point
     public func removeRegion(center: CLLocationCoordinate2D) {
         guard let monitoredRegions = locationManager?.monitoredRegions else { return }
         for region in monitoredRegions {
@@ -207,7 +280,9 @@ open class LocationServiceCoreImpl: NSObject,LocationService,LocationServiceInte
             }
         }
     }
-
+    
+    /// Remove circular region form monitoring
+    /// - Parameter type: Type
     public func removeRegions(type: RegionType) {
         guard let monitoredRegions = locationManager?.monitoredRegions else { return }
         if RegionType.none == type {
@@ -226,6 +301,9 @@ open class LocationServiceCoreImpl: NSObject,LocationService,LocationServiceInte
         self.handleRegionChange()
     }
     
+    
+    /// Check user is in region
+    /// - Parameter region: region info
     open func checkIfUserIsInRegion(region: CLCircularRegion) {
         guard let location = currentLocation else { return }
         if(region.contains(location.coordinate)) {
@@ -235,16 +313,24 @@ open class LocationServiceCoreImpl: NSObject,LocationService,LocationServiceInte
             self.regionDelegate?.didEnterPOIRegion(POIregion: regionEnter)
         }
     }
-
+    
+    /// Did Pause Location Updates
+    /// - Parameter manager: Location service
     public func locationManagerDidPauseLocationUpdates(_ manager: CLLocationManager) {
         self.startMonitoringSignificantLocationChanges()
     }
-
+    
+    /// Start Monitoring Region
+    /// - Parameters:
+    ///   - manager: Location service
+    ///   - region: Regon info
     public func locationManager(_ manager: CLLocationManager, didStartMonitoringFor region: CLRegion) {
         guard let monitoredRegions = locationManager?.monitoredRegions else { return }
         self.regionDelegate?.updateRegions(regions: monitoredRegions)
     }
-
+    
+    /// Update Visit details
+    /// - Parameter visit: Visit Info
     func updateVisit(visit: CLVisit) {
         guard let delegate = self.visitDelegate else {
             return
@@ -258,46 +344,48 @@ open class LocationServiceCoreImpl: NSObject,LocationService,LocationServiceInte
             }
         }
     }
-
+    
+    /// Update Location detail
+    /// - Parameter locations: Location info
     open func updateLocation(locations: [CLLocation]) {
         guard let delegate = self.locationServiceDelegate else {
             return
         }
-
+        
         let location = locations.last!
-
+        
         if self.currentLocation != nil {
-
+            
             let theLastLocation = self.currentLocation!
-
+            
             let timeEllapsed = abs(locations.last!.timestamp.seconds(from: theLastLocation.timestamp))
-
+            
             if theLastLocation.distance(from: location) < currentLocationDistanceFilter && timeEllapsed < currentLocationTimeFilter {
                 return
             }
-
+            
             if timeEllapsed < 2 && locations.last!.horizontalAccuracy >= theLastLocation.horizontalAccuracy {
                 return
             }
         }
         // Save in database
         let locationSaved = Locations.add(locations: locations)
-
+        
         if locationSaved.locationId == nil {
             return
         }
-
+        
         // Retrieve location
         delegate.tracingLocation(location: locationSaved)
-
+        
         self.currentLocation = location
-
+        
         if searchAPIRequestEnable {
             searchAPIRequest(location: locationSaved)
         }
         checkIfPositionIsInsideGeofencingRegions(location: location)
     }
-
+    
     open func searchAPIRequest(location: Location) {
 #if DEBUG
         let logAPI = LogSearchAPI()
@@ -334,7 +422,7 @@ open class LocationServiceCoreImpl: NSObject,LocationService,LocationServiceInte
             }
             
             let timeEllapsed = abs(currentLocation!.timestamp.seconds(from: lastPOI!.date!))
-        
+            
             if (timeEllapsed < searchAPIRefreshDelayDay*3600*24) {
                 let distanceLimit = lastPOI!.distance - lastPOI!.radius
                 let distanceTraveled =  CLLocation(latitude: lastSearchLocation.latitude, longitude: lastSearchLocation.longitude).distance(from: currentLocation!)
@@ -351,7 +439,7 @@ open class LocationServiceCoreImpl: NSObject,LocationService,LocationServiceInte
 #if DEBUG
                     logAPI.sendSearchAPIRequest = true
 #endif
-                } 
+                }
             } else {
                 POIs.deleteAll()
                 sendSearchAPIRequest(location: location)
@@ -370,7 +458,9 @@ open class LocationServiceCoreImpl: NSObject,LocationService,LocationServiceInte
         LogSearchAPIs.add(log: logAPI)
 #endif
     }
-
+    
+    /// Call Search API
+    /// - Parameter location: Location object
     public func sendSearchAPIRequest(location: Location) {
         guard let delegate = self.searchAPIDataDelegate else {
             return
@@ -390,7 +480,7 @@ open class LocationServiceCoreImpl: NSObject,LocationService,LocationServiceInte
         
         for (key, value) in searchAPIParameters {
             if(key == "stores_by_page") {
-               let storesByPage =  Int(value) ?? 0
+                let storesByPage =  Int(value) ?? 0
                 if (storesByPage > 20){ //todo param nbr max de poi
                     components.queryItems?.append(URLQueryItem(name: "stores_by_page", value: "20" ))
                 } else {
@@ -407,7 +497,7 @@ open class LocationServiceCoreImpl: NSObject,LocationService,LocationServiceInte
         
         components.percentEncodedQuery = components.percentEncodedQuery?.replacingOccurrences(of: "+", with: "%2B")
         let url = URLRequest(url: components.url!)
-
+        
         // Call API search
         let task = URLSession.shared.dataTask(with: url) { [self] (data, response, error) in
             if let response = response as? HTTPURLResponse {
@@ -421,7 +511,7 @@ open class LocationServiceCoreImpl: NSObject,LocationService,LocationServiceInte
                 } else {
                     print("=>>>>>> searchAPIRequest")
                     let pois:[POI] = POIs.addFromResponseJson(searchAPIResponse: data!, locationId: locationId)
-
+                    
                     if(pois.isEmpty) {
                         searchAPILastRequestTimeStamp = Date().timeIntervalSince1970
                         return
@@ -436,19 +526,26 @@ open class LocationServiceCoreImpl: NSObject,LocationService,LocationServiceInte
                     
                     self.lastRefreshRegionPOILocationId = locationId
                     self.handleRefreshSystemGeofence(locationId: locationId)
-                   
+                    
                 }
             }
-       
+            
         }
         task.resume()
-
+        
     }
     
+    /// Capture error while monitoring region
+    /// - Parameters:
+    ///   - manager: location service
+    ///   - region: region info
+    ///   - error: Error info
     public func locationManager(_ manager: CLLocationManager, monitoringDidFailFor region: CLRegion?, withError error: Error) {
         print("WoosmapGeofencing Error : can't create geofence " + (region?.identifier ?? "") + error.localizedDescription)
     }
     
+    /// Remove olde poi for given region
+    /// - Parameter newPOIS: poi info
     open func removeOldPOIRegions(newPOIS: [POI]) {
         guard let monitoredRegions = locationManager?.monitoredRegions else { return }
         for region in monitoredRegions {
@@ -467,10 +564,23 @@ open class LocationServiceCoreImpl: NSObject,LocationService,LocationServiceInte
         }
     }
     
+    /// Calculate distance between location and POI region
+    /// - Parameters:
+    ///   - locationOrigin: Location center
+    ///   - coordinatesDest: destination array
+    ///   - locationId: Locaton id
     public func calculateDistance(locationOrigin: CLLocation, coordinatesDest: [(Double, Double)], locationId: String) {
         calculateDistance(locationOrigin: locationOrigin, coordinatesDest: coordinatesDest,distanceProvider:distanceProvider, locationId: locationId)
     }
     
+    /// Calculate distance between location and POI region
+    /// - Parameters:
+    ///   - locationOrigin: Location center
+    ///   - coordinatesDest: destinations array
+    ///   - distanceProvider: provider
+    ///   - distanceMode: mode
+    ///   - distanceUnits: unit
+    ///   - distanceLanguage: language
     public func calculateDistance(locationOrigin: CLLocation,
                                   coordinatesDest: [(Double, Double)],
                                   distanceProvider : DistanceProvider = distanceProvider,
@@ -487,19 +597,29 @@ open class LocationServiceCoreImpl: NSObject,LocationService,LocationServiceInte
     }
     
     
+    /// Calculate distance between location and POI region
+    /// - Parameters:
+    ///   - locationOrigin: Location center
+    ///   - coordinatesDest: destinations array
+    ///   - distanceProvider: provider
+    ///   - distanceMode: mode
+    ///   - distanceUnits: Unit
+    ///   - distanceLanguage: language
+    ///   - trafficDistanceRouting: traffic
+    ///   - locationId: Location id
     private func calculateDistance(locationOrigin: CLLocation,
-                                  coordinatesDest: [(Double, Double)],
-                                  distanceProvider : DistanceProvider = distanceProvider,
-                                  distanceMode: DistanceMode = distanceMode,
-                                  distanceUnits: DistanceUnits = distanceUnits,
-                                  distanceLanguage: String = distanceLanguage,
-                                  trafficDistanceRouting: TrafficDistanceRouting = trafficDistanceRouting,
-                                  locationId: String = "") {
-
+                                   coordinatesDest: [(Double, Double)],
+                                   distanceProvider : DistanceProvider = distanceProvider,
+                                   distanceMode: DistanceMode = distanceMode,
+                                   distanceUnits: DistanceUnits = distanceUnits,
+                                   distanceLanguage: String = distanceLanguage,
+                                   trafficDistanceRouting: TrafficDistanceRouting = trafficDistanceRouting,
+                                   locationId: String = "") {
+        
         guard let delegateDistance = self.distanceAPIDataDelegate else {
             return
         }
-
+        
         let userLatitude: String = String(format: "%f", locationOrigin.coordinate.latitude)
         let userLongitude: String = String(format: "%f", locationOrigin.coordinate.longitude)
         
@@ -508,7 +628,7 @@ open class LocationServiceCoreImpl: NSObject,LocationService,LocationServiceInte
             coordinatesDestList.append("\(item.0),\(item.1)")
         }
         let coordinateDestinations = coordinatesDestList.joined(separator: "|")
-
+        
         var storeAPIUrl = ""
         if(distanceProvider == DistanceProvider.woosmapDistance) {
             storeAPIUrl = String(format: distanceWoosmapAPI, distanceMode.rawValue, distanceUnits.rawValue, distanceLanguage, userLatitude, userLongitude, coordinateDestinations)
@@ -546,29 +666,40 @@ open class LocationServiceCoreImpl: NSObject,LocationService,LocationServiceInte
             }
         }
         task.resume()
-
-    }
         
+    }
+    
+    /// Location arror trace
+    /// - Parameter error: <#error description#>
     public func tracingLocationDidFailWithError(error: Error) {
         print("\(error)")
     }
-
+    
+    
+    /// Location Error
+    /// - Parameter error: Error info
     func updateLocationDidFailWithError(error: Error) {
-
+        
         guard let delegate = self.locationServiceDelegate else {
             return
         }
-
+        
         delegate.tracingLocationDidFailWithError(error: error)
     }
-
+    
+    
+    /// Handle Region Changes
     func handleRegionChange() {
         self.lastRegionUpdate = Date()
         self.stopMonitoringCurrentRegions()
         self.startUpdatingLocation()
         self.startMonitoringSignificantLocationChanges()
     }
-
+    
+    
+    /// Region Type
+    /// - Parameter identifier: ID
+    /// - Returns: Region Type
     public func getRegionType(identifier: String) -> RegionType {
         if identifier.contains(RegionType.position.rawValue) {
             return RegionType.position
@@ -580,6 +711,8 @@ open class LocationServiceCoreImpl: NSObject,LocationService,LocationServiceInte
         return RegionType.none
     }
     
+    /// Test that Position Is Inside Geofencing Regions
+    /// - Parameter location: location center
     public func checkIfPositionIsInsideGeofencingRegions(location: CLLocation) {
         guard let monitoredRegions = locationManager?.monitoredRegions else { return }
         for region in monitoredRegions {
@@ -596,6 +729,11 @@ open class LocationServiceCoreImpl: NSObject,LocationService,LocationServiceInte
         }
     }
     
+    /// Add Region Log Transition
+    /// - Parameters:
+    ///   - region: region info
+    ///   - didEnter: Event
+    ///   - fromPositionDetection: User Locaton
     open func addRegionLogTransition(region: CLRegion, didEnter: Bool, fromPositionDetection: Bool) {
         if let regionLog = Regions.getRegionFromId(id: region.identifier) {
             if (regionLog.date.timeIntervalSinceNow > -5) {
@@ -628,7 +766,9 @@ open class LocationServiceCoreImpl: NSObject,LocationService,LocationServiceInte
         }
     }
     
-
+    
+    /// Detect All Visit In ZOIClassified
+    /// - Parameter visit: Visit info
     func detectVisitInZOIClassified(visit: CLVisit) {
         let visitLocation = CLLocation(latitude: visit.coordinate.latitude, longitude: visit.coordinate.longitude)
         let classifiedZOIs = ZOIs.getWorkHomeZOI()
@@ -659,8 +799,10 @@ open class LocationServiceCoreImpl: NSObject,LocationService,LocationServiceInte
         }
     }
     
-   
-    
+    /// Popilate Poi data properties
+    /// - Parameters:
+    ///   - poi: POI info
+    ///   - propertyDictionary: Extra properties
     public func setDataFromPOI(poi: POI, propertyDictionary: inout Dictionary <String, Any>) {
         let jsonStructure = try? JSONDecoder().decode(JSONAny.self, from:  poi.jsonData ?? Data.init())
         if let value = jsonStructure!.value as? [String: Any] {
@@ -671,9 +813,9 @@ open class LocationServiceCoreImpl: NSObject,LocationService,LocationServiceInte
                         if let userProperties = properties["user_properties"] as? [String: Any] {
                             if (idstoreFromJson == poi.idstore) {
                                 for (key, value) in userProperties {
-                                      if(userPropertiesFilter.isEmpty || userPropertiesFilter.contains(key)) {
-                                          propertyDictionary["user_properties_" + key] = value
-                                      }
+                                    if(userPropertiesFilter.isEmpty || userPropertiesFilter.contains(key)) {
+                                        propertyDictionary["user_properties_" + key] = value
+                                    }
                                 }
                             }
                         }
@@ -695,14 +837,26 @@ open class LocationServiceCoreImpl: NSObject,LocationService,LocationServiceInte
     }
     
     //Empty shell method
+    
+    /// handle Refresh System Geofence
+    /// - Parameters:
+    ///   - addCustomGeofence:-
+    ///   - locationId: -
     open func handleRefreshSystemGeofence(addCustomGeofence: Bool = false, locationId: String) {
     }
     
+    /// handle Visit Event
+    /// - Parameter visit: -
     open func handleVisitEvent(visit: Visit) {
     }
     
+    /// Handle POI Event
+    /// - Parameter poi: -
     open func handlePOIEvent(poi: POI) {
     }
+    
+    /// handle ZOI Classified Event
+    /// - Parameter region: -
     open func handleZOIClassifiedEvent(region: Region) {
     }
 }

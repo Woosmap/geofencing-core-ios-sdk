@@ -7,13 +7,31 @@ import Foundation
 import RealmSwift
 import CoreLocation
 
+/// Location Object
 public class Location: Object {
+    
+    /// Date
     @objc public dynamic var date: Date?
+    
+    /// Latitude
     @objc public dynamic var latitude: Double = 0.0
+    
+    /// Description
     @objc public dynamic var locationDescription: String?
+    
+    /// ID
     @objc public dynamic var locationId: String?
+    
+    /// Longitude
     @objc public dynamic var longitude: Double = 0.0
-
+    
+    /// Create new Location object
+    /// - Parameters:
+    ///   - locationId:
+    ///   - latitude:
+    ///   - longitude:
+    ///   - dateCaptured:
+    ///   - descriptionToSave:
     convenience public init(locationId: String, latitude: Double, longitude: Double, dateCaptured: Date, descriptionToSave: String) {
         self.init()
         self.locationId = locationId
@@ -22,10 +40,15 @@ public class Location: Object {
         self.date = dateCaptured
         self.locationDescription = descriptionToSave
     }
-
+    
 }
 
+/// Location business object
 public class Locations {
+    
+    /// Create new location form CLLocation
+    /// - Parameter locations: CLLocation
+    /// - Returns: Locations
     public class func add(locations: [CLLocation]) -> Location {
         do {
             let realm = try Realm()
@@ -41,7 +64,9 @@ public class Locations {
         }
         return Location()
     }
-
+    
+    /// Test Location
+    /// - Parameter location: Location
     public class func addTest(location: Location) {
         do {
             let realm = try Realm()
@@ -51,7 +76,9 @@ public class Locations {
         } catch {
         }
     }
-
+    
+    /// List all saved locations
+    /// - Returns: Locations
     public class func getAll() -> [Location] {
         do {
             let realm = try Realm()
@@ -61,7 +88,10 @@ public class Locations {
         }
         return []
     }
-   
+    
+    /// Get Location From Id
+    /// - Parameter locationId: ID
+    /// - Returns: Location
     @available(*, deprecated, message: "Use getLocationFromId:id instead")
     private class func getLocationByLocationID(locationId: String) -> Location? {
         do {
@@ -69,13 +99,16 @@ public class Locations {
             let predicate = NSPredicate(format: "locationId == %@", locationId)
             let fetchedResults = realm.objects(Location.self).filter(predicate)
             if let aLocation = fetchedResults.first {
-               return aLocation
+                return aLocation
             }
         } catch {
         }
         return nil
     }
-
+    
+    /// Get Location From Id
+    /// - Parameter id: ID
+    /// - Returns: Location
     public class func getLocationFromId(id: String) -> Location? {
         do {
             let realm = try Realm()
@@ -88,7 +121,8 @@ public class Locations {
         }
         return nil
     }
-
+    
+    /// Delete all locatons
     public class func deleteAll() {
         do {
             let realm = try Realm()
@@ -96,7 +130,7 @@ public class Locations {
                 realm.delete(realm.objects(Location.self))
             }
         } catch let error as NSError {
-          print(error)
+            print(error)
         }
     }
 }
