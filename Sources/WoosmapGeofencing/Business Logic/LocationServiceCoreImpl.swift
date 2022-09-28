@@ -544,7 +544,7 @@ open class LocationServiceCoreImpl: NSObject,
         print("WoosmapGeofencing Error : can't create geofence " + (region?.identifier ?? "") + error.localizedDescription)
     }
     
-    /// Remove olde poi for given region
+    /// Remove old poi for given region
     /// - Parameter newPOIS: poi info
     open func removeOldPOIRegions(newPOIS: [POI]) {
         guard let monitoredRegions = locationManager?.monitoredRegions else { return }
@@ -799,7 +799,7 @@ open class LocationServiceCoreImpl: NSObject,
         }
     }
     
-    /// Popilate Poi data properties
+    /// Populate Poi data properties
     /// - Parameters:
     ///   - poi: POI info
     ///   - propertyDictionary: Extra properties
