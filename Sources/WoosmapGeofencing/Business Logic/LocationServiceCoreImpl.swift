@@ -122,7 +122,7 @@ open class LocationServiceCoreImpl: NSObject,
         }
     }
     
-    /// Start mnitoring region
+    /// Start monitoring region
     func startMonitoringCurrentRegions(regions: Set<CLRegion>) {
         self.requestAuthorization()
         for region in regions {
