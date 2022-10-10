@@ -1,33 +1,84 @@
 //
 //  POI.swift
 //  WoosmapGeofencing
-//  Copyright © 2021 Web Geo Services. All rights reserved.
 //
 
 import RealmSwift
 import Foundation
 
+/// Point of Intrest DB Object
 public class POI: Object {
+    
+    /// JSON Data
     @objc public dynamic var jsonData: Data?
+    
+    /// City
     @objc public dynamic var city: String?
+    
+    /// Store ID
     @objc public dynamic var idstore: String?
+    
+    /// Name
     @objc public dynamic var name: String?
+    
+    /// Date
     @objc public dynamic var date: Date?
+    
+    /// Distance
     @objc public dynamic var distance: Double = 0.0
+    
+    /// Duration
     @objc public dynamic var duration: String?
+    
+    /// Latitude
     @objc public dynamic var latitude: Double = 0.0
+    
+    /// Location ID
     @objc public dynamic var locationId: String?
+    
+    /// Longitude
     @objc public dynamic var longitude: Double = 0.0
+    
+    /// Zip Code
     @objc public dynamic var zipCode: String?
+    
+    /// Radius
     @objc public dynamic var radius: Double = 0.0
+    
+    /// Address
     @objc public dynamic var address: String?
+    
+    /// Open Now
     @objc public dynamic var openNow: Bool = false
+    
+    /// Country Code
     @objc public dynamic var countryCode: String?
+    
+    /// Tags
     @objc public dynamic var tags: String?
+    
+    /// Types
     @objc public dynamic var types: String?
+    
+    /// Contact
     @objc public dynamic var contact: String?
-
-
+    
+    
+    /// Create new entry in POI object
+    /// - Parameters:
+    ///   - locationId:
+    ///   - city:
+    ///   - zipCode:
+    ///   - distance:
+    ///   - latitude:
+    ///   - longitude:
+    ///   - dateCaptured:
+    ///   - radius:
+    ///   - address:
+    ///   - tags:
+    ///   - types:
+    ///   - countryCode:
+    ///   - contact:
     convenience public init(locationId: String? = nil, city: String? = nil, zipCode: String? = nil, distance: Double? = nil, latitude: Double? = nil, longitude: Double? = nil, dateCaptured: Date? = nil, radius: Double? = nil, address: String? = nil, tags: String? = nil, types: String? = nil, countryCode: String? = nil, contact: String? = nil) {
         self.init()
         self.locationId = locationId
@@ -46,7 +97,14 @@ public class POI: Object {
     }
 }
 
+/// POI business class
 public class POIs {
+    
+    /// Capture JSON input and convert POI object
+    /// - Parameters:
+    ///   - searchAPIResponse: API response
+    ///   - locationId: location
+    /// - Returns: POI Object
     public class func addFromResponseJson(searchAPIResponse: Data, locationId: String) -> [POI] {
         do {
             let jsonStructure = try JSONDecoder().decode(JSONAny.self, from: searchAPIResponse)
@@ -96,7 +154,7 @@ public class POIs {
                                 if let userProperties = properties["user_properties"] as? [String: Any] {
                                     for (key, value) in userProperties {
                                         if(key == radius) {
-                                           if let radius = value as? Int64 {
+                                            if let radius = value as? Int64 {
                                                 poi.radius = Double(radius)
                                             } else if let radius = value as? String {
                                                 poi.radius = Double(radius) ?? 300
@@ -137,7 +195,10 @@ public class POIs {
         }
         return []
     }
-
+    
+    
+    /// Test POI (Add)
+    /// - Parameter poi: POI List
     public class func addTest(poi: POI) {
         do {
             let realm = try Realm()
@@ -147,7 +208,9 @@ public class POIs {
         } catch {
         }
     }
-
+    
+    /// Get All POI
+    /// - Returns: POI List
     public class func getAll() -> [POI] {
         do {
             let realm = try Realm()
@@ -157,19 +220,26 @@ public class POIs {
         }
         return []
     }
-
+    
+    /// Get POI by LocationID
+    /// - Parameter locationId: Location
+    /// - Returns: POI Information
     public class func getPOIbyLocationID(locationId: String) -> POI? {
         do {
             let realm = try Realm()
             let predicate = NSPredicate(format: "locationId == %@", locationId)
             let fetchedResults = realm.objects(POI.self).filter(predicate)
             if let aPOI = fetchedResults.first {
-               return aPOI
+                return aPOI
             }
         } catch {
         }
         return nil
     }
+    
+    /// Last POI From Location
+    /// - Parameter locationId: Location
+    /// - Returns: POI Information
     public class func getLastPOIsFromLocationID(locationId: String) -> [POI] {
         do {
             let realm = try Realm()
@@ -188,19 +258,28 @@ public class POIs {
         return []
     }
     
+    /// POI by store ID
+    /// - Parameter idstore: store
+    /// - Returns: POI Information
     public class func getPOIbyIdStore(idstore: String) -> POI? {
         do {
             let realm = try Realm()
             let predicate = NSPredicate(format: "idstore == %@", idstore)
             let fetchedResults = realm.objects(POI.self).filter(predicate)
             if let aPOI = fetchedResults.first {
-               return aPOI
+                return aPOI
             }
         } catch {
         }
         return nil
     }
-
+    
+    /// Change POI distance/duration for Location
+    /// - Parameters:
+    ///   - distance: distance
+    ///   - duration: duration
+    ///   - locationId: Location
+    /// - Returns: Updated POI information
     public class func updatePOIWithDistance(distance: Double, duration: String, locationId: String) -> POI {
         do {
             let poiToUpdate = POIs.getPOIbyLocationID(locationId: locationId)
@@ -217,7 +296,9 @@ public class POIs {
         }
         return POI()
     }
-
+    
+    
+    /// Delete all POI and clean offline database
     public class func deleteAll() {
         do {
             let realm = try Realm()
@@ -225,7 +306,7 @@ public class POIs {
                 realm.delete(realm.objects(POI.self))
             }
         } catch let error as NSError {
-          print(error)
+            print(error)
         }
     }
 }

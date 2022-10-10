@@ -1,19 +1,20 @@
 //
 //  DataCleaner.swift
 //  WoosmapGeofencing
-//  Copyright © 2021 Web Geo Services. All rights reserved.
 //
 
 import Foundation
 import RealmSwift
 
+/// Data cleaning form offline databse
 public class DataCleaner {
-
+    
     public init() {}
-
+    
+    /// Delete old data
     public func cleanOldGeographicData() {
         let lastDateUpdate = UserDefaults.standard.object(forKey: "lastDateUpdate") as? Date
-
+        
         if lastDateUpdate != nil {
             let dateComponents = Calendar.current.dateComponents([.day], from: lastDateUpdate!, to: Date())
             // update date if no updating since 1 day
@@ -45,7 +46,9 @@ public class DataCleaner {
         // Update date
         UserDefaults.standard.set(Date(), forKey: "lastDateUpdate")
     }
-
+    
+    /// Delete all data more than x days
+    /// - Parameter days: Days
     func removeLocationOlderThan(days: Int) {
         do {
             let realm = try Realm()
@@ -58,8 +61,10 @@ public class DataCleaner {
         } catch {
         }
     }
-
-   func removePOIOlderThan(days: Int) {
+    
+    /// Remove all POI more than x days
+    /// - Parameter days: days
+    func removePOIOlderThan(days: Int) {
         do {
             let realm = try Realm()
             let limitDate = Calendar.current.date(byAdding: .day, value: -days, to: Date())
@@ -71,9 +76,11 @@ public class DataCleaner {
         } catch {
         }
     }
-
-   func removeVisitOlderThan(days: Int) {
-       do {
+    
+    /// Remove all visits more than x days
+    /// - Parameter days: days
+    func removeVisitOlderThan(days: Int) {
+        do {
             let realm = try Realm()
             let limitDate = Calendar.current.date(byAdding: .day, value: -days, to: Date())
             let predicate = NSPredicate(format: "(date <= %@)", limitDate! as CVarArg)

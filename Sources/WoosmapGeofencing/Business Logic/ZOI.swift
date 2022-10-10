@@ -2,37 +2,79 @@
 //  ZOI.swift
 //  WoosmapGeofencing
 //
-//
 
 import RealmSwift
 import Foundation
 
+/// Zone of Intrest Object
 public class ZOI: Object {
+    
+    /// Accumulator
     @objc public dynamic var accumulator: Double = 0.0
+    
+    /// Age
     @objc public dynamic var age: Double = 0.0
+    
+    /// Covariance_det
     @objc public dynamic var covariance_det: Double = 0.0
+    
+    /// Duration
     @objc public dynamic var duration: Int64 = 0
+    
+    /// End Time
     @objc public dynamic var endTime: Date?
+    
+    /// Visit ID
     public dynamic var idVisits = List<String>()
+    
+    /// LatMean
     @objc public dynamic var latMean: Double = 0.0
+    
+    /// LngMean
     @objc public dynamic var lngMean: Double = 0.0
+    
+    /// Period
     @objc public dynamic var period: String?
+    
+    /// Prior Probability
     @objc public dynamic var prior_probability: Double = 0.0
+    
+    /// Start Time
     @objc public dynamic var startTime: Date?
+    
+    /// Weekly Density
     public dynamic var weekly_density = List<Double>()
+    
+    /// wktPolygon
     @objc public dynamic var wktPolygon: String?
+    
+    /// x00Covariance_matrix_inverse
     @objc public dynamic var x00Covariance_matrix_inverse: Double = 0.0
+    
+    /// x01Covariance_matrix_inverse
     @objc public dynamic var x01Covariance_matrix_inverse: Double = 0.0
+    
+    /// x10Covariance_matrix_inverse
     @objc public dynamic var x10Covariance_matrix_inverse: Double = 0.0
+    
+    /// x11Covariance_matrix_inverse
     @objc public dynamic var x11Covariance_matrix_inverse: Double = 0.0
+    
+    /// ID
     @objc public dynamic var zoiId: String?
-
+    
+    /// Primary Key
+    /// - Returns: zoiId
     public override class func primaryKey() -> String? {
-            return "zoiId"
-        }
+        return "zoiId"
+    }
 }
 
+/// ZOI business class
 public class ZOIs {
+    
+    /// New ZOI form from row detail
+    /// - Parameter zoi: Raw information
     public class func createZOIFrom(zoi: [String: Any]) {
         do {
             let realm = try Realm()
@@ -72,14 +114,16 @@ public class ZOIs {
             newZOI.setValue(zoi["x10Covariance_matrix_inverse"], forKey: "x10Covariance_matrix_inverse")
             newZOI.setValue(zoi["x11Covariance_matrix_inverse"], forKey: "x11Covariance_matrix_inverse")
             newZOI.setValue(zoi["WktPolygon"], forKey: "wktPolygon")
-
+            
             realm.beginWrite()
             realm.add(newZOI)
             try realm.commitWrite()
         } catch {
         }
     }
-
+    
+    /// Save ZPI in local database
+    /// - Parameter zois: Raw information
     public class func saveZoisInDB(zois: [[String: Any]]) {
         var zoisToDB: [ZOI] = []
         for zoi in zois {
@@ -127,7 +171,7 @@ public class ZOIs {
             newZOi.setValue(zoi["WktPolygon"], forKey: "wktPolygon")
             zoisToDB.append(newZOi)
         }
-
+        
         do {
             let realm = try Realm()
             realm.beginWrite()
@@ -137,11 +181,13 @@ public class ZOIs {
         } catch {
         }
     }
-
+    
+    /// Create new ZOI form visit log
+    /// - Parameter visit: Visit Log
     public class func createZOIFromVisit(visit: Visit) {
         let sMercator = SphericalMercator()
         var zoisFromDB: [[String: Any]] = []
-
+        
         for zoiFromDB in ZOIs.getAll() {
             var zoiToAdd = [String: Any]()
             zoiToAdd["prior_probability"] = zoiFromDB.prior_probability
@@ -170,16 +216,18 @@ public class ZOIs {
             zoiToAdd["x10Covariance_matrix_inverse"] = zoiFromDB.x10Covariance_matrix_inverse
             zoiToAdd["x11Covariance_matrix_inverse"] = zoiFromDB.x11Covariance_matrix_inverse
             zoisFromDB.append(zoiToAdd)
-
+            
         }
-
+        
         setListZOIsFromDB(zoiFromDB: zoisFromDB)
-
+        
         let list_zoi = figmmForVisit(newVisitPoint: LoadedVisit(x: sMercator.lon2x(aLong: visit.longitude), y: sMercator.lat2y(aLat: visit.latitude), accuracy: visit.accuracy, id: visit.visitId!, startTime: visit.arrivalDate!, endTime: visit.departureDate!))
-
+        
         saveZoisInDB(zois: list_zoi)
     }
-
+    
+    /// Create new ZOI info from Location information
+    /// - Parameter visit: Location information
     public class func createZOIFromLocation(visit: Location) {
         let sMercator = SphericalMercator()
         var zoisFromDB: [[String: Any]] = []
@@ -210,25 +258,27 @@ public class ZOIs {
             zoiToAdd["x10Covariance_matrix_inverse"] = zoiFromDB.x10Covariance_matrix_inverse
             zoiToAdd["x11Covariance_matrix_inverse"] = zoiFromDB.x11Covariance_matrix_inverse
             zoisFromDB.append(zoiToAdd)
-
+            
         }
-
+        
         setListZOIsFromDB(zoiFromDB: zoisFromDB)
-
+        
         let list_zoi = figmmForVisit(newVisitPoint: LoadedVisit(x: sMercator.lon2x(aLong: visit.longitude), y: sMercator.lat2y(aLat: visit.latitude), accuracy: 20.0, id: visit.locationId!, startTime: Date(), endTime: Date().addingTimeInterval(100)))
-
+        
         ZOIs.deleteAll()
-
+        
         for zoi in list_zoi {
             createZOIFrom(zoi: zoi)
         }
-
+        
     }
-
+    
+    /// Update ZOI information
+    /// - Parameter visits: Visit Info
     public class func updateZOI(visits: [Visit]) {
         let sMercator = SphericalMercator()
         var zoisFromDB: [[String: Any]] = []
-
+        
         for zoiFromDB in ZOIs.getAll() {
             var zoiToAdd = [String: Any]()
             zoiToAdd["prior_probability"] = zoiFromDB.prior_probability
@@ -258,17 +308,19 @@ public class ZOIs {
             zoiToAdd["x11Covariance_matrix_inverse"] = zoiFromDB.x11Covariance_matrix_inverse
             zoisFromDB.append(zoiToAdd)
         }
-
+        
         setListZOIsFromDB(zoiFromDB: zoisFromDB)
-
+        
         var list_zoi: [[String: Any]] = []
         for visit in visits {
             list_zoi = deleteVisitOnZoi(visitsToDelete: LoadedVisit(x: sMercator.lon2x(aLong: visit.longitude), y: sMercator.lat2y(aLat: visit.latitude), accuracy: visit.accuracy, id: visit.visitId!, startTime: visit.arrivalDate!, endTime: visit.departureDate!))
         }
-
+        
         ZOIs.saveZoisInDB(zois: list_zoi)
     }
-
+    
+    /// Get All ZOI
+    /// - Returns: ZOIs
     public class func getAll() -> [ZOI] {
         do {
             let realm = try Realm()
@@ -278,7 +330,8 @@ public class ZOIs {
         }
         return []
     }
-
+    
+    /// Delete All ZOI information
     public class func deleteAll() {
         do {
             let realm = try Realm()
@@ -289,6 +342,8 @@ public class ZOIs {
         }
     }
     
+    /// Work Home ZOI
+    /// - Returns: Work/Home ZOI
     public class func getWorkHomeZOI() -> [ZOI] {
         do {
             let realm = try Realm()

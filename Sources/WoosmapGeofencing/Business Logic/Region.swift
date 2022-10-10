@@ -2,7 +2,6 @@
 //  Region.swift
 //  WoosmapGeofencing
 //
-//
 
 import Foundation
 import RealmSwift
@@ -10,22 +9,62 @@ import CoreLocation
 
 /// Offline Databse: Region
 public class Region: Object {
+    
+    /// date
     @objc public dynamic var date: Date = Date()
+    
+    /// didEnter
     @objc public dynamic var didEnter: Bool = false
+    
+    /// identifier
     @objc public dynamic var identifier: String = ""
+    
+    /// latitude
     @objc public dynamic var latitude: Double = 0.0
+    
+    /// longitude
     @objc public dynamic var longitude: Double = 0.0
+    
+    /// radius
     @objc public dynamic var radius: Double = 0.0
+    
+    /// fromPositionDetection
     @objc public dynamic var fromPositionDetection: Bool = false
+    
+    /// distance
     @objc public dynamic var distance = 0;
+    
+    /// distanceText
     @objc public dynamic var distanceText = "";
+    
+    /// duration
     @objc public dynamic var duration = 0;
+    
+    /// durationText
     @objc public dynamic var durationText = "";
+    
+    /// type
     @objc public dynamic var type = "circle";
+    
+    /// origin
     @objc public dynamic var origin = "";
+    
+    /// eventName
     @objc public dynamic var eventName: String = "";
+    
+    /// spentTime
     @objc public dynamic var spentTime: Double = 0;
     
+    /// Create new region object
+    /// - Parameters:
+    ///   - latitude:
+    ///   - longitude:
+    ///   - radius:
+    ///   - dateCaptured:
+    ///   - identifier:
+    ///   - didEnter:
+    ///   - fromPositionDetection:
+    ///   - eventName:
     convenience public init(latitude: Double, longitude: Double, radius: Double, dateCaptured: Date, identifier: String, didEnter: Bool, fromPositionDetection: Bool, eventName: String) {
         self.init()
         self.latitude = latitude
@@ -41,8 +80,14 @@ public class Region: Object {
 
 /// Offline Database: DurationLog
 public class DurationLog: Object {
+    
+    /// identifier
     @objc public dynamic var identifier: String = ""
+    
+    /// entryTime
     @objc public dynamic var entryTime: Date = Date()
+    
+    /// exitTime
     @objc public dynamic var exitTime: Date?
 }
 
@@ -132,6 +177,12 @@ public class DurationLogs {
 }
 public class Regions {
     
+    /// Create new circle region
+    /// - Parameters:
+    ///   - POIregion: POI
+    ///   - didEnter: Flag is Enter in region
+    ///   - fromPositionDetection: user location
+    /// - Returns: Region
     public static func add(POIregion: CLRegion, didEnter: Bool, fromPositionDetection: Bool) -> Region {
         do {
             let realm = try Realm()
@@ -174,6 +225,8 @@ public class Regions {
     }
     
     
+    /// Add Custom region
+    /// - Parameter classifiedRegion: Custom region
     public static func add(classifiedRegion: Region) {
         do {
             let realm = try Realm()
@@ -191,6 +244,9 @@ public class Regions {
         }
     }
     
+    /// Get Region information
+    /// - Parameter id: ID
+    /// - Returns: Region
     public static func getRegionFromId(id: String) -> Region? {
         do {
             let realm = try Realm()
@@ -209,6 +265,8 @@ public class Regions {
         return nil
     }
     
+    /// Get all region list
+    /// - Returns: Regions
     public static func getAll() -> [Region] {
         do {
             let realm = try Realm()
@@ -219,6 +277,7 @@ public class Regions {
         return []
     }
     
+    /// Delete all regions
     public static func deleteAll() {
         do {
             let realm = try Realm()

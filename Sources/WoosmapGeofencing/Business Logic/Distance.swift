@@ -8,24 +8,78 @@ import Foundation
 import RealmSwift
 import CoreLocation
 
+/// Distance Object
 public class Distance: Object {
+    
+    /// Date
     @objc public dynamic var date: Date?
+    
+    /// origin Latitude
     @objc public dynamic var originLatitude: Double = 0.0
+    
+    /// origin Longitude
     @objc public dynamic var originLongitude: Double = 0.0
+    
+    /// Destination Latitude
     @objc public dynamic var destinationLatitude: Double = 0.0
+    
+    /// Destination Longitude
     @objc public dynamic var destinationLongitude: Double = 0.0
+    
+    /// Distance
     @objc public dynamic var distance: Int = 0
+    
+    /// Distance Text
     @objc public dynamic var distanceText: String?
+    
+    /// Duration
     @objc public dynamic var duration: Int = 0
+    
+    /// Duration Text
     @objc public dynamic var durationText: String?
+    
+    /// mode
     @objc public dynamic var mode: String?
+    
+    /// Units
     @objc public dynamic var units: String?
+    
+    /// Routing
     @objc public dynamic var routing: String?
+    
+    /// Status
     @objc public dynamic var status: String?
+    
+    /// Location Id
     @objc public dynamic var locationId: String?
-
-
-    convenience public init(originLatitude: Double, originLongitude: Double, destinationLatitude: Double, destinationLongitude: Double,dateCaptured: Date, distance: Int, duration: Int, mode: String, units: String, routing: String, status: String, locationId: String) {
+    
+    
+    /// Create new distance object
+    /// - Parameters:
+    ///   - originLatitude:
+    ///   - originLongitude:
+    ///   - destinationLatitude:
+    ///   - destinationLongitude:
+    ///   - dateCaptured:
+    ///   - distance:
+    ///   - duration:
+    ///   - mode:
+    ///   - units:
+    ///   - routing:
+    ///   - status:
+    ///   - locationId:
+    convenience public init(originLatitude: Double,
+                            originLongitude: Double,
+                            destinationLatitude: Double,
+                            destinationLongitude: Double,
+                            dateCaptured: Date,
+                            distance: Int,
+                            duration: Int,
+                            mode: String,
+                            units: String,
+                            routing: String,
+                            status: String,
+                            locationId: String) {
         self.init()
         self.originLatitude = originLatitude
         self.originLongitude = originLongitude
@@ -40,10 +94,24 @@ public class Distance: Object {
         self.status = status
         self.locationId = locationId
     }
-
+    
 }
 
+/// Distance Object
 public class Distances {
+    
+    /// Create new distance object from JSON response
+    /// - Parameters:
+    ///   - APIResponse:
+    ///   - locationId:
+    ///   - origin:
+    ///   - destination:
+    ///   - distanceProvider:
+    ///   - distanceMode:
+    ///   - distanceUnits:
+    ///   - distanceLanguage:
+    ///   - trafficDistanceRouting:
+    /// - Returns: Distance
     public class func addFromResponseJson(APIResponse: Data,
                                           locationId: String,
                                           origin: CLLocation,
@@ -100,15 +168,17 @@ public class Distances {
             realm.add(distanceArray)
             try realm.commitWrite()
             return distanceArray
-                
+            
         } catch let error as NSError {
             print(error)
         }
         
         return []
     }
-
-
+    
+    
+    /// Get all distance object
+    /// - Returns: return all distance
     public class func getAll() -> [Distance] {
         do {
             let realm = try Realm()
@@ -118,7 +188,8 @@ public class Distances {
         }
         return []
     }
-
+    
+    /// Delete all 
     public class func deleteAll() {
         do {
             let realm = try Realm()
@@ -126,7 +197,7 @@ public class Distances {
                 realm.delete(realm.objects(Distance.self))
             }
         } catch let error as NSError {
-          print(error)
+            print(error)
         }
     }
 }

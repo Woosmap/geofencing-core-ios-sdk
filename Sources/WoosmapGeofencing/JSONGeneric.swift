@@ -1,9 +1,7 @@
 //
 //  JSONGeneric.swift
 //  WoosmapGeofencing
-//
-//  Copyright © 2021 Web Geo Services. All rights reserved.
-//
+
 import UIKit
 
 // MARK: - Encode/decode helpers
