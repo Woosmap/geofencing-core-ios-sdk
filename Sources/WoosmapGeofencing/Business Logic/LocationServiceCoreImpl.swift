@@ -272,11 +272,13 @@ open class LocationServiceCoreImpl: NSObject,
     public func removeRegion(center: CLLocationCoordinate2D) {
         guard let monitoredRegions = locationManager?.monitoredRegions else { return }
         for region in monitoredRegions {
-            let latRegion = (region as! CLCircularRegion).center.latitude
-            let lngRegion = (region as! CLCircularRegion).center.longitude
-            if center.latitude == latRegion && center.longitude == lngRegion {
-                self.locationManager?.stopMonitoring(for: region)
-                self.handleRegionChange()
+            if let circularRegion = region as? CLCircularRegion{
+                let latRegion = circularRegion.center.latitude
+                let lngRegion = circularRegion.center.longitude
+                if center.latitude == latRegion && center.longitude == lngRegion {
+                    self.locationManager?.stopMonitoring(for: region)
+                    self.handleRegionChange()
+                }
             }
         }
     }
@@ -717,13 +719,15 @@ open class LocationServiceCoreImpl: NSObject,
         guard let monitoredRegions = locationManager?.monitoredRegions else { return }
         for region in monitoredRegions {
             if (!region.identifier.contains(RegionType.position.rawValue)) {
-                let latRegion = (region as! CLCircularRegion).center.latitude
-                let lngRegion = (region as! CLCircularRegion).center.longitude
-                let distance = location.distance(from: CLLocation(latitude: latRegion, longitude: lngRegion)) - location.horizontalAccuracy
-                if(distance < (region as! CLCircularRegion).radius) {
-                    addRegionLogTransition(region: region, didEnter: true, fromPositionDetection: true)
-                }else {
-                    addRegionLogTransition(region: region, didEnter: false, fromPositionDetection: true)
+                if let circularRegion = region  as? CLCircularRegion {
+                    let latRegion = circularRegion.center.latitude
+                    let lngRegion = circularRegion.center.longitude
+                    let distance = location.distance(from: CLLocation(latitude: latRegion, longitude: lngRegion)) - location.horizontalAccuracy
+                    if(distance < circularRegion.radius) {
+                        addRegionLogTransition(region: region, didEnter: true, fromPositionDetection: true)
+                    }else {
+                        addRegionLogTransition(region: region, didEnter: false, fromPositionDetection: true)
+                    }
                 }
             }
         }
