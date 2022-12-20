@@ -543,7 +543,9 @@ open class LocationServiceCoreImpl: NSObject,
     ///   - region: region info
     ///   - error: Error info
     public func locationManager(_ manager: CLLocationManager, monitoringDidFailFor region: CLRegion?, withError error: Error) {
-        print("WoosmapGeofencing Error : can't create geofence " + (region?.identifier ?? "") + error.localizedDescription)
+        if region is CLCircularRegion{
+            print("WoosmapGeofencing Error : can't create geofence \((region?.identifier ?? "")) \(error.localizedDescription)")
+        }
     }
     
     /// Remove old poi for given region
