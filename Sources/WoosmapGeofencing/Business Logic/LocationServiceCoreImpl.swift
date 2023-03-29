@@ -10,7 +10,7 @@ import CoreLocation
 public class LocationServiceCoreImpl: NSObject,
                                     LocationService,
                                     LocationServiceInternal,
-                                    CLLocationManagerDelegate  {
+                                      CLLocationManagerDelegate  {
     
     /// Location Manager
     public var locationManager: LocationManagerProtocol?
@@ -498,10 +498,8 @@ public class LocationServiceCoreImpl: NSObject,
         }
         
         components.percentEncodedQuery = components.percentEncodedQuery?.replacingOccurrences(of: "+", with: "%2B")
-        let url = URLRequest(url: components.url!)
-        
         // Call API search
-        let task = URLSession.shared.dataTask(with: url) { [self] (data, response, error) in
+        woosApiCall(with: components.url!) { [self] (data, response, error) in
             if let response = response as? HTTPURLResponse {
                 if response.statusCode != 200 {
                     NSLog("statusCode: \(response.statusCode)")
@@ -533,7 +531,6 @@ public class LocationServiceCoreImpl: NSObject,
             }
             
         }
-        task.resume()
         
     }
     
@@ -643,7 +640,7 @@ public class LocationServiceCoreImpl: NSObject,
         let url = URL(string: storeAPIUrl.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!)!
         
         // Call API Distance
-        let task = URLSession.shared.dataTask(with: url) { [weak self] (data, response, error) in
+        woosApiCall(with: url) {(data, response, error) in
             DispatchQueue.main.async {
                 if let response = response as? HTTPURLResponse {
                     if response.statusCode != 200 {
@@ -669,7 +666,6 @@ public class LocationServiceCoreImpl: NSObject,
                 }
             }
         }
-        task.resume()
         
     }
     
@@ -840,6 +836,23 @@ public class LocationServiceCoreImpl: NSObject,
         propertyDictionary["address"] = poi.address
         propertyDictionary["contact"] = poi.contact
         propertyDictionary["openNow"] = poi.openNow
+    }
+    
+    public func woosApiCall(with url: URL, completionHandler: @escaping @Sendable (Data?, URLResponse?, Error?) -> Void) {
+        var url = URLRequest(url: url)
+        url.addValue("geofence-sdk", forHTTPHeaderField: "X-SDK-Source")
+        url.addValue("iOS", forHTTPHeaderField: "X-AK-SDK-Platform")
+        url.addValue("3.0.x", forHTTPHeaderField: "X-AK-SDK-Version")
+        url.addValue(Bundle.main.bundleIdentifier ?? "unknown", forHTTPHeaderField: "X-iOS-Identifier")
+        url.addValue(WoosmapAPIKey, forHTTPHeaderField: "X-Api-Key")
+        
+        // Call Get API
+        let task = URLSession.shared.dataTask(with: url) { data, response, error in
+            DispatchQueue.main.async {
+                completionHandler(data, response, error)
+            }
+        }
+        task.resume()
     }
     
     //Empty shell method
