@@ -839,10 +839,13 @@ public class LocationServiceCoreImpl: NSObject,
     }
     
     public func woosApiCall(with url: URL, completionHandler: @escaping @Sendable (Data?, URLResponse?, Error?) -> Void) {
+        let bundle = Bundle(for: LocationServiceCoreImpl.self)
         var url = URLRequest(url: url)
+        
         url.addValue("geofence-sdk", forHTTPHeaderField: "X-SDK-Source")
         url.addValue("iOS", forHTTPHeaderField: "X-AK-SDK-Platform")
-        url.addValue("3.0.x", forHTTPHeaderField: "X-AK-SDK-Version")
+        
+        url.addValue(bundle.infoDictionary?["CFBundleShortVersionString"] as? String ?? "3.0.0", forHTTPHeaderField: "X-AK-SDK-Version")
         url.addValue(Bundle.main.bundleIdentifier ?? "unknown", forHTTPHeaderField: "X-iOS-Identifier")
         url.addValue(WoosmapAPIKey, forHTTPHeaderField: "X-Api-Key")
         
