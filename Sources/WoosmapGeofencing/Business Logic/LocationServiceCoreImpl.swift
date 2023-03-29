@@ -7,7 +7,7 @@ import Foundation
 import CoreLocation
 
 /// Location service implementation
-open class LocationServiceCoreImpl: NSObject,
+public class LocationServiceCoreImpl: NSObject,
                                     LocationService,
                                     LocationServiceInternal,
                                     CLLocationManagerDelegate  {
