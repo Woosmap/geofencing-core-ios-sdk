@@ -130,6 +130,8 @@ public protocol LocationService: NSObject {
     func locationManagerDidPauseLocationUpdates(_ manager: CLLocationManager)
     
     func locationManager(_ manager: CLLocationManager, didStartMonitoringFor region: CLRegion)
+    
+    func woosApiCall(with url: URL,completionHandler: @escaping @Sendable (Data?, URLResponse?, Error?) -> Void)
 }
 
 public extension LocationService {
