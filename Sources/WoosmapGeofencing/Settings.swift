@@ -19,7 +19,9 @@ public enum DistanceProvider: String {
   case woosmapDistance
 }
 
-public var distanceProvider = DistanceProvider.woosmapDistance
+private var distanceProvider = DistanceProvider.woosmapDistance
+
+public var distanceWithTraffic:Bool = false
 
 // Woosmap Distance mode
 public enum DistanceMode: String {
@@ -31,7 +33,9 @@ public enum DistanceMode: String {
 
 public var distanceMode = DistanceMode.driving // cycling,walking
 
-public var distanceWoosmapAPI = "https://api.woosmap.com/distance/distancematrix/json?mode=%@&units=%@&language=%@&origins=%@,%@&destinations=%@&private_key=\(WoosmapAPIKey)&elements=duration_distance"
+//public var distanceWoosmapAPI = "https://api.woosmap.com/distance/distancematrix/json?mode=%@&units=%@&language=%@&origins=%@,%@&destinations=%@&private_key=\(WoosmapAPIKey)&elements=duration_distance"
+
+public var distanceWoosmapAPI = "https://api.woosmap.com/distance/distancematrix/json"
 
 
 public enum TrafficDistanceRouting: String {
@@ -47,8 +51,6 @@ public enum DistanceUnits: String {
 public var trafficDistanceRouting = TrafficDistanceRouting.fastest
 public var distanceUnits = DistanceUnits.metric
 public var distanceLanguage = "en"
-
-public var trafficDistanceWoosmapAPI = "https://api.woosmap.com/traffic/distancematrix/json?mode=%@&units=%@&routing=%@&language=%@&departure_time=now&origins=%@,%@&destinations=%@&private_key=\(WoosmapAPIKey)"
 
 //Distance filters
 public var distanceMaxAirDistanceFilter = 1000000

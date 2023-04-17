@@ -116,7 +116,6 @@ public class Distances {
                                           locationId: String,
                                           origin: CLLocation,
                                           destination: [(Double, Double)],
-                                          distanceProvider : DistanceProvider = distanceProvider,
                                           distanceMode: DistanceMode = distanceMode,
                                           distanceUnits: DistanceUnits = distanceUnits,
                                           distanceLanguage: String = distanceLanguage,
@@ -140,15 +139,8 @@ public class Distances {
                         distance.destinationLongitude = dest.1
                         let distanceValue = element.distance?.value
                         let distanceText = element.distance?.text
-                        var durationValue = 0
-                        var durationText = ""
-                        if(distanceProvider == DistanceProvider.woosmapTraffic) {
-                            durationValue = element.duration_with_traffic?.value ?? 0
-                            durationText = element.duration_with_traffic?.text ?? ""
-                        } else {
-                            durationValue = element.duration?.value ?? 0
-                            durationText = element.duration?.text ?? ""
-                        }
+                        var durationValue = element.duration?.value ?? 0
+                        var durationText = element.duration?.text ?? ""
                         distance.distance = distanceValue ?? 0
                         distance.distanceText = distanceText
                         distance.duration = durationValue

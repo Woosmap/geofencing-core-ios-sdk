@@ -571,26 +571,26 @@ public class LocationServiceCoreImpl: NSObject,
     ///   - coordinatesDest: destination array
     ///   - locationId: Locaton id
     public func calculateDistance(locationOrigin: CLLocation, coordinatesDest: [(Double, Double)], locationId: String) {
-        calculateDistance(locationOrigin: locationOrigin, coordinatesDest: coordinatesDest,distanceProvider:distanceProvider, locationId: locationId)
+        calculateDistance(locationOrigin: locationOrigin, coordinatesDest: coordinatesDest,distanceWithTraffic:distanceWithTraffic, locationId: locationId)
     }
     
     /// Calculate distance between location and POI region
     /// - Parameters:
     ///   - locationOrigin: Location center
     ///   - coordinatesDest: destinations array
-    ///   - distanceProvider: provider
+    ///   - distanceWithTraffic: Calculate distance with consideration of traffic
     ///   - distanceMode: mode
     ///   - distanceUnits: unit
     ///   - distanceLanguage: language
     public func calculateDistance(locationOrigin: CLLocation,
                                   coordinatesDest: [(Double, Double)],
-                                  distanceProvider : DistanceProvider = distanceProvider,
+                                  distanceWithTraffic : Bool = distanceWithTraffic,
                                   distanceMode: DistanceMode = distanceMode,
                                   distanceUnits: DistanceUnits = distanceUnits,
                                   distanceLanguage: String = distanceLanguage){
         calculateDistance(locationOrigin: locationOrigin,
                           coordinatesDest: coordinatesDest,
-                          distanceProvider:distanceProvider,
+                          distanceWithTraffic:distanceWithTraffic,
                           distanceMode: distanceMode,
                           distanceUnits:distanceUnits,
                           distanceLanguage:distanceLanguage,
@@ -602,7 +602,7 @@ public class LocationServiceCoreImpl: NSObject,
     /// - Parameters:
     ///   - locationOrigin: Location center
     ///   - coordinatesDest: destinations array
-    ///   - distanceProvider: provider
+    ///   - distanceWithTraffic: Calculate distance with consideration of traffic
     ///   - distanceMode: mode
     ///   - distanceUnits: Unit
     ///   - distanceLanguage: language
@@ -610,7 +610,7 @@ public class LocationServiceCoreImpl: NSObject,
     ///   - locationId: Location id
     private func calculateDistance(locationOrigin: CLLocation,
                                    coordinatesDest: [(Double, Double)],
-                                   distanceProvider : DistanceProvider = distanceProvider,
+                                   distanceWithTraffic : Bool = distanceWithTraffic,
                                    distanceMode: DistanceMode = distanceMode,
                                    distanceUnits: DistanceUnits = distanceUnits,
                                    distanceLanguage: String = distanceLanguage,
@@ -630,43 +630,55 @@ public class LocationServiceCoreImpl: NSObject,
         }
         let coordinateDestinations = coordinatesDestList.joined(separator: "|")
         
-        var storeAPIUrl = ""
-        if(distanceProvider == DistanceProvider.woosmapDistance) {
-            storeAPIUrl = String(format: distanceWoosmapAPI, distanceMode.rawValue, distanceUnits.rawValue, distanceLanguage, userLatitude, userLongitude, coordinateDestinations)
-        } else {
-            storeAPIUrl = String(format: trafficDistanceWoosmapAPI, distanceMode.rawValue, distanceUnits.rawValue,trafficDistanceRouting.rawValue,distanceLanguage, userLatitude, userLongitude, coordinateDestinations)
+        var storeAPIUrl:String?
+        var url = URLComponents(string: distanceWoosmapAPI)!
+        var queryItem:[URLQueryItem] = [
+            URLQueryItem(name: "mode", value: distanceMode.rawValue),
+            URLQueryItem(name: "units", value: distanceUnits.rawValue),
+            URLQueryItem(name: "language", value: distanceLanguage),
+            URLQueryItem(name: "origins", value: "\(userLatitude),\(userLongitude)"),
+            URLQueryItem(name: "destinations", value: coordinateDestinations),
+            URLQueryItem(name: "private_key", value: WoosmapAPIKey),
+            URLQueryItem(name: "elements", value: "duration_distance"),
+        ]
+        
+        if(distanceWithTraffic) {
+            let method: String = (trafficDistanceRouting == .fastest) ? "time" : "distance"
+            queryItem.append(URLQueryItem(name: "method", value: method))
+            queryItem.append(URLQueryItem(name: "departure_time", value: "now"))
+            
         }
-        
-        let url = URL(string: storeAPIUrl.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!)!
-        
-        // Call API Distance
-        woosApiCall(with: url) {(data, response, error) in
-            DispatchQueue.main.async {
-                if let response = response as? HTTPURLResponse {
-                    if response.statusCode != 200 {
-                        NSLog("statusCode: \(response.statusCode)")
-                        delegateDistance.distanceAPIError(error: "Error Distance API " + String(response.statusCode))
-                        return
-                    }
-                    if let error = error {
-                        NSLog("error: \(error)")
-                    } else {
-                        let distance = Distances.addFromResponseJson(APIResponse: data!,
-                                                                     locationId: locationId,
-                                                                     origin: locationOrigin,
-                                                                     destination: coordinatesDest,
-                                                                     distanceProvider: distanceProvider,
-                                                                     distanceMode: distanceMode,
-                                                                     distanceUnits: distanceUnits,
-                                                                     distanceLanguage: distanceLanguage,
-                                                                     trafficDistanceRouting: trafficDistanceRouting)
-                        delegateDistance.distanceAPIResponse(distance: distance)
-                        
+        url.queryItems = queryItem
+        url.percentEncodedQuery = url.percentEncodedQuery?.replacingOccurrences(of: "+", with: "%2B")
+        storeAPIUrl = url.string
+        if let url = storeAPIUrl{
+            // Call API Distance
+            woosApiCall(with: URL(string:url)!) {(data, response, error) in
+                DispatchQueue.main.async {
+                    if let response = response as? HTTPURLResponse {
+                        if response.statusCode != 200 {
+                            NSLog("statusCode: \(response.statusCode)")
+                            delegateDistance.distanceAPIError(error: "Error Distance API " + String(response.statusCode))
+                            return
+                        }
+                        if let error = error {
+                            NSLog("error: \(error)")
+                        } else {
+                            let distance = Distances.addFromResponseJson(APIResponse: data!,
+                                                                         locationId: locationId,
+                                                                         origin: locationOrigin,
+                                                                         destination: coordinatesDest,
+                                                                         distanceMode: distanceMode,
+                                                                         distanceUnits: distanceUnits,
+                                                                         distanceLanguage: distanceLanguage,
+                                                                         trafficDistanceRouting: trafficDistanceRouting)
+                            delegateDistance.distanceAPIResponse(distance: distance)
+                            
+                        }
                     }
                 }
             }
         }
-        
     }
     
     /// Location arror trace
