@@ -106,11 +106,10 @@ public class Distances {
     ///   - locationId:
     ///   - origin:
     ///   - destination:
-    ///   - distanceProvider:
     ///   - distanceMode:
     ///   - distanceUnits:
     ///   - distanceLanguage:
-    ///   - trafficDistanceRouting:
+    ///   - distanceMethod:
     /// - Returns: Distance
     public class func addFromResponseJson(APIResponse: Data,
                                           locationId: String,
@@ -119,7 +118,7 @@ public class Distances {
                                           distanceMode: DistanceMode = distanceMode,
                                           distanceUnits: DistanceUnits = distanceUnits,
                                           distanceLanguage: String = distanceLanguage,
-                                          trafficDistanceRouting: TrafficDistanceRouting = trafficDistanceRouting) -> [Distance] {
+                                          distanceMethod: DistanceMethod = distanceMethod) -> [Distance] {
         do {
             var distanceArray: [Distance] = []
             let jsonStructure = try JSONDecoder().decode(DistanceAPIData.self, from: APIResponse)
@@ -130,7 +129,7 @@ public class Distances {
                         let distance = Distance()
                         distance.units = distanceUnits.rawValue
                         distance.date = Date()
-                        distance.routing = trafficDistanceRouting.rawValue
+                        distance.routing = distanceMethod.rawValue
                         distance.mode = distanceMode.rawValue
                         distance.originLatitude = origin.coordinate.latitude
                         distance.originLongitude = origin.coordinate.longitude
@@ -139,8 +138,8 @@ public class Distances {
                         distance.destinationLongitude = dest.1
                         let distanceValue = element.distance?.value
                         let distanceText = element.distance?.text
-                        var durationValue = element.duration?.value ?? 0
-                        var durationText = element.duration?.text ?? ""
+                        let durationValue = element.duration?.value ?? 0
+                        let durationText = element.duration?.text ?? ""
                         distance.distance = distanceValue ?? 0
                         distance.distanceText = distanceText
                         distance.duration = durationValue

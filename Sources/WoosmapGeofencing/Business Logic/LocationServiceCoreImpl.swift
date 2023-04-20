@@ -594,7 +594,7 @@ public class LocationServiceCoreImpl: NSObject,
                           distanceMode: distanceMode,
                           distanceUnits:distanceUnits,
                           distanceLanguage:distanceLanguage,
-                          trafficDistanceRouting: trafficDistanceRouting)
+                          distanceMethod: distanceMethod)
     }
     
     
@@ -606,7 +606,7 @@ public class LocationServiceCoreImpl: NSObject,
     ///   - distanceMode: mode
     ///   - distanceUnits: Unit
     ///   - distanceLanguage: language
-    ///   - trafficDistanceRouting: traffic
+    ///   - distanceMethod: time/distance
     ///   - locationId: Location id
     private func calculateDistance(locationOrigin: CLLocation,
                                    coordinatesDest: [(Double, Double)],
@@ -614,7 +614,7 @@ public class LocationServiceCoreImpl: NSObject,
                                    distanceMode: DistanceMode = distanceMode,
                                    distanceUnits: DistanceUnits = distanceUnits,
                                    distanceLanguage: String = distanceLanguage,
-                                   trafficDistanceRouting: TrafficDistanceRouting = trafficDistanceRouting,
+                                   distanceMethod: DistanceMethod = distanceMethod,
                                    locationId: String = "") {
         
         guard let delegateDistance = self.distanceAPIDataDelegate else {
@@ -643,7 +643,7 @@ public class LocationServiceCoreImpl: NSObject,
         ]
         
         if(distanceWithTraffic) {
-            let method: String = (trafficDistanceRouting == .fastest) ? "time" : "distance"
+            let method: String = distanceMethod.rawValue
             queryItem.append(URLQueryItem(name: "method", value: method))
             queryItem.append(URLQueryItem(name: "departure_time", value: "now"))
             
@@ -671,7 +671,7 @@ public class LocationServiceCoreImpl: NSObject,
                                                                          distanceMode: distanceMode,
                                                                          distanceUnits: distanceUnits,
                                                                          distanceLanguage: distanceLanguage,
-                                                                         trafficDistanceRouting: trafficDistanceRouting)
+                                                                         distanceMethod: distanceMethod)
                             delegateDistance.distanceAPIResponse(distance: distance)
                             
                         }
