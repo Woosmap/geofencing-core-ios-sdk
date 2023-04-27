@@ -101,17 +101,19 @@ import RealmSwift
     
     /// Update Traffic API endpoint
     /// - Parameter api: Endpoint URL
+    @available(*, deprecated,  message: "Call distance matrix api with DistanceProvider as woosmapTraffic")
     public func setTrafficDistanceWoosmapAPI(api: String) {
-        trafficDistanceWoosmapAPI = api
+        
     }
     
     /// Update Provider
     /// - Parameter provider: DistanceProvider
+    @available(*, deprecated, message: "This feature was disabled; use the setDistanceWithTraffic")
     public func setDistanceProvider(provider: DistanceProvider) {
-        if(provider != DistanceProvider.woosmapDistance || provider != DistanceProvider.woosmapTraffic){
-            distanceProvider = provider
+        if(provider == DistanceProvider.woosmapTraffic){
+            distanceWithTraffic = true
         }else {
-            distanceProvider = DistanceProvider.woosmapDistance
+            distanceWithTraffic = false
         }
     }
     
@@ -127,11 +129,12 @@ import RealmSwift
     
     /// Update Traffic Distance Routing
     /// - Parameter routing: TrafficDistanceRouting
+    @available(*, deprecated, message: "This feature was disabled; use the DistanceMethod")
     public func setTrafficDistanceAPIRouting(routing: TrafficDistanceRouting) {
-        if(trafficDistanceRouting != TrafficDistanceRouting.fastest || trafficDistanceRouting != TrafficDistanceRouting.balanced) {
-            trafficDistanceRouting = routing
+        if(routing == TrafficDistanceRouting.fastest) {
+            distanceMethod = DistanceMethod.time
         }else {
-            trafficDistanceRouting = TrafficDistanceRouting.fastest
+            distanceMethod = DistanceMethod.distance
         }
     }
     
