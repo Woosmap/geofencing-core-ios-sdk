@@ -14,12 +14,12 @@ public var WoosmapAPIKey = ""
 public var searchWoosmapAPI = "https://api.woosmap.com/stores/search/?private_key=\(WoosmapAPIKey)&lat=%@&lng=%@&stores_by_page=5"
 
 // Woosmap Distance provider
+@available(*, deprecated, message: "This feature was disabled; use the distanceWithTraffic flag")
 public enum DistanceProvider: String {
   case woosmapTraffic
   case woosmapDistance
 }
-
-public var distanceProvider = DistanceProvider.woosmapDistance
+public var distanceWithTraffic:Bool = false
 
 // Woosmap Distance mode
 public enum DistanceMode: String {
@@ -31,24 +31,32 @@ public enum DistanceMode: String {
 
 public var distanceMode = DistanceMode.driving // cycling,walking
 
-public var distanceWoosmapAPI = "https://api.woosmap.com/distance/distancematrix/json?mode=%@&units=%@&language=%@&origins=%@,%@&destinations=%@&private_key=\(WoosmapAPIKey)&elements=duration_distance"
+//public var distanceWoosmapAPI = "https://api.woosmap.com/distance/distancematrix/json?mode=%@&units=%@&language=%@&origins=%@,%@&destinations=%@&private_key=\(WoosmapAPIKey)&elements=duration_distance"
 
+public var distanceWoosmapAPI = "https://api.woosmap.com/distance/distancematrix/json"
 
+@available(*, deprecated, message: "This feature was disabled; use the DistanceMethod")
 public enum TrafficDistanceRouting: String {
   case fastest
   case balanced
 }
+
+public enum DistanceMethod: String {
+  case time
+  case distance
+}
+
 
 public enum DistanceUnits: String {
   case metric
   case imperial
 }
 
-public var trafficDistanceRouting = TrafficDistanceRouting.fastest
+public var distanceMethod = DistanceMethod.time
+
+
 public var distanceUnits = DistanceUnits.metric
 public var distanceLanguage = "en"
-
-public var trafficDistanceWoosmapAPI = "https://api.woosmap.com/traffic/distancematrix/json?mode=%@&units=%@&routing=%@&language=%@&departure_time=now&origins=%@,%@&destinations=%@&private_key=\(WoosmapAPIKey)"
 
 //Distance filters
 public var distanceMaxAirDistanceFilter = 1000000
