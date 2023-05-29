@@ -20,13 +20,13 @@
 
 import Accelerate
 
-public enum MatrixAxies {
+internal enum MatrixAxies {
     case row
     case column
 }
 
-public struct Matrix<Scalar> where Scalar: FloatingPoint, Scalar: ExpressibleByFloatLiteral {
-    public enum Shape: Equatable {
+internal struct Matrix<Scalar> where Scalar: FloatingPoint, Scalar: ExpressibleByFloatLiteral {
+    internal enum Shape: Equatable {
         // `self.rows < self.columns` (aka. `m < n`)
         case wide
         /// `self.rows > self.columns` (aka. `m > n`)
@@ -130,7 +130,7 @@ public struct Matrix<Scalar> where Scalar: FloatingPoint, Scalar: ExpressibleByF
 
 extension Matrix where Scalar == Float {
     /// Generates a matrix of uniform-distributed random values within a (closed) `range`.
-    public static func random(
+    internal static func random(
         rows: Int,
         columns: Int,
         in range: ClosedRange<Float> = 0.0...1.0
@@ -146,7 +146,7 @@ extension Matrix where Scalar == Float {
 
     /// Generates a matrix of uniform-distributed random values within
     /// a (closed) `range`, based on the provided random-number `generator`.
-    public static func random<T>(
+    internal static func random<T>(
         rows: Int,
         columns: Int,
         in range: ClosedRange<Float> = 0.0...1.0,
@@ -162,7 +162,7 @@ extension Matrix where Scalar == Float {
 
     /// Generates a matrix of normal-distributed random values with given
     /// `mean` (aka "mu") and `stdDeviation` (aka "sigma").
-    public static func randomNormal(
+    internal static func randomNormal(
         rows: Int,
         columns: Int,
         mean: Float = 0.0,
@@ -181,7 +181,7 @@ extension Matrix where Scalar == Float {
     /// Generates a matrix of normal-distributed random values with given
     /// `mean` (aka "mu") and `stdDeviation` (aka "sigma")
     /// based on the provided random-number `generator`.
-    public static func randomNormal<T>(
+    internal static func randomNormal<T>(
         rows: Int,
         columns: Int,
         mean: Float = 0.0,
@@ -200,7 +200,7 @@ extension Matrix where Scalar == Float {
 
 extension Matrix where Scalar == Double {
     /// Generates a matrix of uniform-distributed random values within a (closed) `range`.
-    public static func random(
+    internal static func random(
         rows: Int,
         columns: Int,
         in range: ClosedRange<Double> = 0.0...1.0
@@ -216,7 +216,7 @@ extension Matrix where Scalar == Double {
 
     /// Generates a matrix of uniform-distributed random values within
     /// a (closed) `range`, based on the provided random-number `generator`.
-    public static func random<T>(
+    internal static func random<T>(
         rows: Int,
         columns: Int,
         in range: ClosedRange<Double> = 0.0...1.0,
@@ -232,7 +232,7 @@ extension Matrix where Scalar == Double {
 
     /// Generates a matrix of normal-distributed random values with given
     /// `mean` (aka "mu") and `stdDeviation` (aka "sigma").
-    public static func randomNormal(
+    internal static func randomNormal(
         rows: Int,
         columns: Int,
         mean: Double = 0.0,
@@ -251,7 +251,7 @@ extension Matrix where Scalar == Double {
     /// Generates a matrix of normal-distributed random values with given
     /// `mean` (aka "mu") and `stdDeviation` (aka "sigma")
     /// based on the provided random-number `generator`.
-    public static func randomNormal<T>(
+    internal static func randomNormal<T>(
         rows: Int,
         columns: Int,
         mean: Double = 0.0,
@@ -326,7 +326,7 @@ extension Matrix {
 }
 
 extension Matrix: ExpressibleByArrayLiteral where Scalar: FloatingPoint, Scalar: ExpressibleByFloatLiteral {
-    public init(arrayLiteral elements: [Scalar]...) {
+    internal init(arrayLiteral elements: [Scalar]...) {
         self.init(AnyCollection(elements))
     }
 }
@@ -437,7 +437,7 @@ extension Matrix: Collection {
 }
 
 extension Matrix: Equatable {}
-public func == <T>(lhs: Matrix<T>, rhs: Matrix<T>) -> Bool {
+internal func == <T>(lhs: Matrix<T>, rhs: Matrix<T>) -> Bool {
     return lhs.rows == rhs.rows && lhs.columns == rhs.columns && lhs.grid == rhs.grid
 }
 
@@ -450,19 +450,19 @@ func withMatrix<Scalar>(from matrix: Matrix<Scalar>, _ closure: (inout Matrix<Sc
 
 // MARK: - Addition
 
-public func add(_ lhs: Matrix<Float>, _ rhs: Matrix<Float>) -> Matrix<Float> {
+internal func add(_ lhs: Matrix<Float>, _ rhs: Matrix<Float>) -> Matrix<Float> {
     return withMatrix(from: lhs) { addInPlace(&$0, rhs) }
 }
 
-public func add(_ lhs: Matrix<Double>, _ rhs: Matrix<Double>) -> Matrix<Double> {
+internal func add(_ lhs: Matrix<Double>, _ rhs: Matrix<Double>) -> Matrix<Double> {
     return withMatrix(from: lhs) { addInPlace(&$0, rhs) }
 }
 
-public func + (lhs: Matrix<Float>, rhs: Matrix<Float>) -> Matrix<Float> {
+internal func + (lhs: Matrix<Float>, rhs: Matrix<Float>) -> Matrix<Float> {
     return add(lhs, rhs)
 }
 
-public func + (lhs: Matrix<Double>, rhs: Matrix<Double>) -> Matrix<Double> {
+internal func + (lhs: Matrix<Double>, rhs: Matrix<Double>) -> Matrix<Double> {
     return add(lhs, rhs)
 }
 
@@ -476,29 +476,29 @@ func addInPlace(_ lhs: inout Matrix<Double>, _ rhs: Matrix<Double>) {
     muladdInPlace(&lhs, rhs, 1.0)
 }
 
-public func += (lhs: inout Matrix<Float>, rhs: Matrix<Float>) {
+internal func += (lhs: inout Matrix<Float>, rhs: Matrix<Float>) {
     return addInPlace(&lhs, rhs)
 }
 
-public func += (lhs: inout Matrix<Double>, rhs: Matrix<Double>) {
+internal func += (lhs: inout Matrix<Double>, rhs: Matrix<Double>) {
     return addInPlace(&lhs, rhs)
 }
 
 // MARK: - Subtraction
 
-public func sub(_ lhs: Matrix<Float>, _ rhs: Matrix<Float>) -> Matrix<Float> {
+internal func sub(_ lhs: Matrix<Float>, _ rhs: Matrix<Float>) -> Matrix<Float> {
     return withMatrix(from: lhs) { subInPlace(&$0, rhs) }
 }
 
-public func sub(_ lhs: Matrix<Double>, _ rhs: Matrix<Double>) -> Matrix<Double> {
+internal func sub(_ lhs: Matrix<Double>, _ rhs: Matrix<Double>) -> Matrix<Double> {
     return withMatrix(from: lhs) { subInPlace(&$0, rhs) }
 }
 
-public func - (lhs: Matrix<Float>, rhs: Matrix<Float>) -> Matrix<Float> {
+internal func - (lhs: Matrix<Float>, rhs: Matrix<Float>) -> Matrix<Float> {
     return sub(lhs, rhs)
 }
 
-public func - (lhs: Matrix<Double>, rhs: Matrix<Double>) -> Matrix<Double> {
+internal func - (lhs: Matrix<Double>, rhs: Matrix<Double>) -> Matrix<Double> {
     return sub(lhs, rhs)
 }
 
@@ -512,11 +512,11 @@ func subInPlace(_ lhs: inout Matrix<Double>, _ rhs: Matrix<Double>) {
     muladdInPlace(&lhs, rhs, -1.0)
 }
 
-public func -= (lhs: inout Matrix<Float>, rhs: Matrix<Float>) {
+internal func -= (lhs: inout Matrix<Float>, rhs: Matrix<Float>) {
     return subInPlace(&lhs, rhs)
 }
 
-public func -= (lhs: inout Matrix<Double>, rhs: Matrix<Double>) {
+internal func -= (lhs: inout Matrix<Double>, rhs: Matrix<Double>) {
     return subInPlace(&lhs, rhs)
 }
 
@@ -560,7 +560,7 @@ func muladdInPlace(_ lhs: inout Matrix<Double>, _ rhs: Matrix<Double>, _ alpha: 
 
 // MARK: - Multiplication
 
-public func mul(_ lhs: Matrix<Float>, _ rhs: Matrix<Float>) -> Matrix<Float> {
+internal func mul(_ lhs: Matrix<Float>, _ rhs: Matrix<Float>) -> Matrix<Float> {
     precondition(lhs.columns == rhs.rows, "Matrix dimensions not compatible with multiplication")
     if lhs.rows == 0 || lhs.columns == 0 || rhs.columns == 0 {
         return Matrix<Float>(rows: lhs.rows, columns: rhs.columns, repeatedValue: 0.0)
@@ -574,7 +574,7 @@ public func mul(_ lhs: Matrix<Float>, _ rhs: Matrix<Float>) -> Matrix<Float> {
     return results
 }
 
-public func mul(_ lhs: Matrix<Double>, _ rhs: Matrix<Double>) -> Matrix<Double> {
+internal func mul(_ lhs: Matrix<Double>, _ rhs: Matrix<Double>) -> Matrix<Double> {
     precondition(lhs.columns == rhs.rows, "Matrix dimensions not compatible with multiplication")
     if lhs.rows == 0 || lhs.columns == 0 || rhs.columns == 0 {
         return Matrix<Double>(rows: lhs.rows, columns: rhs.columns, repeatedValue: 0.0)
@@ -588,15 +588,15 @@ public func mul(_ lhs: Matrix<Double>, _ rhs: Matrix<Double>) -> Matrix<Double> 
     return results
 }
 
-public func * (lhs: Matrix<Float>, rhs: Matrix<Float>) -> Matrix<Float> {
+internal func * (lhs: Matrix<Float>, rhs: Matrix<Float>) -> Matrix<Float> {
     return mul(lhs, rhs)
 }
 
-public func * (lhs: Matrix<Double>, rhs: Matrix<Double>) -> Matrix<Double> {
+internal func * (lhs: Matrix<Double>, rhs: Matrix<Double>) -> Matrix<Double> {
     return mul(lhs, rhs)
 }
 
-public func mul(_ lhs: Matrix<Float>, _ rhs: Vector<Float>) -> Vector<Float> {
+internal func mul(_ lhs: Matrix<Float>, _ rhs: Vector<Float>) -> Vector<Float> {
     precondition(lhs.columns == rhs.dimensions, "Matrix and vector dimensions not compatible with multiplication")
     if lhs.rows == 0 || lhs.columns == 0 || rhs.dimensions == 0 {
         return Vector<Float>(dimensions: lhs.rows, repeatedValue: 0.0)
@@ -610,7 +610,7 @@ public func mul(_ lhs: Matrix<Float>, _ rhs: Vector<Float>) -> Vector<Float> {
     return results
 }
 
-public func mul(_ lhs: Matrix<Double>, _ rhs: Vector<Double>) -> Vector<Double> {
+internal func mul(_ lhs: Matrix<Double>, _ rhs: Vector<Double>) -> Vector<Double> {
     precondition(lhs.columns == rhs.dimensions, "Matrix and vector dimensions not compatible with multiplication")
     if lhs.rows == 0 || lhs.columns == 0 || rhs.dimensions == 0 {
         return Vector<Double>(dimensions: rhs.dimensions, repeatedValue: 0.0)
@@ -624,24 +624,24 @@ public func mul(_ lhs: Matrix<Double>, _ rhs: Vector<Double>) -> Vector<Double> 
     return results
 }
 
-public func * (lhs: Matrix<Float>, rhs: Vector<Float>) -> Vector<Float> {
+internal func * (lhs: Matrix<Float>, rhs: Vector<Float>) -> Vector<Float> {
     return mul(lhs, rhs)
 }
 
-public func * (lhs: Matrix<Double>, rhs: Vector<Double>) -> Vector<Double> {
+internal func * (lhs: Matrix<Double>, rhs: Vector<Double>) -> Vector<Double> {
     return mul(lhs, rhs)
 }
 
 // MARK: - Element-wise Multiplication
 
-public func elmul(_ lhs: Matrix<Double>, _ rhs: Matrix<Double>) -> Matrix<Double> {
+internal func elmul(_ lhs: Matrix<Double>, _ rhs: Matrix<Double>) -> Matrix<Double> {
     precondition(lhs.rows == rhs.rows && lhs.columns == rhs.columns, "Matrix must have the same dimensions")
     var result = Matrix<Double>(rows: lhs.rows, columns: lhs.columns, repeatedValue: 0.0)
     result.grid = lhs.grid .* rhs.grid
     return result
 }
 
-public func elmul(_ lhs: Matrix<Float>, _ rhs: Matrix<Float>) -> Matrix<Float> {
+internal func elmul(_ lhs: Matrix<Float>, _ rhs: Matrix<Float>) -> Matrix<Float> {
     precondition(lhs.rows == rhs.rows && lhs.columns == rhs.columns, "Matrix must have the same dimensions")
     var result = Matrix<Float>(rows: lhs.rows, columns: lhs.columns, repeatedValue: 0.0)
     result.grid = lhs.grid .* rhs.grid
@@ -650,55 +650,55 @@ public func elmul(_ lhs: Matrix<Float>, _ rhs: Matrix<Float>) -> Matrix<Float> {
 
 // MARK: - Division
 
-public func div(_ lhs: Matrix<Double>, _ rhs: Matrix<Double>) -> Matrix<Double> {
+internal func div(_ lhs: Matrix<Double>, _ rhs: Matrix<Double>) -> Matrix<Double> {
     let yInv = inv(rhs)
     precondition(lhs.columns == yInv.rows, "Matrix dimensions not compatible")
     return mul(lhs, yInv)
 }
 
-public func div(_ lhs: Matrix<Float>, _ rhs: Matrix<Float>) -> Matrix<Float> {
+internal func div(_ lhs: Matrix<Float>, _ rhs: Matrix<Float>) -> Matrix<Float> {
     let yInv = inv(rhs)
     precondition(lhs.columns == yInv.rows, "Matrix dimensions not compatible")
     return mul(lhs, yInv)
 }
 
-public func / (lhs: Matrix<Double>, rhs: Matrix<Double>) -> Matrix<Double> {
+internal func / (lhs: Matrix<Double>, rhs: Matrix<Double>) -> Matrix<Double> {
     return div(lhs, rhs)
 }
 
-public func / (lhs: Matrix<Float>, rhs: Matrix<Float>) -> Matrix<Float> {
+internal func / (lhs: Matrix<Float>, rhs: Matrix<Float>) -> Matrix<Float> {
     return div(lhs, rhs)
 }
 
-public func div(_ lhs: Matrix<Double>, _ rhs: Double) -> Matrix<Double> {
+internal func div(_ lhs: Matrix<Double>, _ rhs: Double) -> Matrix<Double> {
     var result = Matrix<Double>(rows: lhs.rows, columns: lhs.columns, repeatedValue: 0.0)
     result.grid = lhs.grid / rhs
     return result
 }
 
-public func div(_ lhs: Matrix<Float>, _ rhs: Float) -> Matrix<Float> {
+internal func div(_ lhs: Matrix<Float>, _ rhs: Float) -> Matrix<Float> {
     var result = Matrix<Float>(rows: lhs.rows, columns: lhs.columns, repeatedValue: 0.0)
     result.grid = lhs.grid / rhs
     return result
 }
 
-public func / (lhs: Matrix<Double>, rhs: Double) -> Matrix<Double> {
+internal func / (lhs: Matrix<Double>, rhs: Double) -> Matrix<Double> {
     return div(lhs, rhs)
 }
 
-public func / (lhs: Matrix<Float>, rhs: Float) -> Matrix<Float> {
+internal func / (lhs: Matrix<Float>, rhs: Float) -> Matrix<Float> {
     return div(lhs, rhs)
 }
 
 // MARK: - Power
 
-public func pow(_ lhs: Matrix<Double>, _ rhs: Double) -> Matrix<Double> {
+internal func pow(_ lhs: Matrix<Double>, _ rhs: Double) -> Matrix<Double> {
     var result = Matrix<Double>(rows: lhs.rows, columns: lhs.columns, repeatedValue: 0.0)
     result.grid = pow(lhs.grid, rhs)
     return result
 }
 
-public func pow(_ lhs: Matrix<Float>, _ rhs: Float) -> Matrix<Float> {
+internal func pow(_ lhs: Matrix<Float>, _ rhs: Float) -> Matrix<Float> {
     var result = Matrix<Float>(rows: lhs.rows, columns: lhs.columns, repeatedValue: 0.0)
     result.grid = pow(lhs.grid, rhs)
     return result
@@ -706,13 +706,13 @@ public func pow(_ lhs: Matrix<Float>, _ rhs: Float) -> Matrix<Float> {
 
 // MARK: - Exponential
 
-public func exp(_ lhs: Matrix<Double>) -> Matrix<Double> {
+internal func exp(_ lhs: Matrix<Double>) -> Matrix<Double> {
     var result = Matrix<Double>(rows: lhs.rows, columns: lhs.columns, repeatedValue: 0.0)
     result.grid = exp(lhs.grid)
     return result
 }
 
-public func exp(_ lhs: Matrix<Float>) -> Matrix<Float> {
+internal func exp(_ lhs: Matrix<Float>) -> Matrix<Float> {
     var result = Matrix<Float>(rows: lhs.rows, columns: lhs.columns, repeatedValue: 0.0)
     result.grid = exp(lhs.grid)
     return result
@@ -720,7 +720,7 @@ public func exp(_ lhs: Matrix<Float>) -> Matrix<Float> {
 
 // MARK: - Summation
 
-public func sum(_ lhs: Matrix<Double>, axies: MatrixAxies = .column) -> Matrix<Double> {
+internal func sum(_ lhs: Matrix<Double>, axies: MatrixAxies = .column) -> Matrix<Double> {
     switch axies {
     case .column:
         var result = Matrix<Double>(rows: 1, columns: lhs.columns, repeatedValue: 0.0)
@@ -737,7 +737,7 @@ public func sum(_ lhs: Matrix<Double>, axies: MatrixAxies = .column) -> Matrix<D
     }
 }
 
-public func sum(_ lhs: Matrix<Float>, axies: MatrixAxies = .column) -> Matrix<Float> {
+internal func sum(_ lhs: Matrix<Float>, axies: MatrixAxies = .column) -> Matrix<Float> {
     switch axies {
     case .column:
         var result = Matrix<Float>(rows: 1, columns: lhs.columns, repeatedValue: 0.0)
@@ -756,7 +756,7 @@ public func sum(_ lhs: Matrix<Float>, axies: MatrixAxies = .column) -> Matrix<Fl
 
 // MARK: - Inverse
 
-public func inv(_ lhs: Matrix<Float>) -> Matrix<Float> {
+internal func inv(_ lhs: Matrix<Float>) -> Matrix<Float> {
     precondition(lhs.rows == lhs.columns, "Matrix must be square")
 
     var results = lhs
@@ -779,7 +779,7 @@ public func inv(_ lhs: Matrix<Float>) -> Matrix<Float> {
     return results
 }
 
-public func inv(_ lhs: Matrix<Double>) -> Matrix<Double> {
+internal func inv(_ lhs: Matrix<Double>) -> Matrix<Double> {
     precondition(lhs.rows == lhs.columns, "Matrix must be square")
 
     var results = lhs
@@ -804,7 +804,7 @@ public func inv(_ lhs: Matrix<Double>) -> Matrix<Double> {
 
 // MARK: - Transpose
 
-public func transpose(_ lhs: Matrix<Float>) -> Matrix<Float> {
+internal func transpose(_ lhs: Matrix<Float>) -> Matrix<Float> {
     var results = Matrix<Float>(rows: lhs.columns, columns: lhs.rows, repeatedValue: 0.0)
     results.grid.withUnsafeMutableBufferPointer { pointer in
         vDSP_mtrans(lhs.grid, 1, pointer.baseAddress!, 1, vDSP_Length(lhs.columns), vDSP_Length(lhs.rows))
@@ -813,7 +813,7 @@ public func transpose(_ lhs: Matrix<Float>) -> Matrix<Float> {
     return results
 }
 
-public func transpose(_ lhs: Matrix<Double>) -> Matrix<Double> {
+internal func transpose(_ lhs: Matrix<Double>) -> Matrix<Double> {
     var results = Matrix<Double>(rows: lhs.columns, columns: lhs.rows, repeatedValue: 0.0)
     results.grid.withUnsafeMutableBufferPointer { pointer in
         vDSP_mtransD(lhs.grid, 1, pointer.baseAddress!, 1, vDSP_Length(lhs.columns), vDSP_Length(lhs.rows))
@@ -822,18 +822,18 @@ public func transpose(_ lhs: Matrix<Double>) -> Matrix<Double> {
     return results
 }
 
-public postfix func ′ (value: Matrix<Float>) -> Matrix<Float> {
+internal postfix func ′ (value: Matrix<Float>) -> Matrix<Float> {
     return transpose(value)
 }
 
-public postfix func ′ (value: Matrix<Double>) -> Matrix<Double> {
+internal postfix func ′ (value: Matrix<Double>) -> Matrix<Double> {
     return transpose(value)
 }
 
 // MARK: - Determinant
 
 /// Computes the matrix determinant.
-public func det(_ lhs: Matrix<Float>) -> Float? {
+internal func det(_ lhs: Matrix<Float>) -> Float? {
     var decomposed = lhs
     var pivots = [__CLPK_integer](repeating: 0, count: min(lhs.rows, lhs.columns))
     var info = __CLPK_integer()
@@ -861,7 +861,7 @@ public func det(_ lhs: Matrix<Float>) -> Float? {
 }
 
 /// Computes the matrix determinant.
-public func det(_ lhs: Matrix<Double>) -> Double? {
+internal func det(_ lhs: Matrix<Double>) -> Double? {
     var decomposed = lhs
     var pivots = [__CLPK_integer](repeating: 0, count: min(lhs.rows, lhs.columns))
     var info = __CLPK_integer()
@@ -922,7 +922,7 @@ private func buildEigenVector<Scalar>(eigenValueImaginaryParts: [Scalar], eigenV
 ///   - lhs: a square matrix
 /// - Returns: a struct with the eigen values and left and right eigen vectors using (Float, Float)
 ///   to represent a complex number.
-public func eigenDecompose(_ lhs: Matrix<Float>) throws -> MatrixEigenDecompositionResult<Float> {
+internal func eigenDecompose(_ lhs: Matrix<Float>) throws -> MatrixEigenDecompositionResult<Float> {
     var input = Matrix<Double>(rows: lhs.rows, columns: lhs.columns, repeatedValue: 0.0)
     input.grid = lhs.grid.map { Double($0) }
     let decomposition = try eigenDecompose(input)
@@ -941,7 +941,7 @@ public func eigenDecompose(_ lhs: Matrix<Float>) throws -> MatrixEigenDecomposit
 ///   - lhs: a square matrix
 /// - Returns: a struct with the eigen values and left and right eigen vectors using (Double, Double)
 ///   to represent a complex number.
-public func eigenDecompose(_ lhs: Matrix<Double>) throws -> MatrixEigenDecompositionResult<Double> {
+internal func eigenDecompose(_ lhs: Matrix<Double>) throws -> MatrixEigenDecompositionResult<Double> {
     guard lhs.rows == lhs.columns else {
         throw EigenDecompositionError.matrixNotSquare
     }

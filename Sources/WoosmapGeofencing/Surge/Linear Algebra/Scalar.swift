@@ -22,43 +22,43 @@ import Accelerate
 
 // MARK: - Multiplication
 
-public func mul<R>(_ lhs: Float, _ rhs: R) -> [Float] where R: UnsafeMemoryAccessible, R.Element == Float {
+internal func mul<R>(_ lhs: Float, _ rhs: R) -> [Float] where R: UnsafeMemoryAccessible, R.Element == Float {
     var results = [Float](repeating: lhs, count: numericCast(rhs.count))
     elmulInPlace(&results, rhs)
     return results
 }
 
-public func mul<R>(_ lhs: Double, _ rhs: R) -> [Double] where R: UnsafeMemoryAccessible, R.Element == Double {
+internal func mul<R>(_ lhs: Double, _ rhs: R) -> [Double] where R: UnsafeMemoryAccessible, R.Element == Double {
     var results = [Double](repeating: lhs, count: numericCast(rhs.count))
     elmulInPlace(&results, rhs)
     return results
 }
 
-public func * <R>(lhs: Float, rhs: R) -> [Float] where R: UnsafeMemoryAccessible, R.Element == Float {
+internal func * <R>(lhs: Float, rhs: R) -> [Float] where R: UnsafeMemoryAccessible, R.Element == Float {
     return mul(lhs, rhs)
 }
 
-public func * <R>(lhs: Double, rhs: R) -> [Double] where R: UnsafeMemoryAccessible, R.Element == Double {
+internal func * <R>(lhs: Double, rhs: R) -> [Double] where R: UnsafeMemoryAccessible, R.Element == Double {
     return mul(lhs, rhs)
 }
 
-public func mul(_ lhs: Float, _ rhs: Vector<Float>) -> Vector<Float> {
+internal func mul(_ lhs: Float, _ rhs: Vector<Float>) -> Vector<Float> {
     return Vector(mul(lhs, rhs.scalars))
 }
 
-public func mul(_ lhs: Double, _ rhs: Vector<Double>) -> Vector<Double> {
+internal func mul(_ lhs: Double, _ rhs: Vector<Double>) -> Vector<Double> {
     return Vector(mul(lhs, rhs.scalars))
 }
 
-public func * (lhs: Float, rhs: Vector<Float>) -> Vector<Float> {
+internal func * (lhs: Float, rhs: Vector<Float>) -> Vector<Float> {
     return mul(lhs, rhs)
 }
 
-public func * (lhs: Double, rhs: Vector<Double>) -> Vector<Double> {
+internal func * (lhs: Double, rhs: Vector<Double>) -> Vector<Double> {
     return mul(lhs, rhs)
 }
 
-public func mul(_ lhs: Float, _ rhs: Matrix<Float>) -> Matrix<Float> {
+internal func mul(_ lhs: Float, _ rhs: Matrix<Float>) -> Matrix<Float> {
     var results = rhs
     results.grid.withUnsafeMutableBufferPointer { pointer in
         cblas_sscal(Int32(rhs.grid.count), lhs, pointer.baseAddress!, 1)
@@ -67,7 +67,7 @@ public func mul(_ lhs: Float, _ rhs: Matrix<Float>) -> Matrix<Float> {
     return results
 }
 
-public func mul(_ lhs: Double, _ rhs: Matrix<Double>) -> Matrix<Double> {
+internal func mul(_ lhs: Double, _ rhs: Matrix<Double>) -> Matrix<Double> {
     var results = rhs
     results.grid.withUnsafeMutableBufferPointer { pointer in
         cblas_dscal(Int32(rhs.grid.count), lhs, pointer.baseAddress!, 1)
@@ -76,18 +76,18 @@ public func mul(_ lhs: Double, _ rhs: Matrix<Double>) -> Matrix<Double> {
     return results
 }
 
-public func * (lhs: Float, rhs: Matrix<Float>) -> Matrix<Float> {
+internal func * (lhs: Float, rhs: Matrix<Float>) -> Matrix<Float> {
     return mul(lhs, rhs)
 }
 
-public func * (lhs: Double, rhs: Matrix<Double>) -> Matrix<Double> {
+internal func * (lhs: Double, rhs: Matrix<Double>) -> Matrix<Double> {
     return mul(lhs, rhs)
 }
 
 extension Float {
     /// Generates a normal-distributed random value with given
     /// `mean` (aka "mu") and `stdDeviation` (aka "sigma").
-    public static func randomNormal(
+    internal static func randomNormal(
         mean: Float = 0.0,
         stdDeviation: Float = 1.0
     ) -> Float {
@@ -98,7 +98,7 @@ extension Float {
     /// Generates a normal-distributed random value with given
     /// `mean` (aka "mu") and `stdDeviation` (aka "sigma")
     /// based on the provided random-number `generator`.
-    public static func randomNormal<T>(
+    internal static func randomNormal<T>(
         mean: Float = 0.0,
         stdDeviation: Float = 1.0,
         using generator: inout T
@@ -117,7 +117,7 @@ extension Float {
 extension Double {
     /// Generates a normal-distributed random value with given
     /// `mean` (aka "mu") and `stdDeviation` (aka "sigma").
-    public static func randomNormal(
+    internal static func randomNormal(
         mean: Double = 0.0,
         stdDeviation: Double = 1.0
     ) -> Double {
@@ -128,7 +128,7 @@ extension Double {
     /// Generates a normal-distributed random value with given
     /// `mean` (aka "mu") and `stdDeviation` (aka "sigma")
     /// based on the provided random-number `generator`.
-    public static func randomNormal<T>(
+    internal static func randomNormal<T>(
         mean: Double = 0.0,
         stdDeviation: Double = 1.0,
         using generator: inout T

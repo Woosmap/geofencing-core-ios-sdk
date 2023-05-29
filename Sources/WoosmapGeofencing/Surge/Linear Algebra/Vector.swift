@@ -407,7 +407,7 @@ public func * (lhs: Vector<Double>, rhs: Double) -> Vector<Double> {
     return mul(lhs, rhs)
 }
 
-public func mul(_ lhs: Vector<Float>, _ rhs: Matrix<Float>) -> Vector<Float> {
+internal func mul(_ lhs: Vector<Float>, _ rhs: Matrix<Float>) -> Vector<Float> {
     // Note: `cblas_dgemv` does not seem to allow aliasing of vector `X` and `Y`.
     // As such we do not provide a `mulInPlace` variant for `vector × matrix`.
 
@@ -429,7 +429,7 @@ public func mul(_ lhs: Vector<Float>, _ rhs: Matrix<Float>) -> Vector<Float> {
     return results
 }
 
-public func mul(_ lhs: Vector<Double>, _ rhs: Matrix<Double>) -> Vector<Double> {
+internal func mul(_ lhs: Vector<Double>, _ rhs: Matrix<Double>) -> Vector<Double> {
     // Note: `cblas_dgemv` does not seem to allow aliasing of vector `X` and `Y`.
     // As such we do not provide a `mulInPlace` variant for `vector × matrix`.
 
@@ -451,11 +451,11 @@ public func mul(_ lhs: Vector<Double>, _ rhs: Matrix<Double>) -> Vector<Double> 
     return results
 }
 
-public func * (lhs: Vector<Float>, rhs: Matrix<Float>) -> Vector<Float> {
+internal func * (lhs: Vector<Float>, rhs: Matrix<Float>) -> Vector<Float> {
     return mul(lhs, rhs)
 }
 
-public func * (lhs: Vector<Double>, rhs: Matrix<Double>) -> Vector<Double> {
+internal func * (lhs: Vector<Double>, rhs: Matrix<Double>) -> Vector<Double> {
     return mul(lhs, rhs)
 }
 
