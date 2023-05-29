@@ -19,7 +19,7 @@
 // THE SOFTWARE.
 
 // MARK: - Random: Uniform Distribution
-class Surge {
+class Random {
     /// Generates an array of uniform-distributed random values within a (closed) `range`.
     public func random(
         count: Int,
@@ -158,7 +158,7 @@ class Surge {
         // │                        └─4────────────────┘
         // └─5─────────────────────────────────────────┘
         
-        logInPlace(&lhs) // 0
+        Logarithm().logInPlace(&lhs) // 0
         mulInPlace(&lhs, -2.0) // 1
         sqrtInPlace(&lhs) // 2
         
@@ -198,7 +198,7 @@ class Surge {
         // │                        └─4────────────────┘
         // └─5─────────────────────────────────────────┘
         
-        logInPlace(&lhs) // 0
+        Logarithm().logInPlace(&lhs) // 0
         mulInPlace(&lhs, -2.0) // 1
         sqrtInPlace(&lhs) // 2
         

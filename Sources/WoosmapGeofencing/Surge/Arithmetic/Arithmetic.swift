@@ -821,12 +821,12 @@ public func distSq<L, R>(_ lhs: L, _ rhs: R) -> Float where L: UnsafeMemoryAcces
     precondition(lhs.count == rhs.count, "Vectors must have equal count")
     var partialDistancesSquared = lhs .- rhs
     sqInPlace(&partialDistancesSquared)
-    return sum(partialDistancesSquared)
+    return Statistics().sum(partialDistancesSquared)
 }
 
 public func distSq<L, R>(_ lhs: L, _ rhs: R) -> Double where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
     precondition(lhs.count == rhs.count, "Vectors must have equal count")
     var partialDistancesSquared = lhs .- rhs
     sqInPlace(&partialDistancesSquared)
-    return sum(partialDistancesSquared)
+    return Statistics().sum(partialDistancesSquared)
 }

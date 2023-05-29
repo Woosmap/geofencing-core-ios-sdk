@@ -75,7 +75,7 @@ func update_recurrent_zois_status() {
         weeks_presence_ratio.append(Double(number_of_week)/number_of_weeks_on_all_zois)
     }
 
-    let mean_weeks_presence_ratio = mean(weeks_presence_ratio)
+    let mean_weeks_presence_ratio = Statistics().mean(weeks_presence_ratio)
 
     for (indexZOI, _) in list_zois_qualifiers.enumerated() {
         let time_spent_on_zoi =  Int("\(list_zois_qualifiers[indexZOI]["duration"]!)")
@@ -191,7 +191,7 @@ public func get_average_presence_intervals(weekly_density: [Double], zois_gmm_in
         }
     }
 
-    let density_mean = mean(daily_density)
+    let density_mean = Statistics().mean(daily_density)
 
     var average_intervals: [[String: Any]] = []
 
@@ -254,7 +254,7 @@ public func add_first_entry_and_last_exit_to_intervals_if_needed(daily_interval:
 }
 
 public func extract_daily_presence_intervals_from_weekly_density(weekly_density: [Double]) -> [String: Any] {
-    let weekly_density_mean = mean(weekly_density)
+    let weekly_density_mean = Statistics().mean(weekly_density)
 
     var daily_presence_intervals = [String: Any]()
 

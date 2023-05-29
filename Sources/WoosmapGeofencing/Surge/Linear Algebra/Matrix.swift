@@ -152,7 +152,7 @@ extension Matrix where Scalar == Float {
         in range: ClosedRange<Float> = 0.0...1.0,
         using generator: inout T
     ) -> Matrix where T: RandomNumberGenerator {
-        let grid = Surge().random(
+        let grid = Random().random(
             count: rows * columns,
             in: range,
             using: &generator
@@ -188,7 +188,7 @@ extension Matrix where Scalar == Float {
         stdDeviation: Float = 1.0,
         using generator: inout T
     ) -> Matrix where T: RandomNumberGenerator {
-        let grid = Surge().randomNormal(
+        let grid = Random().randomNormal(
             count: rows * columns,
             mean: mean,
             stdDeviation: stdDeviation,
@@ -222,7 +222,7 @@ extension Matrix where Scalar == Double {
         in range: ClosedRange<Double> = 0.0...1.0,
         using generator: inout T
     ) -> Matrix where T: RandomNumberGenerator {
-        let grid = Surge().random(
+        let grid = Random().random(
             count: rows * columns,
             in: range,
             using: &generator
@@ -258,7 +258,7 @@ extension Matrix where Scalar == Double {
         stdDeviation: Double = 1.0,
         using generator: inout T
     ) -> Matrix where T: RandomNumberGenerator {
-        let grid = Surge().randomNormal(
+        let grid = Random().randomNormal(
             count: rows * columns,
             mean: mean,
             stdDeviation: stdDeviation,
@@ -725,13 +725,13 @@ public func sum(_ lhs: Matrix<Double>, axies: MatrixAxies = .column) -> Matrix<D
     case .column:
         var result = Matrix<Double>(rows: 1, columns: lhs.columns, repeatedValue: 0.0)
         for i in 0..<lhs.columns {
-            result.grid[i] = sum(lhs[column: i])
+            result.grid[i] = Statistics().sum(lhs[column: i])
         }
         return result
     case .row:
         var result = Matrix<Double>(rows: lhs.rows, columns: 1, repeatedValue: 0.0)
         for i in 0..<lhs.rows {
-            result.grid[i] = sum(lhs[row: i])
+            result.grid[i] = Statistics().sum(lhs[row: i])
         }
         return result
     }
@@ -742,13 +742,13 @@ public func sum(_ lhs: Matrix<Float>, axies: MatrixAxies = .column) -> Matrix<Fl
     case .column:
         var result = Matrix<Float>(rows: 1, columns: lhs.columns, repeatedValue: 0.0)
         for i in 0..<lhs.columns {
-            result.grid[i] = sum(lhs[column: i])
+            result.grid[i] = Statistics().sum(lhs[column: i])
         }
         return result
     case .row:
         var result = Matrix<Float>(rows: lhs.rows, columns: 1, repeatedValue: 0.0)
         for i in 0..<lhs.rows {
-            result.grid[i] = sum(lhs[row: i])
+            result.grid[i] = Statistics().sum(lhs[row: i])
         }
         return result
     }

@@ -82,7 +82,7 @@ extension Vector where Scalar == Float {
         in range: ClosedRange<Float> = 0.0...1.0,
         using generator: inout T
     ) -> Vector where T: RandomNumberGenerator {
-        let scalars = Surge().random(count: count, in: range, using: &generator)
+        let scalars = Random().random(count: count, in: range, using: &generator)
         return Vector(scalars: scalars)
     }
 
@@ -106,7 +106,7 @@ extension Vector where Scalar == Float {
         stdDeviation: Float = 1.0,
         using generator: inout T
     ) -> Vector where T: RandomNumberGenerator {
-        let scalars = Surge().randomNormal(count: count, mean: mean, stdDeviation: stdDeviation, using: &generator)
+        let scalars = Random().randomNormal(count: count, mean: mean, stdDeviation: stdDeviation, using: &generator)
         return Vector(scalars: scalars)
     }
 }
@@ -128,7 +128,7 @@ extension Vector where Scalar == Double {
         in range: ClosedRange<Double> = 0.0...1.0,
         using generator: inout T
     ) -> Vector where T: RandomNumberGenerator {
-        let scalars = Surge().random(count: count, in: range, using: &generator)
+        let scalars = Random().random(count: count, in: range, using: &generator)
         return Vector(scalars: scalars)
     }
 
@@ -152,7 +152,7 @@ extension Vector where Scalar == Double {
         stdDeviation: Double = 1.0,
         using generator: inout T
     ) -> Vector where T: RandomNumberGenerator {
-        let scalars = Surge().randomNormal(count: count, mean: mean, stdDeviation: stdDeviation, using: &generator)
+        let scalars = Random().randomNormal(count: count, mean: mean, stdDeviation: stdDeviation, using: &generator)
         return Vector(scalars: scalars)
     }
 }

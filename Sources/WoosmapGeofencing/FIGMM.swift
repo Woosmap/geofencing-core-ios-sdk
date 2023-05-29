@@ -208,7 +208,7 @@ func predict_as_dict(visitPoint: LoadedVisit) {
         result_x_j_prob_prior_prob_Array.append(x_j_probabilitie*prior_probabilities[index])
     }
     
-    let indexMaxProbPrior = result_x_j_prob_prior_prob_Array.firstIndex(of: max(result_x_j_prob_prior_prob_Array))
+    let indexMaxProbPrior = result_x_j_prob_prior_prob_Array.firstIndex(of: Statistics().max(result_x_j_prob_prior_prob_Array))
     
     var idVisitsArray = [String]()
     if let list = list_zois[indexMaxProbPrior!]["idVisits"] as? List<String> {
