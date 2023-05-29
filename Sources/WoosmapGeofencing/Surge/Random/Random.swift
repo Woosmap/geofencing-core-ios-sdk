@@ -163,7 +163,7 @@ class Random {
         sqrtInPlace(&lhs) // 2
         
         mulInPlace(&rhs, 2.0 * .pi) // 3
-        cosInPlace(&rhs) // 4
+        Trigonometric().cosInPlace(&rhs) // 4
         
         elmulInPlace(&lhs, rhs) // 5
     }
@@ -203,7 +203,7 @@ class Random {
         sqrtInPlace(&lhs) // 2
         
         mulInPlace(&rhs, 2.0 * .pi) // 3
-        cosInPlace(&rhs) // 4
+        Trigonometric().cosInPlace(&rhs) // 4
         
         elmulInPlace(&lhs, rhs) // 5
     }

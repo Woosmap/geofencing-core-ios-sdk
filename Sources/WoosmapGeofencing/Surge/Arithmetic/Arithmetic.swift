@@ -29,19 +29,19 @@ func withArray<T, S>(from sequence: S, _ closure: (inout [T]) -> ()) -> [T] wher
 
 // MARK: - Addition
 
-public func add<L>(_ lhs: L, _ rhs: Float) -> [Float] where L: UnsafeMemoryAccessible, L.Element == Float {
+internal func add<L>(_ lhs: L, _ rhs: Float) -> [Float] where L: UnsafeMemoryAccessible, L.Element == Float {
     return withArray(from: lhs) { addInPlace(&$0, rhs) }
 }
 
-public func add<L>(_ lhs: L, _ rhs: Double) -> [Double] where L: UnsafeMemoryAccessible, L.Element == Double {
+internal func add<L>(_ lhs: L, _ rhs: Double) -> [Double] where L: UnsafeMemoryAccessible, L.Element == Double {
     return withArray(from: lhs) { addInPlace(&$0, rhs) }
 }
 
-public func + <L>(lhs: L, rhs: Float) -> [Float] where L: UnsafeMemoryAccessible, L.Element == Float {
+internal func + <L>(lhs: L, rhs: Float) -> [Float] where L: UnsafeMemoryAccessible, L.Element == Float {
     return add(lhs, rhs)
 }
 
-public func + <L>(lhs: L, rhs: Double) -> [Double] where L: UnsafeMemoryAccessible, L.Element == Double {
+internal func + <L>(lhs: L, rhs: Double) -> [Double] where L: UnsafeMemoryAccessible, L.Element == Double {
     return add(lhs, rhs)
 }
 
@@ -63,29 +63,29 @@ func addInPlace<L>(_ lhs: inout L, _ rhs: Double) where L: UnsafeMutableMemoryAc
     }
 }
 
-public func += <L>(lhs: inout L, rhs: Float) where L: UnsafeMutableMemoryAccessible, L.Element == Float {
+internal func += <L>(lhs: inout L, rhs: Float) where L: UnsafeMutableMemoryAccessible, L.Element == Float {
     return addInPlace(&lhs, rhs)
 }
 
-public func += <L>(lhs: inout L, rhs: Double) where L: UnsafeMutableMemoryAccessible, L.Element == Double {
+internal func += <L>(lhs: inout L, rhs: Double) where L: UnsafeMutableMemoryAccessible, L.Element == Double {
     return addInPlace(&lhs, rhs)
 }
 
 // MARK: - Element-wise Addition
 
-public func add<L, R>(_ lhs: L, _ rhs: R) -> [Float] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
+internal func add<L, R>(_ lhs: L, _ rhs: R) -> [Float] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
     return elmuladd(lhs, rhs, 1.0)
 }
 
-public func add<L, R>(_ lhs: L, _ rhs: R) -> [Double] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
+internal func add<L, R>(_ lhs: L, _ rhs: R) -> [Double] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
     return elmuladd(lhs, rhs, 1.0)
 }
 
-public func .+ <L, R>(lhs: L, rhs: R) -> [Float] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
+internal func .+ <L, R>(lhs: L, rhs: R) -> [Float] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
     return add(lhs, rhs)
 }
 
-public func .+ <L, R>(lhs: L, rhs: R) -> [Double] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
+internal func .+ <L, R>(lhs: L, rhs: R) -> [Double] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
     return add(lhs, rhs)
 }
 
@@ -99,29 +99,29 @@ func eladdInPlace<L, R>(_ lhs: inout L, _ rhs: R) where L: UnsafeMutableMemoryAc
     elmuladdInPlace(&lhs, rhs, 1.0)
 }
 
-public func .+= <L, R>(lhs: inout L, rhs: R) where L: UnsafeMutableMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
+internal func .+= <L, R>(lhs: inout L, rhs: R) where L: UnsafeMutableMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
     return eladdInPlace(&lhs, rhs)
 }
 
-public func .+= <L, R>(lhs: inout L, rhs: R) where L: UnsafeMutableMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
+internal func .+= <L, R>(lhs: inout L, rhs: R) where L: UnsafeMutableMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
     return eladdInPlace(&lhs, rhs)
 }
 
 // MARK: - Subtraction
 
-public func sub<L>(_ lhs: L, _ rhs: Float) -> [Float] where L: UnsafeMemoryAccessible, L.Element == Float {
+internal func sub<L>(_ lhs: L, _ rhs: Float) -> [Float] where L: UnsafeMemoryAccessible, L.Element == Float {
     return withArray(from: lhs) { subInPlace(&$0, rhs) }
 }
 
-public func sub<L>(_ lhs: L, _ rhs: Double) -> [Double] where L: UnsafeMemoryAccessible, L.Element == Double {
+internal func sub<L>(_ lhs: L, _ rhs: Double) -> [Double] where L: UnsafeMemoryAccessible, L.Element == Double {
     return withArray(from: lhs) { subInPlace(&$0, rhs) }
 }
 
-public func - <L>(lhs: L, rhs: Float) -> [Float] where L: UnsafeMemoryAccessible, L.Element == Float {
+internal func - <L>(lhs: L, rhs: Float) -> [Float] where L: UnsafeMemoryAccessible, L.Element == Float {
     return sub(lhs, rhs)
 }
 
-public func - <L>(lhs: L, rhs: Double) -> [Double] where L: UnsafeMemoryAccessible, L.Element == Double {
+internal func - <L>(lhs: L, rhs: Double) -> [Double] where L: UnsafeMemoryAccessible, L.Element == Double {
     return sub(lhs, rhs)
 }
 
@@ -135,29 +135,29 @@ func subInPlace<L>(_ lhs: inout L, _ rhs: Double) where L: UnsafeMutableMemoryAc
     addInPlace(&lhs, -rhs)
 }
 
-public func -= <L>(lhs: inout L, rhs: Float) where L: UnsafeMutableMemoryAccessible, L.Element == Float {
+internal func -= <L>(lhs: inout L, rhs: Float) where L: UnsafeMutableMemoryAccessible, L.Element == Float {
     return subInPlace(&lhs, rhs)
 }
 
-public func -= <L>(lhs: inout L, rhs: Double) where L: UnsafeMutableMemoryAccessible, L.Element == Double {
+internal func -= <L>(lhs: inout L, rhs: Double) where L: UnsafeMutableMemoryAccessible, L.Element == Double {
     return subInPlace(&lhs, rhs)
 }
 
 // MARK: - Element-wise Subtraction
 
-public func sub<L, R>(_ lhs: L, _ rhs: R) -> [Float] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
+internal func sub<L, R>(_ lhs: L, _ rhs: R) -> [Float] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
     return elmuladd(lhs, rhs, -1.0)
 }
 
-public func sub<L, R>(_ lhs: L, _ rhs: R) -> [Double] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
+internal func sub<L, R>(_ lhs: L, _ rhs: R) -> [Double] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
     return elmuladd(lhs, rhs, -1.0)
 }
 
-public func .- <L, R>(lhs: L, rhs: R) -> [Float] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
+internal func .- <L, R>(lhs: L, rhs: R) -> [Float] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
     return sub(lhs, rhs)
 }
 
-public func .- <L, R>(lhs: L, rhs: R) -> [Double] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
+internal func .- <L, R>(lhs: L, rhs: R) -> [Double] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
     return sub(lhs, rhs)
 }
 
@@ -171,11 +171,11 @@ func elsubInPlace<L, R>(_ lhs: inout L, _ rhs: R) where L: UnsafeMutableMemoryAc
     elmuladdInPlace(&lhs, rhs, -1.0)
 }
 
-public func .-= <L, R>(lhs: inout L, rhs: R) where L: UnsafeMutableMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
+internal func .-= <L, R>(lhs: inout L, rhs: R) where L: UnsafeMutableMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
     return elsubInPlace(&lhs, rhs)
 }
 
-public func .-= <L, R>(lhs: inout L, rhs: R) where L: UnsafeMutableMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
+internal func .-= <L, R>(lhs: inout L, rhs: R) where L: UnsafeMutableMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
     return elsubInPlace(&lhs, rhs)
 }
 
@@ -211,19 +211,19 @@ func elmuladdInPlace<L, R>(_ lhs: inout L, _ rhs: R, _ alpha: Double) where L: U
 
 // MARK: - Multiplication
 
-public func mul<L>(_ lhs: L, _ rhs: Float) -> [Float] where L: UnsafeMemoryAccessible, L.Element == Float {
+internal func mul<L>(_ lhs: L, _ rhs: Float) -> [Float] where L: UnsafeMemoryAccessible, L.Element == Float {
     return withArray(from: lhs) { mulInPlace(&$0, rhs) }
 }
 
-public func mul<L>(_ lhs: L, _ rhs: Double) -> [Double] where L: UnsafeMemoryAccessible, L.Element == Double {
+internal func mul<L>(_ lhs: L, _ rhs: Double) -> [Double] where L: UnsafeMemoryAccessible, L.Element == Double {
     return withArray(from: lhs) { mulInPlace(&$0, rhs) }
 }
 
-public func * <L>(lhs: L, rhs: Float) -> [Float] where L: UnsafeMemoryAccessible, L.Element == Float {
+internal func * <L>(lhs: L, rhs: Float) -> [Float] where L: UnsafeMemoryAccessible, L.Element == Float {
     return mul(lhs, rhs)
 }
 
-public func * <L>(lhs: L, rhs: Double) -> [Double] where L: UnsafeMemoryAccessible, L.Element == Double {
+internal func * <L>(lhs: L, rhs: Double) -> [Double] where L: UnsafeMemoryAccessible, L.Element == Double {
     return mul(lhs, rhs)
 }
 
@@ -243,29 +243,29 @@ func mulInPlace<L>(_ lhs: inout L, _ rhs: Double) where L: UnsafeMutableMemoryAc
     }
 }
 
-public func *= <L>(lhs: inout L, rhs: Float) where L: UnsafeMutableMemoryAccessible, L.Element == Float {
+internal func *= <L>(lhs: inout L, rhs: Float) where L: UnsafeMutableMemoryAccessible, L.Element == Float {
     return mulInPlace(&lhs, rhs)
 }
 
-public func *= <L>(lhs: inout L, rhs: Double) where L: UnsafeMutableMemoryAccessible, L.Element == Double {
+internal func *= <L>(lhs: inout L, rhs: Double) where L: UnsafeMutableMemoryAccessible, L.Element == Double {
     return mulInPlace(&lhs, rhs)
 }
 
 // MARK: - Element-wise Multiplication
 
-public func elmul<L, R>(_ lhs: L, _ rhs: R) -> [Float] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
+internal func elmul<L, R>(_ lhs: L, _ rhs: R) -> [Float] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
     return withArray(from: lhs) { elmulInPlace(&$0, rhs) }
 }
 
-public func elmul<L, R>(_ lhs: L, _ rhs: R) -> [Double] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
+internal func elmul<L, R>(_ lhs: L, _ rhs: R) -> [Double] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
     return withArray(from: lhs) { elmulInPlace(&$0, rhs) }
 }
 
-public func .* <L, R>(lhs: L, rhs: R) -> [Float] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
+internal func .* <L, R>(lhs: L, rhs: R) -> [Float] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
     return elmul(lhs, rhs)
 }
 
-public func .* <L, R>(lhs: L, rhs: R) -> [Double] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
+internal func .* <L, R>(lhs: L, rhs: R) -> [Double] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
     return elmul(lhs, rhs)
 }
 
@@ -289,29 +289,29 @@ func elmulInPlace<L, R>(_ lhs: inout L, _ rhs: R) where L: UnsafeMutableMemoryAc
     }
 }
 
-public func .*= <L, R>(lhs: inout L, rhs: R) where L: UnsafeMutableMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
+internal func .*= <L, R>(lhs: inout L, rhs: R) where L: UnsafeMutableMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
     return elmulInPlace(&lhs, rhs)
 }
 
-public func .*= <L, R>(lhs: inout L, rhs: R) where L: UnsafeMutableMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
+internal func .*= <L, R>(lhs: inout L, rhs: R) where L: UnsafeMutableMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
     return elmulInPlace(&lhs, rhs)
 }
 
 // MARK: - Division
 
-public func div<L>(_ lhs: L, _ rhs: Float) -> [Float] where L: UnsafeMemoryAccessible, L.Element == Float {
+internal func div<L>(_ lhs: L, _ rhs: Float) -> [Float] where L: UnsafeMemoryAccessible, L.Element == Float {
     return withArray(from: lhs) { divInPlace(&$0, rhs) }
 }
 
-public func div<L>(_ lhs: L, _ rhs: Double) -> [Double] where L: UnsafeMemoryAccessible, L.Element == Double {
+internal func div<L>(_ lhs: L, _ rhs: Double) -> [Double] where L: UnsafeMemoryAccessible, L.Element == Double {
     return withArray(from: lhs) { divInPlace(&$0, rhs) }
 }
 
-public func / <L>(lhs: L, rhs: Float) -> [Float] where L: UnsafeMemoryAccessible, L.Element == Float {
+internal func / <L>(lhs: L, rhs: Float) -> [Float] where L: UnsafeMemoryAccessible, L.Element == Float {
     return div(lhs, rhs)
 }
 
-public func / <L>(lhs: L, rhs: Double) -> [Double] where L: UnsafeMemoryAccessible, L.Element == Double {
+internal func / <L>(lhs: L, rhs: Double) -> [Double] where L: UnsafeMemoryAccessible, L.Element == Double {
     return div(lhs, rhs)
 }
 
@@ -331,29 +331,29 @@ func divInPlace<L>(_ lhs: inout L, _ rhs: Double) where L: UnsafeMutableMemoryAc
     }
 }
 
-public func /= <L>(lhs: inout L, rhs: Float) where L: UnsafeMutableMemoryAccessible, L.Element == Float {
+internal func /= <L>(lhs: inout L, rhs: Float) where L: UnsafeMutableMemoryAccessible, L.Element == Float {
     return divInPlace(&lhs, rhs)
 }
 
-public func /= <L>(lhs: inout L, rhs: Double) where L: UnsafeMutableMemoryAccessible, L.Element == Double {
+internal func /= <L>(lhs: inout L, rhs: Double) where L: UnsafeMutableMemoryAccessible, L.Element == Double {
     return divInPlace(&lhs, rhs)
 }
 
 // MARK: - Element-wise Division
 
-public func div<L, R>(_ lhs: L, _ rhs: R) -> [Float] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
+internal func div<L, R>(_ lhs: L, _ rhs: R) -> [Float] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
     return withArray(from: lhs) { eldivInPlace(&$0, rhs) }
 }
 
-public func div<L, R>(_ lhs: L, _ rhs: R) -> [Double] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
+internal func div<L, R>(_ lhs: L, _ rhs: R) -> [Double] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
     return withArray(from: lhs) { eldivInPlace(&$0, rhs) }
 }
 
-public func ./ <L, R>(lhs: L, rhs: R) -> [Float] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
+internal func ./ <L, R>(lhs: L, rhs: R) -> [Float] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
     return div(lhs, rhs)
 }
 
-public func ./ <L, R>(lhs: L, rhs: R) -> [Double] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
+internal func ./ <L, R>(lhs: L, rhs: R) -> [Double] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
     return div(lhs, rhs)
 }
 
@@ -377,33 +377,33 @@ func eldivInPlace<L, R>(_ lhs: inout L, _ rhs: R) where L: UnsafeMutableMemoryAc
     }
 }
 
-public func ./= <L, R>(lhs: inout L, rhs: R) where L: UnsafeMutableMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
+internal func ./= <L, R>(lhs: inout L, rhs: R) where L: UnsafeMutableMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
     return eldivInPlace(&lhs, rhs)
 }
 
-public func ./= <L, R>(lhs: inout L, rhs: R) where L: UnsafeMutableMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
+internal func ./= <L, R>(lhs: inout L, rhs: R) where L: UnsafeMutableMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
     return eldivInPlace(&lhs, rhs)
 }
 
 // MARK: - Modulo
 
 /// - Warning: Allocates a temporary array from `rhs` via `Array(repeating: rhs, count: lhs.count)`.
-public func mod<L>(_ lhs: L, _ rhs: Float) -> [Float] where L: UnsafeMemoryAccessible, L.Element == Float {
+internal func mod<L>(_ lhs: L, _ rhs: Float) -> [Float] where L: UnsafeMemoryAccessible, L.Element == Float {
     return withArray(from: lhs) { modInPlace(&$0, rhs) }
 }
 
 /// - Warning: Allocates a temporary array from `rhs` via `Array(repeating: rhs, count: lhs.count)`.
-public func mod<L>(_ lhs: L, _ rhs: Double) -> [Double] where L: UnsafeMemoryAccessible, L.Element == Double {
+internal func mod<L>(_ lhs: L, _ rhs: Double) -> [Double] where L: UnsafeMemoryAccessible, L.Element == Double {
     return withArray(from: lhs) { modInPlace(&$0, rhs) }
 }
 
 /// - Warning: Allocates a temporary array from `rhs` via `Array(repeating: rhs, count: lhs.count)`.
-public func % <L>(lhs: L, rhs: Float) -> [Float] where L: UnsafeMemoryAccessible, L.Element == Float {
+internal func % <L>(lhs: L, rhs: Float) -> [Float] where L: UnsafeMemoryAccessible, L.Element == Float {
     return mod(lhs, rhs)
 }
 
 /// - Warning: Allocates a temporary array from `rhs` via `Array(repeating: rhs, count: lhs.count)`.
-public func % <L>(lhs: L, rhs: Double) -> [Double] where L: UnsafeMemoryAccessible, L.Element == Double {
+internal func % <L>(lhs: L, rhs: Double) -> [Double] where L: UnsafeMemoryAccessible, L.Element == Double {
     return mod(lhs, rhs)
 }
 
@@ -425,33 +425,33 @@ func modInPlace<L>(_ lhs: inout L, _ rhs: Double) where L: UnsafeMutableMemoryAc
 
 /// - Warning: Allocates a temporary array from `rhs` via `Array(repeating: rhs, count: lhs.count)`.
 /// - Warning: does not support memory stride (assumes stride is 1).
-public func .%= <L>(lhs: inout L, rhs: Float) where L: UnsafeMutableMemoryAccessible, L.Element == Float {
+internal func .%= <L>(lhs: inout L, rhs: Float) where L: UnsafeMutableMemoryAccessible, L.Element == Float {
     return modInPlace(&lhs, rhs)
 }
 
 /// - Warning: Allocates a temporary array from `rhs` via `Array(repeating: rhs, count: lhs.count)`.
 /// - Warning: does not support memory stride (assumes stride is 1).
-public func .%= <L>(lhs: inout L, rhs: Double) where L: UnsafeMutableMemoryAccessible, L.Element == Double {
+internal func .%= <L>(lhs: inout L, rhs: Double) where L: UnsafeMutableMemoryAccessible, L.Element == Double {
     return modInPlace(&lhs, rhs)
 }
 
 // MARK: - Element-wise Modulo
 
 /// - Warning: does not support memory stride (assumes stride is 1).
-public func mod<L, R>(_ lhs: L, _ rhs: R) -> [Float] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
+internal func mod<L, R>(_ lhs: L, _ rhs: R) -> [Float] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
     return withArray(from: lhs) { elmodInPlace(&$0, rhs) }
 }
 
 /// - Warning: does not support memory stride (assumes stride is 1).
-public func mod<L, R>(_ lhs: L, _ rhs: R) -> [Double] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
+internal func mod<L, R>(_ lhs: L, _ rhs: R) -> [Double] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
     return withArray(from: lhs) { elmodInPlace(&$0, rhs) }
 }
 
-public func .% <L, R>(lhs: L, rhs: R) -> [Float] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
+internal func .% <L, R>(lhs: L, rhs: R) -> [Float] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
     return mod(lhs, rhs)
 }
 
-public func .% <L, R>(lhs: L, rhs: R) -> [Double] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
+internal func .% <L, R>(lhs: L, rhs: R) -> [Double] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
     return mod(lhs, rhs)
 }
 
@@ -479,23 +479,23 @@ func elmodInPlace<L, R>(_ lhs: inout L, _ rhs: R) where L: UnsafeMutableMemoryAc
     }
 }
 
-public func .%= <L, R>(lhs: inout L, rhs: R) where L: UnsafeMutableMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
+internal func .%= <L, R>(lhs: inout L, rhs: R) where L: UnsafeMutableMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
     return elmodInPlace(&lhs, rhs)
 }
 
-public func .%= <L, R>(lhs: inout L, rhs: R) where L: UnsafeMutableMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
+internal func .%= <L, R>(lhs: inout L, rhs: R) where L: UnsafeMutableMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
     return elmodInPlace(&lhs, rhs)
 }
 
 // MARK: - Remainder
 
 /// - Warning: does not support memory stride (assumes stride is 1).
-public func remainder<L, R>(_ lhs: L, _ rhs: R) -> [Float] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
+internal func remainder<L, R>(_ lhs: L, _ rhs: R) -> [Float] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
     return withArray(from: lhs) { remainderInPlace(&$0, rhs) }
 }
 
 /// - Warning: does not support memory stride (assumes stride is 1).
-public func remainder<L, R>(_ lhs: L, _ rhs: R) -> [Double] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
+internal func remainder<L, R>(_ lhs: L, _ rhs: R) -> [Double] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
     return withArray(from: lhs) { remainderInPlace(&$0, rhs) }
 }
 
@@ -526,12 +526,12 @@ func remainderInPlace<L, R>(_ lhs: inout L, _ rhs: R) where L: UnsafeMutableMemo
 // MARK: - Exponential
 
 /// - Warning: does not support memory stride (assumes stride is 1).
-public func exp<L>(_ lhs: L) -> [Float] where L: UnsafeMemoryAccessible, L.Element == Float {
+internal func exp<L>(_ lhs: L) -> [Float] where L: UnsafeMemoryAccessible, L.Element == Float {
     return withArray(from: lhs) { expInPlace(&$0) }
 }
 
 /// - Warning: does not support memory stride (assumes stride is 1).
-public func exp<L>(_ lhs: L) -> [Double] where L: UnsafeMemoryAccessible, L.Element == Double {
+internal func exp<L>(_ lhs: L) -> [Double] where L: UnsafeMemoryAccessible, L.Element == Double {
     return withArray(from: lhs) { expInPlace(&$0) }
 }
 
@@ -558,12 +558,12 @@ func expInPlace<L>(_ lhs: inout L) where L: UnsafeMutableMemoryAccessible, L.Ele
 // MARK: - Square Exponentiation
 
 /// - Warning: does not support memory stride (assumes stride is 1).
-public func exp2<L>(_ lhs: L) -> [Float] where L: UnsafeMemoryAccessible, L.Element == Float {
+internal func exp2<L>(_ lhs: L) -> [Float] where L: UnsafeMemoryAccessible, L.Element == Float {
     return withArray(from: lhs) { exp2InPlace(&$0) }
 }
 
 /// - Warning: does not support memory stride (assumes stride is 1).
-public func exp2<L>(_ lhs: L) -> [Double] where L: UnsafeMemoryAccessible, L.Element == Double {
+internal func exp2<L>(_ lhs: L) -> [Double] where L: UnsafeMemoryAccessible, L.Element == Double {
     return withArray(from: lhs) { exp2InPlace(&$0) }
 }
 
@@ -590,38 +590,38 @@ func exp2InPlace<L>(_ lhs: inout L) where L: UnsafeMutableMemoryAccessible, L.El
 // MARK: - Power
 
 /// - Warning: does not support memory stride (assumes stride is 1).
-public func pow<L, R>(_ lhs: L, _ rhs: R) -> [Float] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
+internal func pow<L, R>(_ lhs: L, _ rhs: R) -> [Float] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
     return withArray(from: lhs) { powInPlace(&$0, rhs) }
 }
 
 /// - Warning: does not support memory stride (assumes stride is 1).
-public func pow<L, R>(_ lhs: L, _ rhs: R) -> [Double] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
+internal func pow<L, R>(_ lhs: L, _ rhs: R) -> [Double] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
     return withArray(from: lhs) { powInPlace(&$0, rhs) }
 }
 
 /// - Warning: Allocates a temporary array from `rhs` via `Array(repeating: rhs, count: lhs.count)`.
-public func pow<L>(_ lhs: L, _ rhs: Float) -> [Float] where L: UnsafeMemoryAccessible, L.Element == Float {
+internal func pow<L>(_ lhs: L, _ rhs: Float) -> [Float] where L: UnsafeMemoryAccessible, L.Element == Float {
     return withArray(from: lhs) { powInPlace(&$0, rhs) }
 }
 
 /// - Warning: Allocates a temporary array from `rhs` via `Array(repeating: rhs, count: lhs.count)`.
-public func pow<L>(_ lhs: L, _ rhs: Double) -> [Double] where L: UnsafeMemoryAccessible, L.Element == Double {
+internal func pow<L>(_ lhs: L, _ rhs: Double) -> [Double] where L: UnsafeMemoryAccessible, L.Element == Double {
     return withArray(from: lhs) { powInPlace(&$0, rhs) }
 }
 
-public func ** <L>(lhs: L, rhs: Float) -> [Float] where L: UnsafeMemoryAccessible, L.Element == Float {
+internal func ** <L>(lhs: L, rhs: Float) -> [Float] where L: UnsafeMemoryAccessible, L.Element == Float {
     return pow(lhs, rhs)
 }
 
-public func ** <L>(lhs: L, rhs: Double) -> [Double] where L: UnsafeMemoryAccessible, L.Element == Double {
+internal func ** <L>(lhs: L, rhs: Double) -> [Double] where L: UnsafeMemoryAccessible, L.Element == Double {
     return pow(lhs, rhs)
 }
 
-public func .** <L, R>(lhs: L, rhs: R) -> [Float] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
+internal func .** <L, R>(lhs: L, rhs: R) -> [Float] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
     return pow(lhs, rhs)
 }
 
-public func .** <L, R>(lhs: L, rhs: R) -> [Double] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
+internal func .** <L, R>(lhs: L, rhs: R) -> [Double] where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
     return pow(lhs, rhs)
 }
 
@@ -665,29 +665,29 @@ func powInPlace<L>(_ lhs: inout L, _ rhs: Double) where L: UnsafeMutableMemoryAc
     return powInPlace(&lhs, rhs)
 }
 
-public func **= <L>(lhs: inout L, rhs: Float) where L: UnsafeMutableMemoryAccessible, L.Element == Float {
+internal func **= <L>(lhs: inout L, rhs: Float) where L: UnsafeMutableMemoryAccessible, L.Element == Float {
     return powInPlace(&lhs, rhs)
 }
 
-public func **= <L>(lhs: inout L, rhs: Double) where L: UnsafeMutableMemoryAccessible, L.Element == Double {
+internal func **= <L>(lhs: inout L, rhs: Double) where L: UnsafeMutableMemoryAccessible, L.Element == Double {
     return powInPlace(&lhs, rhs)
 }
 
-public func .**= <L, R>(lhs: inout L, rhs: R) where L: UnsafeMutableMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
+internal func .**= <L, R>(lhs: inout L, rhs: R) where L: UnsafeMutableMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
     return powInPlace(&lhs, rhs)
 }
 
-public func .**= <L, R>(lhs: inout L, rhs: R) where L: UnsafeMutableMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
+internal func .**= <L, R>(lhs: inout L, rhs: R) where L: UnsafeMutableMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
     return powInPlace(&lhs, rhs)
 }
 
 // MARK: - Square
 
-public func sq<L>(_ lhs: L) -> [Float] where L: UnsafeMemoryAccessible, L.Element == Float {
+internal func sq<L>(_ lhs: L) -> [Float] where L: UnsafeMemoryAccessible, L.Element == Float {
     return withArray(from: lhs) { sqInPlace(&$0) }
 }
 
-public func sq<L>(_ lhs: L) -> [Double] where L: UnsafeMemoryAccessible, L.Element == Double {
+internal func sq<L>(_ lhs: L) -> [Double] where L: UnsafeMemoryAccessible, L.Element == Double {
     return withArray(from: lhs) { sqInPlace(&$0) }
 }
 
@@ -710,21 +710,21 @@ func sqInPlace<L>(_ lhs: inout L) where L: UnsafeMutableMemoryAccessible, L.Elem
 /// Elemen-wise square root.
 ///
 /// - Warning: does not support memory stride (assumes stride is 1).
-public func sqrt<L>(_ lhs: L) -> [Float] where L: UnsafeMemoryAccessible, L.Element == Float {
+internal func sqrt<L>(_ lhs: L) -> [Float] where L: UnsafeMemoryAccessible, L.Element == Float {
     return withArray(from: lhs) { sqrtInPlace(&$0) }
 }
 
 /// Elemen-wise square root.
 ///
 /// - Warning: does not support memory stride (assumes stride is 1).
-public func sqrt<L>(_ lhs: L) -> [Double] where L: UnsafeMemoryAccessible, L.Element == Double {
+internal func sqrt<L>(_ lhs: L) -> [Double] where L: UnsafeMemoryAccessible, L.Element == Double {
     return withArray(from: lhs) { sqrtInPlace(&$0) }
 }
 
 /// Elemen-wise square root with custom output storage.
 ///
 /// - Warning: does not support memory stride (assumes stride is 1).
-public func sqrt<MI: UnsafeMemoryAccessible, MO>(_ lhs: MI, into results: inout MO) where MO: UnsafeMutableMemoryAccessible, MI.Element == Float, MO.Element == Float {
+internal func sqrt<MI: UnsafeMemoryAccessible, MO>(_ lhs: MI, into results: inout MO) where MO: UnsafeMutableMemoryAccessible, MI.Element == Float, MO.Element == Float {
     return lhs.withUnsafeMemory { lm in
         results.withUnsafeMutableMemory { rm in
             precondition(lm.stride == 1 && rm.stride == 1, "sqrt doesn't support step values other than 1")
@@ -737,7 +737,7 @@ public func sqrt<MI: UnsafeMemoryAccessible, MO>(_ lhs: MI, into results: inout 
 /// Elemen-wise square root with custom output storage.
 ///
 /// - Warning: does not support memory stride (assumes stride is 1).
-public func sqrt<MI: UnsafeMemoryAccessible, MO>(_ lhs: MI, into results: inout MO) where MO: UnsafeMutableMemoryAccessible, MI.Element == Double, MO.Element == Double {
+internal func sqrt<MI: UnsafeMemoryAccessible, MO>(_ lhs: MI, into results: inout MO) where MO: UnsafeMutableMemoryAccessible, MI.Element == Double, MO.Element == Double {
     return lhs.withUnsafeMemory { lm in
         results.withUnsafeMutableMemory { rm in
             precondition(lm.stride == 1 && rm.stride == 1, "sqrt doesn't support step values other than 1")
@@ -773,7 +773,7 @@ func sqrtInPlace<L>(_ lhs: inout L) where L: UnsafeMutableMemoryAccessible, L.El
 
 // MARK: - Dot Product
 
-public func dot<L, R>(_ lhs: L, _ rhs: R) -> Float where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
+internal func dot<L, R>(_ lhs: L, _ rhs: R) -> Float where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
     return withUnsafeMemory(lhs, rhs) { lm, rm in
         precondition(lm.count == rm.count, "Vectors must have equal count")
         var result: Float = 0.0
@@ -784,7 +784,7 @@ public func dot<L, R>(_ lhs: L, _ rhs: R) -> Float where L: UnsafeMemoryAccessib
     }
 }
 
-public func dot<L, R>(_ lhs: L, _ rhs: R) -> Double where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
+internal func dot<L, R>(_ lhs: L, _ rhs: R) -> Double where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
     return withUnsafeMemory(lhs, rhs) { lm, rm in
         precondition(lm.count == rm.count, "Vectors must have equal count")
         var result: Double = 0.0
@@ -797,34 +797,34 @@ public func dot<L, R>(_ lhs: L, _ rhs: R) -> Double where L: UnsafeMemoryAccessi
 
 infix operator •: MultiplicationPrecedence
 
-public func • <L, R>(lhs: L, rhs: R) -> Double where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
+internal func • <L, R>(lhs: L, rhs: R) -> Double where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
     return dot(lhs, rhs)
 }
 
-public func • <L, R>(lhs: L, rhs: R) -> Float where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
+internal func • <L, R>(lhs: L, rhs: R) -> Float where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
     return dot(lhs, rhs)
 }
 
 // MARK: - Distance
 
-public func dist<L, R>(_ lhs: L, _ rhs: R) -> Float where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
+internal func dist<L, R>(_ lhs: L, _ rhs: R) -> Float where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
     return sqrt(distSq(lhs, rhs))
 }
 
-public func dist<L, R>(_ lhs: L, _ rhs: R) -> Double where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
+internal func dist<L, R>(_ lhs: L, _ rhs: R) -> Double where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
     return sqrt(distSq(lhs, rhs))
 }
 
 // MARK: - Distance Squared
 
-public func distSq<L, R>(_ lhs: L, _ rhs: R) -> Float where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
+internal func distSq<L, R>(_ lhs: L, _ rhs: R) -> Float where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Float, R.Element == Float {
     precondition(lhs.count == rhs.count, "Vectors must have equal count")
     var partialDistancesSquared = lhs .- rhs
     sqInPlace(&partialDistancesSquared)
     return Statistics().sum(partialDistancesSquared)
 }
 
-public func distSq<L, R>(_ lhs: L, _ rhs: R) -> Double where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
+internal func distSq<L, R>(_ lhs: L, _ rhs: R) -> Double where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
     precondition(lhs.count == rhs.count, "Vectors must have equal count")
     var partialDistancesSquared = lhs .- rhs
     sqInPlace(&partialDistancesSquared)
