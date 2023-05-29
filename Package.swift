@@ -13,8 +13,6 @@ let package = Package(
             targets: ["WoosmapGeofencingCore"])
     ],
     dependencies: [
-        // Surge Package
-        .package(url: "https://github.com/Jounce/Surge.git", from: "2.3.0"),
         // Realm
         .package(url: "https://github.com/realm/realm-cocoa", from: "10.5.1")
     ],
@@ -23,7 +21,7 @@ let package = Package(
         // Targets can depend on other targets in this package, and on products in packages which this package depends on.
         .target(
             name: "WoosmapGeofencingCore",
-            dependencies: ["Surge","RealmSwift"],
+            dependencies: ["RealmSwift"],
             path: "Sources/WoosmapGeofencing"),
         .testTarget(
             name: "WoosmapGeofencingTests",
