@@ -476,13 +476,13 @@ public class LoadedVisit: Equatable {
     }
     
     public static func ==(lhs: LoadedVisit, rhs: LoadedVisit) -> Bool {
-        return
-        lhs.x == rhs.x &&
-        lhs.y == rhs.y &&
-        lhs.id == rhs.id &&
-        lhs.accuracy == rhs.accuracy &&
-        lhs.startTime == rhs.startTime &&
-        lhs.endTime == rhs.endTime
+        return true
+//        lhs.x == rhs.x &&
+//        lhs.y == rhs.y &&
+//        lhs.id == rhs.id &&
+//        lhs.accuracy == rhs.accuracy &&
+//        lhs.startTime == rhs.startTime &&
+//        lhs.endTime == rhs.endTime
     }
     
     public func getX() -> Double {
