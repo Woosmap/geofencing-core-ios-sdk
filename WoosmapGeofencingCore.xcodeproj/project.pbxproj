@@ -7,6 +7,23 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5F468DF92A2499DF006F6D94 /* Statistics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F468DE02A2499DF006F6D94 /* Statistics.swift */; };
+		5F468DFA2A2499DF006F6D94 /* Auxiliary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F468DE22A2499DF006F6D94 /* Auxiliary.swift */; };
+		5F468DFB2A2499DF006F6D94 /* Vector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F468DE42A2499DF006F6D94 /* Vector.swift */; };
+		5F468DFC2A2499DF006F6D94 /* Matrix.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F468DE52A2499DF006F6D94 /* Matrix.swift */; };
+		5F468DFD2A2499DF006F6D94 /* Scalar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F468DE62A2499DF006F6D94 /* Scalar.swift */; };
+		5F468DFE2A2499DF006F6D94 /* Trigonometric.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F468DE82A2499DF006F6D94 /* Trigonometric.swift */; };
+		5F468DFF2A2499DF006F6D94 /* FFT.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F468DEA2A2499DF006F6D94 /* FFT.swift */; };
+		5F468E002A2499DF006F6D94 /* Convolution.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F468DEB2A2499DF006F6D94 /* Convolution.swift */; };
+		5F468E012A2499DF006F6D94 /* Array+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F468DED2A2499DF006F6D94 /* Array+Extensions.swift */; };
+		5F468E022A2499DF006F6D94 /* Pointers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F468DEE2A2499DF006F6D94 /* Pointers.swift */; };
+		5F468E032A2499DF006F6D94 /* OperatorPrecedences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F468DEF2A2499DF006F6D94 /* OperatorPrecedences.swift */; };
+		5F468E042A2499DF006F6D94 /* UnsafeMutableMemory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F468DF02A2499DF006F6D94 /* UnsafeMutableMemory.swift */; };
+		5F468E052A2499DF006F6D94 /* UnsafeMemory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F468DF12A2499DF006F6D94 /* UnsafeMemory.swift */; };
+		5F468E062A2499DF006F6D94 /* ArraySlice+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F468DF22A2499DF006F6D94 /* ArraySlice+Extensions.swift */; };
+		5F468E072A2499DF006F6D94 /* Arithmetic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F468DF42A2499DF006F6D94 /* Arithmetic.swift */; };
+		5F468E082A2499DF006F6D94 /* Random.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F468DF62A2499DF006F6D94 /* Random.swift */; };
+		5F468E092A2499DF006F6D94 /* Logarithm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F468DF82A2499DF006F6D94 /* Logarithm.swift */; };
 		5F5CD5EA28A6302C0074D7DD /* DurationLogTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F5CD5E928A6302C0074D7DD /* DurationLogTest.swift */; };
 		5FB3E7A32872F2BE0035653E /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FB3E7A22872F2BE0035653E /* LocationService.swift */; };
 		5FB3E7A52872F3170035653E /* LocationServiceCoreImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FB3E7A42872F3170035653E /* LocationServiceCoreImpl.swift */; };
@@ -30,7 +47,6 @@
 		A2710EF325B5CA7C00AF62F5 /* Visit.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2710EF225B5CA7C00AF62F5 /* Visit.swift */; };
 		A2710EF725B5CADE00AF62F5 /* Location.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2710EF625B5CADE00AF62F5 /* Location.swift */; };
 		A2710EFB25B5CB3500AF62F5 /* Region.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2710EFA25B5CB3500AF62F5 /* Region.swift */; };
-		A2920CDF27690C820024FB06 /* Surge in Frameworks */ = {isa = PBXBuildFile; productRef = A2920CDE27690C820024FB06 /* Surge */; settings = {ATTRIBUTES = (Required, ); }; };
 		A2BAB7B926774A1F00AA4E80 /* JSONGeneric.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2BAB7B826774A1F00AA4E80 /* JSONGeneric.swift */; };
 		A2C57C4D24D95F7A00E5A080 /* WoosmapGeofencingCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A216FBA923E9CEA70003AAC8 /* WoosmapGeofencingCore.framework */; };
 		A2DDC91B25C86B0C00C90486 /* DatabaseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2DDC91A25C86B0C00C90486 /* DatabaseTests.swift */; };
@@ -61,6 +77,23 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		5F468DE02A2499DF006F6D94 /* Statistics.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Statistics.swift; sourceTree = "<group>"; };
+		5F468DE22A2499DF006F6D94 /* Auxiliary.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Auxiliary.swift; sourceTree = "<group>"; };
+		5F468DE42A2499DF006F6D94 /* Vector.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Vector.swift; sourceTree = "<group>"; };
+		5F468DE52A2499DF006F6D94 /* Matrix.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Matrix.swift; sourceTree = "<group>"; };
+		5F468DE62A2499DF006F6D94 /* Scalar.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Scalar.swift; sourceTree = "<group>"; };
+		5F468DE82A2499DF006F6D94 /* Trigonometric.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Trigonometric.swift; sourceTree = "<group>"; };
+		5F468DEA2A2499DF006F6D94 /* FFT.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FFT.swift; sourceTree = "<group>"; };
+		5F468DEB2A2499DF006F6D94 /* Convolution.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Convolution.swift; sourceTree = "<group>"; };
+		5F468DED2A2499DF006F6D94 /* Array+Extensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Array+Extensions.swift"; sourceTree = "<group>"; };
+		5F468DEE2A2499DF006F6D94 /* Pointers.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Pointers.swift; sourceTree = "<group>"; };
+		5F468DEF2A2499DF006F6D94 /* OperatorPrecedences.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = OperatorPrecedences.swift; sourceTree = "<group>"; };
+		5F468DF02A2499DF006F6D94 /* UnsafeMutableMemory.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UnsafeMutableMemory.swift; sourceTree = "<group>"; };
+		5F468DF12A2499DF006F6D94 /* UnsafeMemory.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UnsafeMemory.swift; sourceTree = "<group>"; };
+		5F468DF22A2499DF006F6D94 /* ArraySlice+Extensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "ArraySlice+Extensions.swift"; sourceTree = "<group>"; };
+		5F468DF42A2499DF006F6D94 /* Arithmetic.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Arithmetic.swift; sourceTree = "<group>"; };
+		5F468DF62A2499DF006F6D94 /* Random.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Random.swift; sourceTree = "<group>"; };
+		5F468DF82A2499DF006F6D94 /* Logarithm.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Logarithm.swift; sourceTree = "<group>"; };
 		5F5CD5E928A6302C0074D7DD /* DurationLogTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DurationLogTest.swift; sourceTree = "<group>"; };
 		5FB3E7A22872F2BE0035653E /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
 		5FB3E7A42872F3170035653E /* LocationServiceCoreImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationServiceCoreImpl.swift; sourceTree = "<group>"; };
@@ -97,7 +130,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A2920CDF27690C820024FB06 /* Surge in Frameworks */,
 				A2710EE225B5C87700AF62F5 /* RealmSwift in Frameworks */,
 				A2710EE025B5C87700AF62F5 /* Realm in Frameworks */,
 			);
@@ -114,6 +146,102 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		5F468DDE2A2499DF006F6D94 /* Surge */ = {
+			isa = PBXGroup;
+			children = (
+				5F468DDF2A2499DF006F6D94 /* Statistics */,
+				5F468DE12A2499DF006F6D94 /* Auxiliary Functions */,
+				5F468DE32A2499DF006F6D94 /* Linear Algebra */,
+				5F468DE72A2499DF006F6D94 /* Trigonometry */,
+				5F468DE92A2499DF006F6D94 /* Digital Signal Processing */,
+				5F468DEC2A2499DF006F6D94 /* Utilities */,
+				5F468DF32A2499DF006F6D94 /* Arithmetic */,
+				5F468DF52A2499DF006F6D94 /* Random */,
+				5F468DF72A2499DF006F6D94 /* Logarithm */,
+			);
+			path = Surge;
+			sourceTree = "<group>";
+		};
+		5F468DDF2A2499DF006F6D94 /* Statistics */ = {
+			isa = PBXGroup;
+			children = (
+				5F468DE02A2499DF006F6D94 /* Statistics.swift */,
+			);
+			path = Statistics;
+			sourceTree = "<group>";
+		};
+		5F468DE12A2499DF006F6D94 /* Auxiliary Functions */ = {
+			isa = PBXGroup;
+			children = (
+				5F468DE22A2499DF006F6D94 /* Auxiliary.swift */,
+			);
+			path = "Auxiliary Functions";
+			sourceTree = "<group>";
+		};
+		5F468DE32A2499DF006F6D94 /* Linear Algebra */ = {
+			isa = PBXGroup;
+			children = (
+				5F468DE42A2499DF006F6D94 /* Vector.swift */,
+				5F468DE52A2499DF006F6D94 /* Matrix.swift */,
+				5F468DE62A2499DF006F6D94 /* Scalar.swift */,
+			);
+			path = "Linear Algebra";
+			sourceTree = "<group>";
+		};
+		5F468DE72A2499DF006F6D94 /* Trigonometry */ = {
+			isa = PBXGroup;
+			children = (
+				5F468DE82A2499DF006F6D94 /* Trigonometric.swift */,
+			);
+			path = Trigonometry;
+			sourceTree = "<group>";
+		};
+		5F468DE92A2499DF006F6D94 /* Digital Signal Processing */ = {
+			isa = PBXGroup;
+			children = (
+				5F468DEA2A2499DF006F6D94 /* FFT.swift */,
+				5F468DEB2A2499DF006F6D94 /* Convolution.swift */,
+			);
+			path = "Digital Signal Processing";
+			sourceTree = "<group>";
+		};
+		5F468DEC2A2499DF006F6D94 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				5F468DED2A2499DF006F6D94 /* Array+Extensions.swift */,
+				5F468DEE2A2499DF006F6D94 /* Pointers.swift */,
+				5F468DEF2A2499DF006F6D94 /* OperatorPrecedences.swift */,
+				5F468DF02A2499DF006F6D94 /* UnsafeMutableMemory.swift */,
+				5F468DF12A2499DF006F6D94 /* UnsafeMemory.swift */,
+				5F468DF22A2499DF006F6D94 /* ArraySlice+Extensions.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		5F468DF32A2499DF006F6D94 /* Arithmetic */ = {
+			isa = PBXGroup;
+			children = (
+				5F468DF42A2499DF006F6D94 /* Arithmetic.swift */,
+			);
+			path = Arithmetic;
+			sourceTree = "<group>";
+		};
+		5F468DF52A2499DF006F6D94 /* Random */ = {
+			isa = PBXGroup;
+			children = (
+				5F468DF62A2499DF006F6D94 /* Random.swift */,
+			);
+			path = Random;
+			sourceTree = "<group>";
+		};
+		5F468DF72A2499DF006F6D94 /* Logarithm */ = {
+			isa = PBXGroup;
+			children = (
+				5F468DF82A2499DF006F6D94 /* Logarithm.swift */,
+			);
+			path = Logarithm;
+			sourceTree = "<group>";
+		};
 		A216FB9F23E9CEA70003AAC8 = {
 			isa = PBXGroup;
 			children = (
@@ -136,6 +264,7 @@
 		A216FBAB23E9CEA70003AAC8 /* WoosmapGeofencing */ = {
 			isa = PBXGroup;
 			children = (
+				5F468DDE2A2499DF006F6D94 /* Surge */,
 				A2710EE525B5C88100AF62F5 /* Business Logic */,
 				A262B9CC24E29AFF00EB621F /* FIGMM.swift */,
 				A262B9D324E29B0000EB621F /* Info.plist */,
@@ -222,7 +351,6 @@
 			packageProductDependencies = (
 				A2710EDF25B5C87700AF62F5 /* Realm */,
 				A2710EE125B5C87700AF62F5 /* RealmSwift */,
-				A2920CDE27690C820024FB06 /* Surge */,
 			);
 			productName = GeoSearchSDK;
 			productReference = A216FBA923E9CEA70003AAC8 /* WoosmapGeofencingCore.framework */;
@@ -277,7 +405,6 @@
 			mainGroup = A216FB9F23E9CEA70003AAC8;
 			packageReferences = (
 				A2710EDE25B5C87700AF62F5 /* XCRemoteSwiftPackageReference "realm-cocoa" */,
-				A2920CDD27690C820024FB06 /* XCRemoteSwiftPackageReference "Surge" */,
 			);
 			productRefGroup = A216FBAA23E9CEA70003AAC8 /* Products */;
 			projectDirPath = "";
@@ -314,22 +441,39 @@
 				A262B9D724E29B0000EB621F /* SearchAPiJson.swift in Sources */,
 				A2710EEB25B5C8C400AF62F5 /* POI.swift in Sources */,
 				A262B9D524E29B0000EB621F /* FIGMM.swift in Sources */,
+				5F468E012A2499DF006F6D94 /* Array+Extensions.swift in Sources */,
 				5FB3E7A52872F3170035653E /* LocationServiceCoreImpl.swift in Sources */,
+				5F468E092A2499DF006F6D94 /* Logarithm.swift in Sources */,
 				A2710EEF25B5C9D100AF62F5 /* ZOI.swift in Sources */,
 				A2710EFB25B5CB3500AF62F5 /* Region.swift in Sources */,
+				5F468E072A2499DF006F6D94 /* Arithmetic.swift in Sources */,
+				5F468E022A2499DF006F6D94 /* Pointers.swift in Sources */,
+				5F468E052A2499DF006F6D94 /* UnsafeMemory.swift in Sources */,
 				A24796FF2726DF700081AADC /* Distance.swift in Sources */,
 				A26E645D25B9865800EDBA72 /* DataCleaner.swift in Sources */,
+				5F468DFA2A2499DF006F6D94 /* Auxiliary.swift in Sources */,
 				5FB3E7A32872F2BE0035653E /* LocationService.swift in Sources */,
+				5F468DFF2A2499DF006F6D94 /* FFT.swift in Sources */,
 				A262B9DA24E29B0000EB621F /* Settings.swift in Sources */,
 				A2BAB7B926774A1F00AA4E80 /* JSONGeneric.swift in Sources */,
+				5F468DFB2A2499DF006F6D94 /* Vector.swift in Sources */,
+				5F468E062A2499DF006F6D94 /* ArraySlice+Extensions.swift in Sources */,
+				5F468DFD2A2499DF006F6D94 /* Scalar.swift in Sources */,
 				A248052E27DA5E8900E5B7CD /* LogSearchAPI.swift in Sources */,
+				5F468DFC2A2499DF006F6D94 /* Matrix.swift in Sources */,
+				5F468E002A2499DF006F6D94 /* Convolution.swift in Sources */,
 				A2DFFA202728254200ED2B48 /* DistanceAPIJson.swift in Sources */,
+				5F468DFE2A2499DF006F6D94 /* Trigonometric.swift in Sources */,
 				A262B9D624E29B0000EB621F /* WoosmapGeofencingCore.swift in Sources */,
 				A262B9D424E29B0000EB621F /* Monitor.swift in Sources */,
+				5F468E082A2499DF006F6D94 /* Random.swift in Sources */,
 				A262B9D824E29B0000EB621F /* RegionGenerator.swift in Sources */,
 				A2710EF325B5CA7C00AF62F5 /* Visit.swift in Sources */,
+				5F468E042A2499DF006F6D94 /* UnsafeMutableMemory.swift in Sources */,
 				A2710EF725B5CADE00AF62F5 /* Location.swift in Sources */,
+				5F468DF92A2499DF006F6D94 /* Statistics.swift in Sources */,
 				A262B9DB24E29B0000EB621F /* ZOIQualifiers.swift in Sources */,
+				5F468E032A2499DF006F6D94 /* OperatorPrecedences.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -621,14 +765,6 @@
 				minimumVersion = 10.25.0;
 			};
 		};
-		A2920CDD27690C820024FB06 /* XCRemoteSwiftPackageReference "Surge" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/Jounce/Surge.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.3.0;
-			};
-		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -641,11 +777,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = A2710EDE25B5C87700AF62F5 /* XCRemoteSwiftPackageReference "realm-cocoa" */;
 			productName = RealmSwift;
-		};
-		A2920CDE27690C820024FB06 /* Surge */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A2920CDD27690C820024FB06 /* XCRemoteSwiftPackageReference "Surge" */;
-			productName = Surge;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

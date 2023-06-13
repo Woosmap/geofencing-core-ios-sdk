@@ -4,7 +4,6 @@
 //
 
 import Foundation
-import Surge
 import RealmSwift
 
 typealias Scalar = Double
@@ -128,7 +127,7 @@ func createInitialCluster(newVisitPoint: LoadedVisit) {
         [0.0, 1.0]
     ]
     
-    zois_gmm_info["covariance_matrix_inverse"] = Surge.mul(pow(sigma, -2), covariance_matrix_inverse)
+    zois_gmm_info["covariance_matrix_inverse"] = mul(pow(sigma, -2), covariance_matrix_inverse)
     
     zois_gmm_info["mean"] = [newVisitPoint.getX(), newVisitPoint.getY()]
     
@@ -209,7 +208,7 @@ func predict_as_dict(visitPoint: LoadedVisit) {
         result_x_j_prob_prior_prob_Array.append(x_j_probabilitie*prior_probabilities[index])
     }
     
-    let indexMaxProbPrior = result_x_j_prob_prior_prob_Array.firstIndex(of: max(result_x_j_prob_prior_prob_Array))
+    let indexMaxProbPrior = result_x_j_prob_prior_prob_Array.firstIndex(of: Statistics().max(result_x_j_prob_prior_prob_Array))
     
     var idVisitsArray = [String]()
     if let list = list_zois[indexMaxProbPrior!]["idVisits"] as? List<String> {
@@ -298,16 +297,16 @@ func updateCluster(point: LoadedVisit, x_j_probability: Double, zoi_gmminfo: ino
     
     let error_matrix = point_matrix - mean_matrix
     let weight = j_x_probability / (zoi_gmminfo["accumulator"] as! Double)
-    let delta_mean_matrix = Surge.mul(weight, error_matrix)
+    let delta_mean_matrix = mul(weight, error_matrix)
     let mean_plus_delta_mean_matrix = delta_mean_matrix + mean_matrix
     let covariance_matrix_inverse: Matrix<Scalar> = zoi_gmminfo["covariance_matrix_inverse"] as! Matrix<Scalar>
     let new_error_matrix = point_matrix - mean_plus_delta_mean_matrix
     
     let factorTerm1 = weight / pow(1 - weight, 2)
-    let new_term1 = Surge.mul(factorTerm1, covariance_matrix_inverse * transpose(new_error_matrix) * new_error_matrix * covariance_matrix_inverse)
+    let new_term1 = mul(factorTerm1, covariance_matrix_inverse * transpose(new_error_matrix) * new_error_matrix * covariance_matrix_inverse)
     
     let factorTerm2 = weight / (1 - weight)
-    let new_term2 = Surge.mul(factorTerm2, new_error_matrix * covariance_matrix_inverse * transpose(new_error_matrix))[0] + 1
+    let new_term2 = mul(factorTerm2, new_error_matrix * covariance_matrix_inverse * transpose(new_error_matrix))[0] + 1
     
     let cov_inv_delta = covariance_matrix_inverse / (1 - weight) - (new_term1 / new_term2[0])
     
@@ -318,7 +317,7 @@ func updateCluster(point: LoadedVisit, x_j_probability: Double, zoi_gmminfo: ino
     
     let cov_det_delta1 = pow((1 - weight), 2) * (zoi_gmminfo["covariance_det"] as! Double)
     let cov_det_delta2 = new_error_matrix * cov_inv_delta * transpose(new_error_matrix)
-    let cov_det_delta3 = Surge.mul((weight / (1 - weight)), cov_det_delta2)[0][0] + 1
+    let cov_det_delta3 = mul((weight / (1 - weight)), cov_det_delta2)[0][0] + 1
     let cov_det_delta  = cov_det_delta1 * cov_det_delta3
     
     let new_covariance_determinant = (1 - (delta_mean_matrix * cov_inv_delta * transpose(delta_mean_matrix))[0][0]) * cov_det_delta
@@ -477,13 +476,13 @@ public class LoadedVisit: Equatable {
     }
     
     public static func ==(lhs: LoadedVisit, rhs: LoadedVisit) -> Bool {
-        return
-        lhs.x == rhs.x &&
-        lhs.y == rhs.y &&
-        lhs.id == rhs.id &&
-        lhs.accuracy == rhs.accuracy &&
-        lhs.startTime == rhs.startTime &&
-        lhs.endTime == rhs.endTime
+        return true
+//        lhs.x == rhs.x &&
+//        lhs.y == rhs.y &&
+//        lhs.id == rhs.id &&
+//        lhs.accuracy == rhs.accuracy &&
+//        lhs.startTime == rhs.startTime &&
+//        lhs.endTime == rhs.endTime
     }
     
     public func getX() -> Double {
