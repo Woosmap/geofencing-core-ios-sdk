@@ -19,7 +19,7 @@
 // THE SOFTWARE.
 
 extension ArraySlice: UnsafeMemoryAccessible, UnsafeMutableMemoryAccessible {
-    public func withUnsafeMemory<Result>(_ action: (UnsafeMemory<Element>) throws -> Result) rethrows -> Result {
+    func withUnsafeMemory<Result>(_ action: (UnsafeMemory<Element>) throws -> Result) rethrows -> Result {
         return try withUnsafeBufferPointer { ptr in
             guard let base = ptr.baseAddress else {
                 fatalError("ArraySlice is missing its pointer")
