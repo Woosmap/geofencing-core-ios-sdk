@@ -1,7 +1,7 @@
 import Foundation
 import AdSupport
 import CoreLocation
-import RealmSwift
+@_implementationOnly import RealmSwift
 
 /**
  WoosmapGeofencingCore main class. Cannot be instanciated, use `shared` property to access singleton

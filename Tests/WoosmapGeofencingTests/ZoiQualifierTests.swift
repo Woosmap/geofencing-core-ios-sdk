@@ -5,7 +5,7 @@
 //
 
 import XCTest
-import WoosmapGeofencingCore
+@testable import WoosmapGeofencingCore
 
 class ZoiQualifierTests: XCTestCase {
 

@@ -4,21 +4,22 @@
 //
 
 import Foundation
-import RealmSwift
+@_implementationOnly import RealmSwift
 
 typealias Scalar = Double
-public var list_zois: [[String: Any]] = []
+
+var list_zois: [[String: Any]] = []
 var list_zois_to_delete: [[String: Any]] = []
 let age_min = 5.0
 let acc_min = 3.0
 
 let chi_squared_value_for_update = chi_squared_value(probability: 0.95)
 
-public func chi_squared_value(probability: Double) -> Double {
+func chi_squared_value(probability: Double) -> Double {
     return -2 * log(1 - probability)
 }
 
-public func figmmForVisit(newVisitPoint: LoadedVisit) -> [[String: Any]] {
+func figmmForVisit(newVisitPoint: LoadedVisit) -> [[String: Any]] {
     
     // Learning
     let zois_have_been_updated = incrementZOI( point: newVisitPoint)
@@ -62,7 +63,7 @@ func clean_clusters_without_visit() {
     }
 }
 
-public func setListZOIsFromDB(zoiFromDB: [[String: Any]]) {
+func setListZOIsFromDB(zoiFromDB: [[String: Any]]) {
     list_zois = []
     for zoi in zoiFromDB {
         let covariance_matrix_inverse: Matrix<Scalar> = [
@@ -100,7 +101,7 @@ func trace() {
     }
 }
 
-public func update_zois_prior() {
+func update_zois_prior() {
     var normalization_params = 0.0
     for zois_gmm_info in list_zois {
         normalization_params += zois_gmm_info["accumulator"] as! Double
@@ -345,7 +346,7 @@ func getProbabilityOfXKnowingCluster(cov_determinants: [Double], sqr_mahalanobis
     return probability_of_x_knowing_cluster
 }
 
-public func deleteVisitOnZoi(visitsToDelete: LoadedVisit) -> [[String: Any]] {
+func deleteVisitOnZoi(visitsToDelete: LoadedVisit) -> [[String: Any]] {
     for (index, zois_gmm_info) in list_zois.enumerated() {
         var listIdVisit: [String] = [String]()
         if let list = zois_gmm_info["idVisits"] as? List<String> {

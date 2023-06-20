@@ -40,16 +40,17 @@ class DatabaseTests: XCTestCase {
             Locations.add(locations: [location])
         }
 
-        XCTAssert(Locations.getAll().count == 60)
+        XCTAssertEqual(Locations.getAll().count, 60)
         
         Locations.deleteAll()
         
-        XCTAssert(Locations.getAll().count == 0)
+        XCTAssertEqual(Locations.getAll().count, 0)
     }
     
     func test_add_delete_POI_in_DB() {
         let lng = 3.8793329
         let lat = 43.6053862
+        XCTAssertEqual(POIs.getAll().count, 0)
 
         for day in 0...59 {
             let id = UUID().uuidString
@@ -65,16 +66,16 @@ class DatabaseTests: XCTestCase {
             
             let poiUpdatedWithDistance = POIs.updatePOIWithDistance(distance: 10.0, duration: "10 min", locationId: id)
             
-            XCTAssert(poiUpdatedWithDistance.distance == 10.0)
-            XCTAssert(poiUpdatedWithDistance.duration == "10 min")
+            XCTAssertEqual(poiUpdatedWithDistance.distance, 10.0)
+            XCTAssertEqual(poiUpdatedWithDistance.duration, "10 min")
             
         }
 
-        XCTAssert(POIs.getAll().count == 60)
+        XCTAssertEqual(POIs.getAll().count, 60)
         
         POIs.deleteAll()
         
-        XCTAssert(POIs.getAll().count == 0)
+        XCTAssertEqual(POIs.getAll().count, 0)
     }
     
     func test_add_delete_Visits_in_DB() {
