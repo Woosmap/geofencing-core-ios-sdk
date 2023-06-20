@@ -4,11 +4,11 @@
 //
 
 import Foundation
-import RealmSwift
+@_implementationOnly import RealmSwift
 import CoreLocation
 
 /// Offline Databse: Region
-public class Region: Object {
+class RegionModel: Object {
     
     /// date
     @objc public dynamic var date: Date = Date()
@@ -76,10 +76,113 @@ public class Region: Object {
         self.fromPositionDetection = fromPositionDetection
         self.eventName = eventName
     }
+    
+    fileprivate convenience init(region: Region) {
+        self.init()
+        self.latitude = region.latitude
+        self.longitude = region.longitude
+        self.date = region.date
+        self.didEnter = region.didEnter
+        self.identifier = region.identifier
+        self.radius = region.radius
+        self.fromPositionDetection = region.fromPositionDetection
+        self.eventName = region.eventName
+    }
+    
 }
 
+public class Region {
+    /// date
+     public dynamic var date: Date = Date()
+    
+    /// didEnter
+     public dynamic var didEnter: Bool = false
+    
+    /// identifier
+     public dynamic var identifier: String = ""
+    
+    /// latitude
+     public dynamic var latitude: Double = 0.0
+    
+    /// longitude
+     public dynamic var longitude: Double = 0.0
+    
+    /// radius
+     public dynamic var radius: Double = 0.0
+    
+    /// fromPositionDetection
+     public dynamic var fromPositionDetection: Bool = false
+    
+    /// distance
+     public dynamic var distance = 0;
+    
+    /// distanceText
+     public dynamic var distanceText = "";
+    
+    /// duration
+     public dynamic var duration = 0;
+    
+    /// durationText
+     public dynamic var durationText = "";
+    
+    /// type
+     public dynamic var type = "circle";
+    
+    /// origin
+     public dynamic var origin = "";
+    
+    /// eventName
+     public dynamic var eventName: String = "";
+    
+    /// spentTime
+     public dynamic var spentTime: Double = 0;
+    
+    convenience public init(latitude: Double, longitude: Double, radius: Double, dateCaptured: Date, identifier: String, didEnter: Bool, fromPositionDetection: Bool, eventName: String) {
+        self.init()
+        self.latitude = latitude
+        self.longitude = longitude
+        self.date = dateCaptured
+        self.didEnter = didEnter
+        self.identifier = identifier
+        self.radius = radius
+        self.fromPositionDetection = fromPositionDetection
+        self.eventName = eventName
+    }
+    
+    fileprivate convenience init(regionModel: RegionModel) {
+        self.init()
+        self.date = regionModel.date
+        self.didEnter = regionModel.didEnter
+        self.identifier = regionModel.identifier
+        self.latitude = regionModel.latitude
+        self.longitude = regionModel.longitude
+        self.radius = regionModel.radius
+        self.fromPositionDetection = regionModel.fromPositionDetection
+        self.distance = regionModel.distance
+        self.distanceText = regionModel.distanceText
+        self.duration = regionModel.duration
+        self.durationText = regionModel.durationText
+        self.type = regionModel.type
+        self.origin = regionModel.origin
+        self.eventName = regionModel.eventName
+        self.spentTime = regionModel.spentTime
+    }
+}
+
+private func toRegions(regionModels: [RegionModel]) -> [Region] {
+    
+    var regions: [Region] = []
+    
+    for regionModel in regionModels {
+        regions.append(Region(regionModel: regionModel))
+    }
+    return regions
+}
+
+
+
 /// Offline Database: DurationLog
-public class DurationLog: Object {
+class DurationLogModel: Object {
     
     /// identifier
     @objc public dynamic var identifier: String = ""
@@ -89,6 +192,35 @@ public class DurationLog: Object {
     
     /// exitTime
     @objc public dynamic var exitTime: Date?
+}
+
+public class DurationLog {
+    
+    /// identifier
+    public dynamic var identifier: String = ""
+    
+    /// entryTime
+    public dynamic var entryTime: Date = Date()
+    
+    /// exitTime
+    public dynamic var exitTime: Date?
+    
+    fileprivate convenience init(durationLogModel: DurationLogModel) {
+        self.init()
+        self.identifier = durationLogModel.identifier
+        self.entryTime = durationLogModel.entryTime
+        self.exitTime = durationLogModel.exitTime
+    }
+}
+
+private func toDurationLogs(durationLogsModel: [DurationLogModel]) -> [DurationLog] {
+    
+    var durationLogs: [DurationLog] = []
+    
+    for durationLogModel in durationLogsModel {
+        durationLogs.append(DurationLog(durationLogModel: durationLogModel))
+    }
+    return durationLogs
 }
 
 
@@ -105,7 +237,7 @@ public class DurationLogs {
     public static func addEntryLog(identifier: String){
         do {
             let realm = try Realm()
-            let entry = DurationLog()
+            let entry = DurationLogModel()
             entry.identifier = identifier
             entry.entryTime = Date()
             realm.beginWrite()
@@ -128,8 +260,8 @@ public class DurationLogs {
         let predicate = NSPredicate(format: "identifier == %@ AND exitTime = nil", identifier)
         do {
             let realm = try Realm()
-            let fetchedResults = realm.objects(DurationLog.self).filter(predicate)
-            if let log:DurationLog  = fetchedResults.first {
+            let fetchedResults = realm.objects(DurationLogModel.self).filter(predicate)
+            if let log:DurationLogModel  = fetchedResults.first {
                 try realm.write {
                     log.exitTime = Date()
                 }
@@ -150,8 +282,8 @@ public class DurationLogs {
     public static func getAll() -> [DurationLog] {
         do {
             let realm = try Realm()
-            let regions = realm.objects(DurationLog.self)
-            return Array(regions)
+            let durationLogs = realm.objects(DurationLogModel.self)
+            return toDurationLogs(durationLogsModel: Array(durationLogs))
         } catch {
         }
         return []
@@ -168,7 +300,7 @@ public class DurationLogs {
         do {
             let realm = try Realm()
             try realm.write {
-                realm.delete(realm.objects(DurationLog.self))
+                realm.delete(realm.objects(DurationLogModel.self))
             }
         } catch let error as NSError {
             print(error)
@@ -199,7 +331,7 @@ public class Regions {
                 origin = "custom"
             }
             let eventName = didEnter ? "woos_geofence_entered_event" : "woos_geofence_exited_event"
-            let entry = Region(latitude: latRegion,
+            let entry = RegionModel(latitude: latRegion,
                                longitude: lngRegion,
                                radius: radius,
                                dateCaptured: Date(),
@@ -218,7 +350,7 @@ public class Regions {
             realm.beginWrite()
             realm.add(entry)
             try realm.commitWrite()
-            return entry
+            return Region(regionModel: entry)
         } catch {
         }
         return Region()
@@ -228,6 +360,8 @@ public class Regions {
     /// Add Custom region
     /// - Parameter classifiedRegion: Custom region
     public static func add(classifiedRegion: Region) {
+        
+        let classifiedRegionModel = RegionModel(region: classifiedRegion)
         do {
             let realm = try Realm()
             if(classifiedRegion.didEnter){
@@ -238,7 +372,7 @@ public class Regions {
                 classifiedRegion.spentTime = DurationLogs.addExitLog(identifier: classifiedRegion.identifier)
             }
             realm.beginWrite()
-            realm.add(classifiedRegion)
+            realm.add(classifiedRegionModel)
             try realm.commitWrite()
         } catch {
         }
@@ -256,9 +390,9 @@ public class Regions {
                 identifier = id.components(separatedBy: "<id>")[1]
             }
             let predicate = NSPredicate(format: "identifier == %@", identifier)
-            let fetchedResults = realm.objects(Region.self).filter(predicate)
+            let fetchedResults = realm.objects(RegionModel.self).filter(predicate)
             if let aRegion = fetchedResults.last {
-                return aRegion
+                return Region(regionModel:aRegion)
             }
         } catch {
         }
@@ -270,8 +404,8 @@ public class Regions {
     public static func getAll() -> [Region] {
         do {
             let realm = try Realm()
-            let regions = realm.objects(Region.self)
-            return Array(regions)
+            let regions = realm.objects(RegionModel.self)
+            return toRegions(regionModels: Array(regions))
         } catch {
         }
         return []
@@ -282,7 +416,7 @@ public class Regions {
         do {
             let realm = try Realm()
             try realm.write {
-                realm.delete(realm.objects(Region.self))
+                realm.delete(realm.objects(RegionModel.self))
             }
         } catch let error as NSError {
             print(error)

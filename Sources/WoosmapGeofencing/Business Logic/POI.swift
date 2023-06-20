@@ -2,66 +2,66 @@
 //  POI.swift
 //  WoosmapGeofencing
 //
-
-import RealmSwift
+@_implementationOnly import Realm
+@_implementationOnly import RealmSwift
 import Foundation
 
 /// Point of Intrest DB Object
-public class POI: Object {
+class POIModel: Object {
     
     /// JSON Data
-    @objc public dynamic var jsonData: Data?
+    @Persisted public var jsonData: Data?
     
     /// City
-    @objc public dynamic var city: String?
+    @Persisted public var city: String?
     
     /// Store ID
-    @objc public dynamic var idstore: String?
+    @Persisted public var idstore: String?
     
     /// Name
-    @objc public dynamic var name: String?
+    @Persisted public var name: String?
     
     /// Date
-    @objc public dynamic var date: Date?
+    @Persisted public var date: Date?
     
     /// Distance
-    @objc public dynamic var distance: Double = 0.0
+    @Persisted public var distance: Double = 0.0
     
     /// Duration
-    @objc public dynamic var duration: String?
+    @Persisted public var duration: String?
     
     /// Latitude
-    @objc public dynamic var latitude: Double = 0.0
+    @Persisted public var latitude: Double = 0.0
     
     /// Location ID
-    @objc public dynamic var locationId: String?
+    @Persisted public var locationId: String?
     
     /// Longitude
-    @objc public dynamic var longitude: Double = 0.0
+    @Persisted public var longitude: Double = 0.0
     
     /// Zip Code
-    @objc public dynamic var zipCode: String?
+    @Persisted public var zipCode: String?
     
     /// Radius
-    @objc public dynamic var radius: Double = 0.0
+    @Persisted public var radius: Double = 0.0
     
     /// Address
-    @objc public dynamic var address: String?
+    @Persisted public var address: String?
     
     /// Open Now
-    @objc public dynamic var openNow: Bool = false
+    @Persisted public var openNow: Bool = false
     
     /// Country Code
-    @objc public dynamic var countryCode: String?
+    @Persisted public var countryCode: String?
     
     /// Tags
-    @objc public dynamic var tags: String?
+    @Persisted public var tags: String?
     
     /// Types
-    @objc public dynamic var types: String?
+    @Persisted public var types: String?
     
     /// Contact
-    @objc public dynamic var contact: String?
+    @Persisted public var contact: String?
     
     
     /// Create new entry in POI object
@@ -95,7 +95,134 @@ public class POI: Object {
         self.types = types
         self.contact = contact
     }
+    
+    fileprivate convenience init(poi: POI) {
+        self.init()
+        self.locationId = poi.locationId
+        self.city = poi.city
+        self.zipCode = poi.zipCode
+        self.distance = poi.distance
+        self.latitude = poi.latitude
+        self.longitude = poi.longitude
+        self.date = poi.date
+        self.radius = poi.radius
+        self.address = poi.address
+        self.countryCode = poi.countryCode
+        self.tags = poi.tags
+        self.types = poi.types
+        self.contact = poi.contact
+    }
 }
+
+public class POI {
+    
+    /// JSON Data
+    public var jsonData: Data?
+    
+    /// City
+    public var city: String?
+    
+    /// Store ID
+    public var idstore: String?
+    
+    /// Name
+    public var name: String?
+    
+    /// Date
+    public var date: Date?
+    
+    /// Distance
+    public var distance: Double = 0.0
+    
+    /// Duration
+    public var duration: String?
+    
+    /// Latitude
+    public var latitude: Double = 0.0
+    
+    /// Location ID
+    public var locationId: String?
+    
+    /// Longitude
+    public var longitude: Double = 0.0
+    
+    /// Zip Code
+    public var zipCode: String?
+    
+    /// Radius
+    public var radius: Double = 0.0
+    
+    /// Address
+    public var address: String?
+    
+    /// Open Now
+    public var openNow: Bool = false
+    
+    /// Country Code
+    public var countryCode: String?
+    
+    /// Tags
+    public var tags: String?
+    
+    /// Types
+    public var types: String?
+    
+    /// Contact
+    public var contact: String?
+    
+    
+    /// Create new entry in POI object
+    /// - Parameters:
+    ///   - locationId:
+    ///   - city:
+    ///   - zipCode:
+    ///   - distance:
+    ///   - latitude:
+    ///   - longitude:
+    ///   - dateCaptured:
+    ///   - radius:
+    ///   - address:
+    ///   - tags:
+    ///   - types:
+    ///   - countryCode:
+    ///   - contact:
+    convenience public init(locationId: String? = nil, city: String? = nil, zipCode: String? = nil, distance: Double? = nil, latitude: Double? = nil, longitude: Double? = nil, dateCaptured: Date? = nil, radius: Double? = nil, address: String? = nil, tags: String? = nil, types: String? = nil, countryCode: String? = nil, contact: String? = nil) {
+        self.init()
+        self.locationId = locationId
+        self.city = city
+        self.zipCode = zipCode
+        self.distance = distance!
+        self.latitude = latitude!
+        self.longitude = longitude!
+        self.date = dateCaptured
+        self.radius = radius!
+        self.address = address
+        self.countryCode = countryCode
+        self.tags = tags
+        self.types = types
+        self.contact = contact
+    }
+    
+    fileprivate convenience init(poiModel: POIModel) {
+        self.init()
+        self.locationId = poiModel.locationId
+        self.city = poiModel.city
+        self.zipCode = poiModel.zipCode
+        self.distance = poiModel.distance
+        self.duration = poiModel.duration
+        self.latitude = poiModel.latitude
+        self.longitude = poiModel.longitude
+        self.date = poiModel.date
+        self.radius = poiModel.radius
+        self.address = poiModel.address
+        self.countryCode = poiModel.countryCode
+        self.tags = poiModel.tags
+        self.types = poiModel.types
+        self.contact = poiModel.contact
+        self.jsonData = poiModel.jsonData
+    }
+}
+
 
 /// POI business class
 public class POIs {
@@ -109,11 +236,11 @@ public class POIs {
         do {
             let jsonStructure = try JSONDecoder().decode(JSONAny.self, from: searchAPIResponse)
             let realm = try Realm()
-            var aPOIs: [POI] = []
+            var aPOIs: [POIModel] = []
             if let value = jsonStructure.value as? [String: Any] {
                 if let features = value["features"] as? [[String: Any]] {
                     for feature in features {
-                        let poi = POI()
+                        let poi = POIModel()
                         poi.jsonData = searchAPIResponse
                         poi.locationId = locationId
                         poi.date = Date()
@@ -190,7 +317,9 @@ public class POIs {
             realm.beginWrite()
             realm.add(aPOIs)
             try realm.commitWrite()
-            return aPOIs
+            return aPOIs.map { poiModel in
+                return POI(poiModel: poiModel)
+            }
         } catch {
         }
         return []
@@ -203,7 +332,7 @@ public class POIs {
         do {
             let realm = try Realm()
             realm.beginWrite()
-            realm.add(poi)
+            realm.add(POIModel(poi:poi))
             try realm.commitWrite()
         } catch {
         }
@@ -214,8 +343,10 @@ public class POIs {
     public class func getAll() -> [POI] {
         do {
             let realm = try Realm()
-            let pois = realm.objects(POI.self)
-            return Array(pois)
+            let pois = realm.objects(POIModel.self)
+            return Array(pois).map { poiModel in
+                return POI(poiModel: poiModel)
+            }
         } catch {
         }
         return []
@@ -225,13 +356,22 @@ public class POIs {
     /// - Parameter locationId: Location
     /// - Returns: POI Information
     public class func getPOIbyLocationID(locationId: String) -> POI? {
+        if let poiModel = self._getPOIModelbyLocationID(locationId: locationId) {
+            return POI(poiModel: poiModel)
+        } else {
+            return nil
+        }
+    }
+    
+    private class func _getPOIModelbyLocationID(locationId: String) -> POIModel? {
         do {
             let realm = try Realm()
             let predicate = NSPredicate(format: "locationId == %@", locationId)
-            let fetchedResults = realm.objects(POI.self).filter(predicate)
+            let fetchedResults = realm.objects(POIModel.self).filter(predicate)
             if let aPOI = fetchedResults.first {
                 return aPOI
             }
+        
         } catch {
         }
         return nil
@@ -244,11 +384,11 @@ public class POIs {
         do {
             let realm = try Realm()
             let predicate = NSPredicate(format: "locationId == %@", locationId)
-            let fetchedResults = realm.objects(POI.self).filter(predicate)
+            let fetchedResults = realm.objects(POIModel.self).filter(predicate)
             if fetchedResults.first != nil {
                 var poiArray:[POI] = []
                 for poi in fetchedResults {
-                    poiArray.append(poi)
+                    poiArray.append(POI(poiModel: poi))
                 }
                 return poiArray
                 
@@ -265,9 +405,9 @@ public class POIs {
         do {
             let realm = try Realm()
             let predicate = NSPredicate(format: "idstore == %@", idstore)
-            let fetchedResults = realm.objects(POI.self).filter(predicate)
+            let fetchedResults = realm.objects(POIModel.self).filter(predicate)
             if let aPOI = fetchedResults.first {
-                return aPOI
+                return POI(poiModel: aPOI)
             }
         } catch {
         }
@@ -282,15 +422,15 @@ public class POIs {
     /// - Returns: Updated POI information
     public class func updatePOIWithDistance(distance: Double, duration: String, locationId: String) -> POI {
         do {
-            let poiToUpdate = POIs.getPOIbyLocationID(locationId: locationId)
-            if poiToUpdate != nil {
-                let realm = try Realm()
+            let realm = try Realm()
+
+            if let poiToUpdate = POIs._getPOIModelbyLocationID(locationId: locationId) {
                 realm.beginWrite()
-                poiToUpdate?.distance = distance
-                poiToUpdate?.duration = duration
-                realm.add(poiToUpdate!)
+                poiToUpdate.distance = distance
+                poiToUpdate.duration = duration
+                realm.add(poiToUpdate)
                 try realm.commitWrite()
-                return poiToUpdate!
+                return POI(poiModel: poiToUpdate)
             }
         } catch {
         }
@@ -303,7 +443,7 @@ public class POIs {
         do {
             let realm = try Realm()
             try realm.write {
-                realm.delete(realm.objects(POI.self))
+                realm.delete(realm.objects(POIModel.self))
             }
         } catch let error as NSError {
             print(error)

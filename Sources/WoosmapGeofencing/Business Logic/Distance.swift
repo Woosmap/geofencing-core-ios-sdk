@@ -5,11 +5,11 @@
 //
 
 import Foundation
-import RealmSwift
+@_implementationOnly import RealmSwift
 import CoreLocation
 
 /// Distance Object
-public class Distance: Object {
+class DistanceModel: Object {
     
     /// Date
     @objc public dynamic var date: Date?
@@ -97,6 +97,68 @@ public class Distance: Object {
     
 }
 
+/// Distance object
+public class Distance {
+    /// Date
+    var date: Date?
+    
+    /// origin Latitude
+    var originLatitude: Double = 0.0
+    
+    /// origin Longitude
+    var originLongitude: Double = 0.0
+    
+    /// Destination Latitude
+    var destinationLatitude: Double = 0.0
+    
+    /// Destination Longitude
+    var destinationLongitude: Double = 0.0
+    
+    /// Distance
+    var distance: Int = 0
+    
+    /// Distance Text
+    var distanceText: String?
+    
+    /// Duration
+    var duration: Int = 0
+    
+    /// Duration Text
+    var durationText: String?
+    
+    /// mode
+    var mode: String?
+    
+    /// Units
+    var units: String?
+    
+    /// Routing
+    var routing: String?
+    
+    /// Status
+    var status: String?
+    
+    /// Location Id
+    var locationId: String?
+    
+    fileprivate init(distanceModel: DistanceModel) {
+        self.date = distanceModel.date
+        self.originLatitude = distanceModel.originLatitude
+        self.originLongitude = distanceModel.originLongitude
+        self.destinationLatitude = distanceModel.destinationLatitude
+        self.destinationLongitude = distanceModel.destinationLongitude
+        self.distance = distanceModel.distance
+        self.distanceText = distanceModel.distanceText
+        self.duration = distanceModel.duration
+        self.durationText = distanceModel.durationText
+        self.mode = distanceModel.mode
+        self.units = distanceModel.units
+        self.routing = distanceModel.routing
+        self.status = distanceModel.status
+        self.locationId = distanceModel.locationId
+    }
+}
+
 /// Distance Object
 public class Distances {
     
@@ -120,13 +182,13 @@ public class Distances {
                                           distanceLanguage: String = distanceLanguage,
                                           distanceMethod: DistanceMethod = distanceMethod) -> [Distance] {
         do {
-            var distanceArray: [Distance] = []
+            var distanceArray: [DistanceModel] = []
             let jsonStructure = try JSONDecoder().decode(DistanceAPIData.self, from: APIResponse)
             if jsonStructure.status == "OK" {
                 for row in jsonStructure.rows! {
                     var indexElement = 0
                     for element in row.elements! {
-                        let distance = Distance()
+                        let distance = DistanceModel()
                         distance.units = distanceUnits.rawValue
                         distance.date = Date()
                         distance.routing = distanceMethod.rawValue
@@ -158,7 +220,7 @@ public class Distances {
             realm.beginWrite()
             realm.add(distanceArray)
             try realm.commitWrite()
-            return distanceArray
+            return toDistance(distanceModels: distanceArray)
             
         } catch let error as NSError {
             print(error)
@@ -173,8 +235,8 @@ public class Distances {
     public class func getAll() -> [Distance] {
         do {
             let realm = try Realm()
-            let distances = realm.objects(Distance.self)
-            return Array(distances)
+            let distances = realm.objects(DistanceModel.self)
+            return toDistance(distanceModels: Array(distances))
         } catch {
         }
         return []
@@ -185,10 +247,19 @@ public class Distances {
         do {
             let realm = try Realm()
             try realm.write {
-                realm.delete(realm.objects(Distance.self))
+                realm.delete(realm.objects(DistanceModel.self))
             }
         } catch let error as NSError {
             print(error)
         }
     }
+}
+
+
+private func toDistance(distanceModels: [DistanceModel]) -> [Distance] {
+    var distances : [Distance] = []
+    for distanceModel in distanceModels {
+        distances.append(Distance(distanceModel:distanceModel))
+    }
+    return distances
 }
