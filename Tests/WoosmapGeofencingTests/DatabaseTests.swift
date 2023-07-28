@@ -37,7 +37,7 @@ class DatabaseTests: XCTestCase {
 
         for _ in 0...59 {
             let location = CLLocation(latitude: lat, longitude: lng)
-            Locations.add(locations: [location])
+            let _ = Locations.add(locations: [location])
         }
 
         XCTAssertEqual(Locations.getAll().count, 60)
@@ -118,7 +118,7 @@ class DatabaseTests: XCTestCase {
             let id = UUID().uuidString
             let region = CLCircularRegion(center: CLLocationCoordinate2D(latitude: lat, longitude: lng), radius: 100.0, identifier: id )
             
-            Regions.add(POIregion: region, didEnter: true, fromPositionDetection: false)
+            let _ = Regions.add(POIregion: region, didEnter: true, fromPositionDetection: false)
         }
 
         XCTAssert(Regions.getAll().count == 60)

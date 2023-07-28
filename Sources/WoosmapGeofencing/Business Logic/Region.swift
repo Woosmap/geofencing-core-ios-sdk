@@ -82,6 +82,26 @@ public class Region {
         self.eventName = regionDB.eventName ?? ""
         self.spentTime = regionDB.spentTime
     }
+    
+    fileprivate func dbEntity() -> RegionDB {
+        let newRec:RegionDB = RegionDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
+        newRec.date = self.date
+        newRec.didEnter = self.didEnter
+        newRec.identifier = self.identifier
+        newRec.latitude = self.latitude
+        newRec.longitude = self.longitude
+        newRec.radius = self.radius
+        newRec.fromPositionDetection = self.fromPositionDetection
+        newRec.distance = Double (self.distance)
+        newRec.distanceText = self.distanceText
+        newRec.duration = Double(self.duration)
+        newRec.durationText = self.durationText
+        newRec.type  = self.type
+        newRec.origin = self.origin
+        newRec.eventName = self.eventName
+        newRec.spentTime = self.spentTime
+        return newRec
+    }
 }
 
 
@@ -102,7 +122,17 @@ public class DurationLog {
         self.entryTime = durationLogDB.entryTime ?? Date()
         self.exitTime = durationLogDB.exitTime
     }
+    
+    fileprivate func dbEntity() -> DurationLogDB {
+        let newRec:DurationLogDB = DurationLogDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
+        newRec.identifier = self.identifier
+        newRec.entryTime = self.entryTime
+        newRec.exitTime = self.exitTime
+        return newRec
+    }
 }
+
+
 
 //private func toDurationLogs(durationLogsModel: [DurationLogModel]) -> [DurationLog] {
 //
@@ -135,10 +165,10 @@ public class DurationLogs {
 //            realm.add(entry)
 //            try realm.commitWrite()
             
-            let newRec:DurationLogDB = DurationLogDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
+            let newRec:DurationLog = DurationLog()
             newRec.identifier = identifier
             newRec.entryTime = Date()
-            let _ = try WoosmapDataManager.connect.save(entity: newRec)
+            let _ = try WoosmapDataManager.connect.save(entity: newRec.dbEntity())
         } catch {
         }
     }
@@ -233,25 +263,15 @@ public class Regions {
                 origin = "custom"
             }
             let eventName = didEnter ? "woos_geofence_entered_event" : "woos_geofence_exited_event"
-//            let entry = RegionModel(latitude: latRegion,
-//                               longitude: lngRegion,
-//                               radius: radius,
-//                               dateCaptured: Date(),
-//                               identifier: identifier,
-//                               didEnter: didEnter,
-//                               fromPositionDetection: fromPositionDetection,
-//                               eventName: eventName)
-            
-            let entry:RegionDB = RegionDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
-            
-            entry.latitude = latRegion
-            entry.longitude = lngRegion
-            entry.radius =  radius
-            entry.date =  Date()
-            entry.identifier =  identifier
-            entry.didEnter =  didEnter
-            entry.fromPositionDetection =  fromPositionDetection
-            entry.eventName =  eventName
+            let entry = Region(latitude: latRegion,
+                               longitude: lngRegion,
+                               radius: radius,
+                               dateCaptured: Date(),
+                               identifier: identifier,
+                               didEnter: didEnter,
+                               fromPositionDetection: fromPositionDetection,
+                               eventName: eventName)
+        
             entry.origin = origin
             if(didEnter){
                 DurationLogs.addEntryLog(identifier: identifier)
@@ -265,8 +285,8 @@ public class Regions {
 //            realm.beginWrite()
 //            realm.add(entry)
 //            try realm.commitWrite()
-            let _ = try WoosmapDataManager.connect.save(entity: entry)
-            return Region(regionDB: entry)
+            let _ = try WoosmapDataManager.connect.save(entity: entry.dbEntity())
+            return entry
         } catch {
         }
         return Region()
@@ -291,7 +311,7 @@ public class Regions {
 //            realm.add(classifiedRegionModel)
 //            try realm.commitWrite()
             
-            let newRec:RegionDB = RegionDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
+            let newRec:Region = Region()
             newRec.date = classifiedRegion.date
             newRec.didEnter = classifiedRegion.didEnter
             newRec.identifier = classifiedRegion.identifier
@@ -299,9 +319,9 @@ public class Regions {
             newRec.longitude = classifiedRegion.longitude
             newRec.radius = classifiedRegion.radius
             newRec.fromPositionDetection = classifiedRegion.fromPositionDetection
-            newRec.distance = Double(classifiedRegion.distance)
+            newRec.distance = classifiedRegion.distance
             newRec.distanceText = classifiedRegion.distanceText
-            newRec.duration = Double(classifiedRegion.duration)
+            newRec.duration = classifiedRegion.duration
             newRec.durationText = classifiedRegion.durationText
             newRec.type = classifiedRegion.type
             newRec.origin = classifiedRegion.origin
@@ -314,7 +334,7 @@ public class Regions {
             else{
                 newRec.spentTime = DurationLogs.addExitLog(identifier: classifiedRegion.identifier)
             }
-            let _ = try WoosmapDataManager.connect.save(entity: newRec)
+            let _ = try WoosmapDataManager.connect.save(entity: newRec.dbEntity())
             
             
         } catch {

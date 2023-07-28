@@ -50,7 +50,8 @@ public class Distance {
     /// Location Id
     var locationId: String?
     
-    fileprivate init(distanceDB: DistanceDB) {
+    convenience fileprivate init(distanceDB: DistanceDB) {
+        self.init()
         self.date = distanceDB.date
         self.originLatitude = distanceDB.originLatitude
         self.originLongitude = distanceDB.originLongitude
@@ -65,6 +66,25 @@ public class Distance {
         self.routing = distanceDB.routing
         self.status = distanceDB.status
         self.locationId = distanceDB.locationId
+    }
+    
+    fileprivate func dbEntity() -> DistanceDB {
+        let newRec:DistanceDB = DistanceDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
+        newRec.date = self.date
+        newRec.originLatitude = self.originLatitude
+        newRec.originLongitude = self.originLongitude
+        newRec.destinationLatitude = self.destinationLatitude
+        newRec.destinationLongitude = self.destinationLongitude
+        newRec.distance = Int32(self.distance)
+        newRec.distanceText = self.distanceText
+        newRec.duration = Int32(self.duration)
+        newRec.durationText = self.durationText
+        newRec.mode = self.mode
+        newRec.units = self.units
+        newRec.routing = self.routing
+        newRec.status = self.status
+        newRec.locationId = self.locationId
+        return newRec
     }
 }
 
@@ -91,13 +111,13 @@ public class Distances {
                                           distanceLanguage: String = distanceLanguage,
                                           distanceMethod: DistanceMethod = distanceMethod) -> [Distance] {
         do {
-            var distanceArray: [DistanceDB] = []
+            var distanceArray: [Distance] = []
             let jsonStructure = try JSONDecoder().decode(DistanceAPIData.self, from: APIResponse)
             if jsonStructure.status == "OK" {
                 for row in jsonStructure.rows! {
                     var indexElement = 0
                     for element in row.elements! {
-                        let distance = DistanceDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
+                        let distance = Distance()
                         distance.units = distanceUnits.rawValue
                         distance.date = Date()
                         distance.routing = distanceMethod.rawValue
@@ -111,9 +131,9 @@ public class Distances {
                         let distanceText = element.distance?.text
                         let durationValue = element.duration?.value ?? 0
                         let durationText = element.duration?.text ?? ""
-                        distance.distance = Int32(distanceValue ?? 0)
+                        distance.distance = Int(distanceValue ?? 0)
                         distance.distanceText = distanceText
-                        distance.duration = Int32(durationValue)
+                        distance.duration = Int(durationValue)
                         distance.durationText = durationText
                         distance.status = element.status
                         distance.locationId = locationId
@@ -130,12 +150,10 @@ public class Distances {
 //            realm.add(distanceArray)
 //            try realm.commitWrite()
             try distanceArray.forEach { row in
-                let _ = try WoosmapDataManager.connect.save(entity: row)
+                let _ = try WoosmapDataManager.connect.save(entity: row.dbEntity())
             }
             
-            return Array((distanceArray).map({ distance in
-                return Distance(distanceDB: distance)
-            }))
+            return distanceArray
             
         } catch let error as NSError {
             print(error)

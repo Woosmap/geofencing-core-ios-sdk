@@ -285,7 +285,7 @@ class ZoiQualifierTests: XCTestCase {
         let weeks_on_zoi_home = [40]
         let time_spent_on_zoi_home = 24 * 3600
 
-        zoiHomeToTest["visitPoint"] = []
+        zoiHomeToTest["visitPoint"] = [] as [LoadedVisit]
         zoiHomeToTest["weekly_density"] = weekly_density_home_test
         zoiHomeToTest["weeks_on_zoi"] = weeks_on_zoi_home
         zoiHomeToTest["duration"] = time_spent_on_zoi_home
@@ -306,7 +306,7 @@ class ZoiQualifierTests: XCTestCase {
         let weeks_on_zoi_work = [40]
         let time_spent_on_zoi_work = 11 * 3600
 
-        zoiWorkToTest["visitPoint"] = []
+        zoiWorkToTest["visitPoint"] = [] as [LoadedVisit]
         zoiWorkToTest["weekly_density"] = weekly_density_work_test
         zoiWorkToTest["weeks_on_zoi"] = weeks_on_zoi_work
         zoiWorkToTest["duration"] = time_spent_on_zoi_work
@@ -327,7 +327,7 @@ class ZoiQualifierTests: XCTestCase {
         let weeks_on_zoi_other = [40]
         let time_spent_on_zoi_other = 28 * 3600
 
-        zoiOtherToTest["visitPoint"] = []
+        zoiOtherToTest["visitPoint"] = [] as [LoadedVisit]
         zoiOtherToTest["weekly_density"] = weekly_density_other_test
         zoiOtherToTest["weeks_on_zoi"] = weeks_on_zoi_other
         zoiOtherToTest["duration"] = time_spent_on_zoi_other

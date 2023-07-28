@@ -82,6 +82,31 @@ public class ZOI {
         self.x11Covariance_matrix_inverse =  zoiDB.x11Covariance_matrix_inverse
         self.zoiId =  zoiDB.zoiId
     }
+    
+    fileprivate func dbEntity()-> ZOIDB{
+        let newRec:ZOIDB = ZOIDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
+        newRec.accumulator = self.accumulator
+        newRec.age = self.age
+        newRec.covariance_det = self.covariance_det
+        newRec.duration = self.duration
+        newRec.endTime = self.endTime
+        newRec.idVisits = self.idVisits
+        newRec.latMean = self.latMean
+        newRec.lngMean = self.lngMean
+        newRec.period = self.period
+        newRec.prior_probability = self.prior_probability
+        newRec.startTime = self.startTime
+        newRec.weekly_density = self.weekly_density
+        newRec.wktPolygon = self.wktPolygon
+        newRec.x00Covariance_matrix_inverse = self.x00Covariance_matrix_inverse
+        newRec.x01Covariance_matrix_inverse = self.x01Covariance_matrix_inverse
+        newRec.x10Covariance_matrix_inverse = self.x10Covariance_matrix_inverse
+        newRec.x11Covariance_matrix_inverse = self.x11Covariance_matrix_inverse
+        newRec.zoiId = self.zoiId
+        
+        return newRec
+    }
+    
 }
 /// ZOI business class
 public class ZOIs {
@@ -91,9 +116,9 @@ public class ZOIs {
     public class func createZOIFrom(zoi: [String: Any]) {
         do {
             
-            let newZOI = ZOIDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
+            let newZOI = ZOI()
             newZOI.zoiId = UUID().uuidString
-            newZOI.idVisits = zoi["idVisits"] as? [String]
+            newZOI.idVisits = zoi["idVisits"] as! [String]
             var visitArrivalDate = [Date]()
             var visitDepartureDate = [Date]()
             var duration = 0
@@ -115,7 +140,7 @@ public class ZOIs {
             newZOI.startTime = startTime // .setValue(startTime, forKey: "startTime")
             newZOI.endTime = endTime//setValue(endTime, forKey: "endTime")
             newZOI.duration = Int64(duration)//setValue(duration, forKey: "duration")
-            newZOI.weekly_density = zoi["weekly_density"] as? [Double] //setValue(, forKey: "weekly_density")
+            newZOI.weekly_density = zoi["weekly_density"] as! [Double] //setValue(, forKey: "weekly_density")
             newZOI.period = zoi["period"] as? String //(zoi["period"], forKey: "period")
             newZOI.latMean = (zoi["mean"] as! [Any])[0] as! Double
             newZOI.lngMean = (zoi["mean"] as! [Any])[1] as! Double
@@ -129,7 +154,7 @@ public class ZOIs {
             newZOI.x10Covariance_matrix_inverse = zoi["x10Covariance_matrix_inverse"] as! Double
             newZOI.x11Covariance_matrix_inverse = zoi["x11Covariance_matrix_inverse"] as! Double
             newZOI.wktPolygon = zoi["WktPolygon"] as? String
-            let _ = try WoosmapDataManager.connect.save(entity: newZOI)
+            let _ = try WoosmapDataManager.connect.save(entity: newZOI.dbEntity())
             
 //            let realm = try Realm()
 //            realm.beginWrite()
@@ -199,25 +224,7 @@ public class ZOIs {
 //            try realm.commitWrite()
             let _ = try WoosmapDataManager.connect.deleteAll(entityClass: ZOIDB.self)
             try zoiArray.forEach { row in
-                let newRec:ZOIDB = ZOIDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
-                newRec.accumulator = row.accumulator
-                newRec.age =  row.age
-                newRec.covariance_det =  row.covariance_det
-                newRec.duration =  row.duration
-                newRec.endTime =  row.endTime
-                newRec.idVisits = row.idVisits
-                newRec.latMean =  row.latMean
-                newRec.lngMean =  row.lngMean
-                newRec.period =  row.period
-                newRec.prior_probability =  row.prior_probability
-                newRec.startTime =  row.startTime
-                newRec.weekly_density =  row.weekly_density
-                newRec.wktPolygon =  row.wktPolygon
-                newRec.x00Covariance_matrix_inverse =  row.x00Covariance_matrix_inverse
-                newRec.x01Covariance_matrix_inverse =  row.x01Covariance_matrix_inverse
-                newRec.x10Covariance_matrix_inverse =  row.x10Covariance_matrix_inverse
-                newRec.x11Covariance_matrix_inverse =  row.x11Covariance_matrix_inverse
-                newRec.zoiId =  row.zoiId
+                let newRec:ZOIDB = row.dbEntity()
                 let _ = try WoosmapDataManager.connect.save(entity: newRec)
             }
             

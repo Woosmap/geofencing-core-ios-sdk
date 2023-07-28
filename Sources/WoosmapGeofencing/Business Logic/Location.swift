@@ -51,6 +51,16 @@ public class Location  {
         self.locationId = locationDB.locationId
         self.longitude = locationDB.longitude
     }
+    
+    fileprivate func dbEntity() -> LocationDB {
+        let newRec:LocationDB = LocationDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
+        newRec.date = self.date
+        newRec.latitude = self.latitude
+        newRec.locationDescription = self.locationDescription
+        newRec.locationId = self.locationId
+        newRec.longitude = self.longitude
+        return newRec
+    }
 }
 
 /// Location business object
@@ -66,19 +76,14 @@ public class Locations {
             // create Location ID
             let locationId = UUID().uuidString
             
-//            let entry = LocationModel(locationId: locationId, latitude: location.coordinate.latitude, longitude: location.coordinate.longitude, dateCaptured: Date(), descriptionToSave: "description")
+            let entry = Location(locationId: locationId, latitude: location.coordinate.latitude, longitude: location.coordinate.longitude, dateCaptured: Date(), descriptionToSave: "description")
 //            let realm = try Realm()
 //            realm.beginWrite()
 //            realm.add(entry)
 //            try realm.commitWrite()
             
             //Save in Core DB
-            let newRec:LocationDB = LocationDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
-            newRec.locationId = locationId
-            newRec.latitude = location.coordinate.latitude
-            newRec.longitude = location.coordinate.longitude
-            newRec.date = Date()
-            newRec.locationDescription = "description"
+            let newRec:LocationDB = entry.dbEntity()
             let _ = try WoosmapDataManager.connect.save(entity: newRec)
             return Location(locationDB: newRec)
         } catch {
@@ -102,7 +107,7 @@ public class Locations {
             return
         }
         
-//        let locationModel = LocationModel(locationId: locationId, latitude: location.latitude, longitude: location.longitude, dateCaptured: date, descriptionToSave: description)
+        let locationModel = Location(locationId: locationId, latitude: location.latitude, longitude: location.longitude, dateCaptured: date, descriptionToSave: description)
         do {
 //            let realm = try Realm()
 //            realm.beginWrite()
@@ -110,12 +115,7 @@ public class Locations {
 //            try realm.commitWrite()
             
             //Save in Core DB
-            let newRec:LocationDB = LocationDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
-            newRec.locationId = locationId
-            newRec.latitude = location.latitude
-            newRec.longitude = location.longitude
-            newRec.date = date
-            newRec.locationDescription = description
+            let newRec:LocationDB = locationModel.dbEntity()
             let _ = try WoosmapDataManager.connect.save(entity: newRec)
         } catch {
         }

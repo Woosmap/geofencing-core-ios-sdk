@@ -56,6 +56,17 @@ public class Visit {
         self.date = visitDB.date
         self.accuracy = visitDB.accuracy
     }
+    fileprivate func dbEntity()-> VisitDB{
+        let newRec:VisitDB = VisitDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
+        newRec.visitId = self.visitId
+        newRec.arrivalDate = self.arrivalDate
+        newRec.departureDate = self.departureDate
+        newRec.latitude = self.latitude
+        newRec.longitude = self.longitude
+        newRec.date = self.date
+        newRec.accuracy = self.accuracy
+        return newRec
+    }
 }
 
 
@@ -71,19 +82,8 @@ public class Visits {
             let departureDate = calendar.component(.year, from: visit.departureDate) != 4001 ? visit.departureDate : nil
             let arrivalDate = calendar.component(.year, from: visit.arrivalDate) != 4001 ? visit.arrivalDate : nil
             if arrivalDate != nil && departureDate != nil {
-                
-                
-            let entry = VisitDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
-                
-                //Visit(visitId: UUID().uuidString, arrivalDate: arrivalDate, departureDate: departureDate, latitude: visit.coordinate.latitude, longitude: visit.coordinate.longitude, dateCaptured: Date(), accuracy: visit.horizontalAccuracy)
-                
-                entry.visitId = UUID().uuidString
-                entry.arrivalDate = arrivalDate
-                entry.departureDate = departureDate
-                entry.latitude = visit.coordinate.latitude
-                entry.longitude = visit.coordinate.longitude
-                entry.date = Date()
-                entry.accuracy = visit.horizontalAccuracy
+                let newVisit = Visit(visitId: UUID().uuidString, arrivalDate: arrivalDate, departureDate: departureDate, latitude: visit.coordinate.latitude, longitude: visit.coordinate.longitude, dateCaptured: Date(), accuracy: visit.horizontalAccuracy)
+                let entry = newVisit.dbEntity()
                 let _ = try WoosmapDataManager.connect.save(entity: entry)
                 
 //                let realm = try Realm()
@@ -105,14 +105,7 @@ public class Visits {
     /// - Parameter visit: Visit
     public class func addTest(visit: Visit) {
         do {
-            let entry = VisitDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
-            entry.visitId = visit.visitId
-            entry.arrivalDate = visit.arrivalDate
-            entry.departureDate = visit.departureDate
-            entry.latitude = visit.latitude
-            entry.longitude = visit.longitude
-            entry.date = visit.date
-            entry.accuracy = visit.accuracy
+            let entry = visit.dbEntity()
             let _ = try WoosmapDataManager.connect.save(entity: entry)
 //            let realm = try Realm()
 //            realm.beginWrite()

@@ -95,21 +95,48 @@ public class POI {
     
     fileprivate convenience init(poiDB: POIDB) {
         self.init()
-        self.locationId = poiDB.locationId
+        self.jsonData = poiDB.jsonData
         self.city = poiDB.city
-        self.zipCode = poiDB.zipCode
+        self.idstore = poiDB.idstore
+        self.name = poiDB.name
+        self.date = poiDB.date
         self.distance = poiDB.distance
         self.duration = poiDB.duration
         self.latitude = poiDB.latitude
+        self.locationId = poiDB.locationId
         self.longitude = poiDB.longitude
-        self.date = poiDB.date
+        self.zipCode = poiDB.zipCode
         self.radius = poiDB.radius
         self.address = poiDB.address
+        self.openNow = poiDB.openNow
         self.countryCode = poiDB.countryCode
         self.tags = poiDB.tags
         self.types = poiDB.types
         self.contact = poiDB.contact
-        self.jsonData = poiDB.jsonData
+
+    }
+    
+    fileprivate func dbEntity()-> POIDB{
+        let newRec:POIDB = POIDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
+        newRec.jsonData = self.jsonData
+        newRec.city = self.city
+        newRec.idstore = self.idstore
+        newRec.name = self.name
+        newRec.date = self.date
+        newRec.distance = self.distance
+        newRec.duration = self.duration
+        newRec.latitude = self.latitude
+        newRec.locationId = self.locationId
+        newRec.longitude = self.longitude
+        newRec.zipCode = self.zipCode
+        newRec.radius = self.radius
+        newRec.address = self.address
+        newRec.openNow = self.openNow
+        newRec.countryCode = self.countryCode
+        newRec.tags = self.tags
+        newRec.types = self.types
+        newRec.contact = self.contact
+        return newRec
     }
 }
 
@@ -227,20 +254,7 @@ public class POIs {
 //            realm.add(POIModel(poi:poi))
 //            try realm.commitWrite()
             
-            let newRec:POIDB = POIDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
-            newRec.locationId = poi.locationId
-            newRec.city = poi.city
-            newRec.zipCode = poi.zipCode
-            newRec.distance = poi.distance
-            newRec.latitude = poi.latitude
-            newRec.longitude = poi.longitude
-            newRec.date = poi.date
-            newRec.radius = poi.radius
-            newRec.address = poi.address
-            newRec.countryCode = poi.countryCode
-            newRec.tags = poi.tags
-            newRec.types = poi.types
-            newRec.contact = poi.contact
+            let newRec:POIDB = poi.dbEntity()
             let _ = try WoosmapDataManager.connect.save(entity: newRec)
             
         } catch {
