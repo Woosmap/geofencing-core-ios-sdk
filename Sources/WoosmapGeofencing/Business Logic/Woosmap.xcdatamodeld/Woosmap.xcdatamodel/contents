@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="21754" systemVersion="22F82" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+    <entity name="DistanceDB" representedClassName=".DistanceDB" syncable="YES" codeGenerationType="class">
+        <attribute name="date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="destinationLatitude" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="destinationLongitude" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="distance" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="distanceText" optional="YES" attributeType="String"/>
+        <attribute name="duration" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="durationText" optional="YES" attributeType="String"/>
+        <attribute name="locationId" optional="YES" attributeType="String"/>
+        <attribute name="mode" optional="YES" attributeType="String"/>
+        <attribute name="originLatitude" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="originLongitude" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="routing" optional="YES" attributeType="String"/>
+        <attribute name="status" optional="YES" attributeType="String"/>
+        <attribute name="units" optional="YES" attributeType="String"/>
+    </entity>
+    <entity name="DurationLogDB" representedClassName=".DurationLogDB" syncable="YES" codeGenerationType="class">
+        <attribute name="entryTime" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="exitTime" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="identifier" attributeType="String"/>
+    </entity>
+    <entity name="LocationDB" representedClassName=".LocationDB" syncable="YES" codeGenerationType="class">
+        <attribute name="date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="latitude" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="locationDescription" optional="YES" attributeType="String"/>
+        <attribute name="locationId" optional="YES" attributeType="String"/>
+        <attribute name="longitude" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+    </entity>
+    <entity name="LogSearchAPIDB" representedClassName=".LogSearchAPIDB" syncable="YES" codeGenerationType="class">
+        <attribute name="date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="distanceLimit" optional="YES" attributeType="String"/>
+        <attribute name="distanceToFurthestMonitoredPOI" optional="YES" attributeType="String"/>
+        <attribute name="distanceTraveled" optional="YES" attributeType="String"/>
+        <attribute name="distanceTraveledLastRefreshPOIRegion" optional="YES" attributeType="String"/>
+        <attribute name="lastPOI_distance" optional="YES" attributeType="String"/>
+        <attribute name="lastSearchLocationLatitude" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="lastSearchLocationLongitude" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="latitude" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="locationDescription" optional="YES" attributeType="String"/>
+        <attribute name="longitude" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="searchAPILastRequestTimeStampValue" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="searchAPIRequestEnable" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="sendSearchAPIRequest" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="woosmapAPIKey" optional="YES" attributeType="String"/>
+    </entity>
+    <entity name="POIDB" representedClassName=".POIDB" syncable="YES" codeGenerationType="class">
+        <attribute name="address" optional="YES" attributeType="String"/>
+        <attribute name="city" optional="YES" attributeType="String"/>
+        <attribute name="contact" optional="YES" attributeType="String"/>
+        <attribute name="countryCode" optional="YES" attributeType="String"/>
+        <attribute name="date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="distance" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="duration" optional="YES" attributeType="String"/>
+        <attribute name="idstore" optional="YES" attributeType="String"/>
+        <attribute name="jsonData" optional="YES" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromDataTransformer" customClassName="Data"/>
+        <attribute name="latitude" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="locationId" optional="YES" attributeType="String"/>
+        <attribute name="longitude" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="name" optional="YES" attributeType="String"/>
+        <attribute name="openNow" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="radius" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="tags" optional="YES" attributeType="String"/>
+        <attribute name="types" optional="YES" attributeType="String"/>
+        <attribute name="zipCode" optional="YES" attributeType="String"/>
+    </entity>
+    <entity name="RegionDB" representedClassName=".RegionDB" syncable="YES" codeGenerationType="class">
+        <attribute name="date" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="didEnter" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="distance" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="distanceText" attributeType="String" defaultValueString=""/>
+        <attribute name="duration" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="durationText" optional="YES" attributeType="String"/>
+        <attribute name="eventName" attributeType="String" defaultValueString="-"/>
+        <attribute name="fromPositionDetection" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="identifier" attributeType="String" defaultValueString="-"/>
+        <attribute name="latitude" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="longitude" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="origin" attributeType="String" defaultValueString=""/>
+        <attribute name="radius" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="spentTime" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="type" attributeType="String" defaultValueString="circle"/>
+    </entity>
+    <entity name="RegionIsochroneDB" representedClassName=".RegionIsochroneDB" syncable="YES" codeGenerationType="class">
+        <attribute name="date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="didEnter" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="distance" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="distanceText" attributeType="String" defaultValueString=""/>
+        <attribute name="duration" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="durationText" attributeType="String" defaultValueString=""/>
+        <attribute name="expectedAverageSpeed" attributeType="Double" defaultValueString="-1" usesScalarValueType="YES"/>
+        <attribute name="fromPositionDetection" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="identifier" optional="YES" attributeType="String"/>
+        <attribute name="idStore" optional="YES" attributeType="String"/>
+        <attribute name="latitude" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="locationId" optional="YES" attributeType="String"/>
+        <attribute name="longitude" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="radius" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="type" attributeType="String" defaultValueString="isochrone"/>
+    </entity>
+    <entity name="VisitDB" representedClassName=".VisitDB" syncable="YES" codeGenerationType="class">
+        <attribute name="accuracy" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="arrivalDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="departureDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="latitude" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="longitude" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="visitId" optional="YES" attributeType="String"/>
+    </entity>
+    <entity name="ZOIDB" representedClassName=".ZOIDB" syncable="YES" codeGenerationType="class">
+        <attribute name="accumulator" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="age" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="covariance_det" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="duration" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="endTime" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="idVisits" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromDataTransformer" customClassName="[String]"/>
+        <attribute name="latMean" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="lngMean" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="period" optional="YES" attributeType="String"/>
+        <attribute name="prior_probability" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="startTime" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="weekly_density" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromDataTransformer" customClassName="[Double]"/>
+        <attribute name="wktPolygon" optional="YES" attributeType="String"/>
+        <attribute name="x00Covariance_matrix_inverse" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="x01Covariance_matrix_inverse" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="x10Covariance_matrix_inverse" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="x11Covariance_matrix_inverse" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="zoiId" optional="YES" attributeType="String"/>
+    </entity>
+</model>

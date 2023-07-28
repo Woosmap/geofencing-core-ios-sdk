@@ -3,10 +3,12 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 52;
+	objectVersion = 50;
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5F40246F2A7297B1007BB627 /* Woosmap.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 5F40246C2A7297B1007BB627 /* Woosmap.xcdatamodeld */; };
+		5F4024722A72983D007BB627 /* WoosmapDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F4024712A72983D007BB627 /* WoosmapDataManager.swift */; };
 		5F468DF92A2499DF006F6D94 /* Statistics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F468DE02A2499DF006F6D94 /* Statistics.swift */; };
 		5F468DFA2A2499DF006F6D94 /* Auxiliary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F468DE22A2499DF006F6D94 /* Auxiliary.swift */; };
 		5F468DFB2A2499DF006F6D94 /* Vector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F468DE42A2499DF006F6D94 /* Vector.swift */; };
@@ -40,8 +42,6 @@
 		A262B9DB24E29B0000EB621F /* ZOIQualifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = A262B9D224E29B0000EB621F /* ZOIQualifiers.swift */; };
 		A26E645D25B9865800EDBA72 /* DataCleaner.swift in Sources */ = {isa = PBXBuildFile; fileRef = A26E645C25B9865800EDBA72 /* DataCleaner.swift */; };
 		A26E646125B98BDD00EDBA72 /* DelayDataDurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A26E646025B98BDD00EDBA72 /* DelayDataDurationTests.swift */; };
-		A2710EE025B5C87700AF62F5 /* Realm in Frameworks */ = {isa = PBXBuildFile; productRef = A2710EDF25B5C87700AF62F5 /* Realm */; settings = {ATTRIBUTES = (Required, ); }; };
-		A2710EE225B5C87700AF62F5 /* RealmSwift in Frameworks */ = {isa = PBXBuildFile; productRef = A2710EE125B5C87700AF62F5 /* RealmSwift */; settings = {ATTRIBUTES = (Required, ); }; };
 		A2710EEB25B5C8C400AF62F5 /* POI.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2710EEA25B5C8C400AF62F5 /* POI.swift */; };
 		A2710EEF25B5C9D100AF62F5 /* ZOI.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2710EEE25B5C9D100AF62F5 /* ZOI.swift */; };
 		A2710EF325B5CA7C00AF62F5 /* Visit.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2710EF225B5CA7C00AF62F5 /* Visit.swift */; };
@@ -77,6 +77,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		5F40246D2A7297B1007BB627 /* Woosmap.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Woosmap.xcdatamodel; sourceTree = "<group>"; };
+		5F4024712A72983D007BB627 /* WoosmapDataManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = WoosmapDataManager.swift; sourceTree = "<group>"; };
 		5F468DE02A2499DF006F6D94 /* Statistics.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Statistics.swift; sourceTree = "<group>"; };
 		5F468DE22A2499DF006F6D94 /* Auxiliary.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Auxiliary.swift; sourceTree = "<group>"; };
 		5F468DE42A2499DF006F6D94 /* Vector.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Vector.swift; sourceTree = "<group>"; };
@@ -130,8 +132,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A2710EE225B5C87700AF62F5 /* RealmSwift in Frameworks */,
-				A2710EE025B5C87700AF62F5 /* Realm in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -286,6 +286,8 @@
 		A2710EE525B5C88100AF62F5 /* Business Logic */ = {
 			isa = PBXGroup;
 			children = (
+				5F4024712A72983D007BB627 /* WoosmapDataManager.swift */,
+				5F40246C2A7297B1007BB627 /* Woosmap.xcdatamodeld */,
 				A2710EEA25B5C8C400AF62F5 /* POI.swift */,
 				A2710EEE25B5C9D100AF62F5 /* ZOI.swift */,
 				A2710EF225B5CA7C00AF62F5 /* Visit.swift */,
@@ -349,8 +351,6 @@
 			);
 			name = WoosmapGeofencingCore;
 			packageProductDependencies = (
-				A2710EDF25B5C87700AF62F5 /* Realm */,
-				A2710EE125B5C87700AF62F5 /* RealmSwift */,
 			);
 			productName = GeoSearchSDK;
 			productReference = A216FBA923E9CEA70003AAC8 /* WoosmapGeofencingCore.framework */;
@@ -404,7 +404,6 @@
 			);
 			mainGroup = A216FB9F23E9CEA70003AAC8;
 			packageReferences = (
-				A2710EDE25B5C87700AF62F5 /* XCRemoteSwiftPackageReference "realm-cocoa" */,
 			);
 			productRefGroup = A216FBAA23E9CEA70003AAC8 /* Products */;
 			projectDirPath = "";
@@ -449,7 +448,9 @@
 				5F468E072A2499DF006F6D94 /* Arithmetic.swift in Sources */,
 				5F468E022A2499DF006F6D94 /* Pointers.swift in Sources */,
 				5F468E052A2499DF006F6D94 /* UnsafeMemory.swift in Sources */,
+				5F4024722A72983D007BB627 /* WoosmapDataManager.swift in Sources */,
 				A24796FF2726DF700081AADC /* Distance.swift in Sources */,
+				5F40246F2A7297B1007BB627 /* Woosmap.xcdatamodeld in Sources */,
 				A26E645D25B9865800EDBA72 /* DataCleaner.swift in Sources */,
 				5F468DFA2A2499DF006F6D94 /* Auxiliary.swift in Sources */,
 				5FB3E7A32872F2BE0035653E /* LocationService.swift in Sources */,
@@ -756,29 +757,18 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCRemoteSwiftPackageReference section */
-		A2710EDE25B5C87700AF62F5 /* XCRemoteSwiftPackageReference "realm-cocoa" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/realm/realm-cocoa";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 10.25.0;
-			};
+/* Begin XCVersionGroup section */
+		5F40246C2A7297B1007BB627 /* Woosmap.xcdatamodeld */ = {
+			isa = XCVersionGroup;
+			children = (
+				5F40246D2A7297B1007BB627 /* Woosmap.xcdatamodel */,
+			);
+			currentVersion = 5F40246D2A7297B1007BB627 /* Woosmap.xcdatamodel */;
+			path = Woosmap.xcdatamodeld;
+			sourceTree = "<group>";
+			versionGroupType = wrapper.xcdatamodel;
 		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		A2710EDF25B5C87700AF62F5 /* Realm */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A2710EDE25B5C87700AF62F5 /* XCRemoteSwiftPackageReference "realm-cocoa" */;
-			productName = Realm;
-		};
-		A2710EE125B5C87700AF62F5 /* RealmSwift */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A2710EDE25B5C87700AF62F5 /* XCRemoteSwiftPackageReference "realm-cocoa" */;
-			productName = RealmSwift;
-		};
-/* End XCSwiftPackageProductDependency section */
+/* End XCVersionGroup section */
 	};
 	rootObject = A216FBA023E9CEA70003AAC8 /* Project object */;
 }

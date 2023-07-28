@@ -2,8 +2,6 @@
 //  ZOI.swift
 //  WoosmapGeofencing
 //
-
-@_implementationOnly import RealmSwift
 import Foundation
 
 public class ZOI {
@@ -63,87 +61,28 @@ public class ZOI {
     public init() {
         
     }
-
-    fileprivate init(zoiModel: ZOIModel) {
-        self.accumulator = zoiModel.accumulator
-        self.age =  zoiModel.age
-        self.covariance_det =  zoiModel.covariance_det
-        self.duration =  zoiModel.duration
-        self.endTime =  zoiModel.endTime
-        self.idVisits =  Array(zoiModel.idVisits)
-        self.latMean =  zoiModel.latMean
-        self.lngMean =  zoiModel.lngMean
-        self.period =  zoiModel.period
-        self.prior_probability =  zoiModel.prior_probability
-        self.startTime =  zoiModel.startTime
-        self.weekly_density =  Array(zoiModel.weekly_density)
-        self.wktPolygon =  zoiModel.wktPolygon
-        self.x00Covariance_matrix_inverse =  zoiModel.x00Covariance_matrix_inverse
-        self.x01Covariance_matrix_inverse =  zoiModel.x01Covariance_matrix_inverse
-        self.x10Covariance_matrix_inverse =  zoiModel.x10Covariance_matrix_inverse
-        self.x11Covariance_matrix_inverse =  zoiModel.x11Covariance_matrix_inverse
-        self.zoiId =  zoiModel.zoiId
+    
+    fileprivate init(zoiDB: ZOIDB) {
+        self.accumulator = zoiDB.accumulator
+        self.age =  zoiDB.age
+        self.covariance_det =  zoiDB.covariance_det
+        self.duration =  zoiDB.duration
+        self.endTime =  zoiDB.endTime
+        self.idVisits = zoiDB.idVisits ?? []
+        self.latMean =  zoiDB.latMean
+        self.lngMean =  zoiDB.lngMean
+        self.period =  zoiDB.period
+        self.prior_probability =  zoiDB.prior_probability
+        self.startTime =  zoiDB.startTime
+        self.weekly_density =  zoiDB.weekly_density ?? []
+        self.wktPolygon =  zoiDB.wktPolygon
+        self.x00Covariance_matrix_inverse =  zoiDB.x00Covariance_matrix_inverse
+        self.x01Covariance_matrix_inverse =  zoiDB.x01Covariance_matrix_inverse
+        self.x10Covariance_matrix_inverse =  zoiDB.x10Covariance_matrix_inverse
+        self.x11Covariance_matrix_inverse =  zoiDB.x11Covariance_matrix_inverse
+        self.zoiId =  zoiDB.zoiId
     }
 }
-
-/// Zone of Intrest Object
-class ZOIModel: Object {
-    
-    /// Accumulator
-    @Persisted var accumulator: Double = 0.0
-    
-    /// Age
-    @Persisted var age: Double = 0.0
-    
-    /// Covariance_det
-    @Persisted var covariance_det: Double = 0.0
-    
-    /// Duration
-    @Persisted var duration: Int64 = 0
-    
-    /// End Time
-    @Persisted var endTime: Date?
-    
-    /// Visit ID
-    @Persisted var idVisits = List<String>()
-    
-    /// LatMean
-    @Persisted var latMean: Double = 0.0
-    
-    /// LngMean
-    @Persisted var lngMean: Double = 0.0
-    
-    /// Period
-    @Persisted var period: String?
-    
-    /// Prior Probability
-    @Persisted var prior_probability: Double = 0.0
-    
-    /// Start Time
-    @Persisted var startTime: Date?
-    
-    /// Weekly Density
-    @Persisted var weekly_density = List<Double>()
-    
-    /// wktPolygon
-    @Persisted var wktPolygon: String?
-    
-    /// x00Covariance_matrix_inverse
-    @Persisted var x00Covariance_matrix_inverse: Double = 0.0
-    
-    /// x01Covariance_matrix_inverse
-    @Persisted var x01Covariance_matrix_inverse: Double = 0.0
-    
-    /// x10Covariance_matrix_inverse
-    @Persisted var x10Covariance_matrix_inverse: Double = 0.0
-    
-    /// x11Covariance_matrix_inverse
-    @Persisted var x11Covariance_matrix_inverse: Double = 0.0
-    
-    /// ID
-    @Persisted(primaryKey: true) var zoiId: String?
-}
-
 /// ZOI business class
 public class ZOIs {
     
@@ -151,10 +90,10 @@ public class ZOIs {
     /// - Parameter zoi: Raw information
     public class func createZOIFrom(zoi: [String: Any]) {
         do {
-            let realm = try Realm()
-            let newZOI = ZOIModel()
+            
+            let newZOI = ZOIDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
             newZOI.zoiId = UUID().uuidString
-            newZOI.idVisits = zoi["idVisits"] as! List<String>
+            newZOI.idVisits = zoi["idVisits"] as? [String]
             var visitArrivalDate = [Date]()
             var visitDepartureDate = [Date]()
             var duration = 0
@@ -172,48 +111,54 @@ public class ZOIs {
                 startTime = visitArrivalDate.reduce(visitArrivalDate[0], { $0.timeIntervalSince1970 < $1.timeIntervalSince1970 ? $0 : $1 })
                 endTime = visitDepartureDate.reduce(visitDepartureDate[0], { $0.timeIntervalSince1970 > $1.timeIntervalSince1970 ? $0 : $1 })
             }
-            newZOI.setValue(startTime, forKey: "startTime")
-            newZOI.setValue(endTime, forKey: "endTime")
-            newZOI.setValue(duration, forKey: "duration")
-            newZOI.setValue(zoi["weekly_density"], forKey: "weekly_density")
-            newZOI.setValue(zoi["period"], forKey: "period")
-            newZOI.setValue((zoi["mean"] as! [Any])[0] as! Double, forKey: "latMean")
-            newZOI.setValue((zoi["mean"] as! [Any])[1] as! Double, forKey: "lngMean")
-            newZOI.setValue(zoi["age"], forKey: "age")
-            newZOI.setValue(zoi["accumulator"], forKey: "accumulator")
-            newZOI.setValue(zoi["covariance_det"], forKey: "covariance_det")
-            newZOI.setValue(zoi["prior_probability"], forKey: "prior_probability")
-            newZOI.setValue(zoi["x00Covariance_matrix_inverse"], forKey: "x00Covariance_matrix_inverse")
-            newZOI.setValue(zoi["x01Covariance_matrix_inverse"], forKey: "x01Covariance_matrix_inverse")
-            newZOI.setValue(zoi["x10Covariance_matrix_inverse"], forKey: "x10Covariance_matrix_inverse")
-            newZOI.setValue(zoi["x11Covariance_matrix_inverse"], forKey: "x11Covariance_matrix_inverse")
-            newZOI.setValue(zoi["WktPolygon"], forKey: "wktPolygon")
             
-            realm.beginWrite()
-            realm.add(newZOI)
-            try realm.commitWrite()
+            newZOI.startTime = startTime // .setValue(startTime, forKey: "startTime")
+            newZOI.endTime = endTime//setValue(endTime, forKey: "endTime")
+            newZOI.duration = Int64(duration)//setValue(duration, forKey: "duration")
+            newZOI.weekly_density = zoi["weekly_density"] as? [Double] //setValue(, forKey: "weekly_density")
+            newZOI.period = zoi["period"] as? String //(zoi["period"], forKey: "period")
+            newZOI.latMean = (zoi["mean"] as! [Any])[0] as! Double
+            newZOI.lngMean = (zoi["mean"] as! [Any])[1] as! Double
+            newZOI.age = zoi["age"] as! Double
+            newZOI.accumulator = zoi["accumulator"] as! Double
+            newZOI.covariance_det = zoi["covariance_det"] as! Double
+            newZOI.prior_probability = zoi["prior_probability"] as! Double
+            
+            newZOI.x00Covariance_matrix_inverse = zoi["x00Covariance_matrix_inverse"] as! Double
+            newZOI.x01Covariance_matrix_inverse = zoi["x01Covariance_matrix_inverse"] as! Double
+            newZOI.x10Covariance_matrix_inverse = zoi["x10Covariance_matrix_inverse"] as! Double
+            newZOI.x11Covariance_matrix_inverse = zoi["x11Covariance_matrix_inverse"] as! Double
+            newZOI.wktPolygon = zoi["WktPolygon"] as? String
+            let _ = try WoosmapDataManager.connect.save(entity: newZOI)
+            
+//            let realm = try Realm()
+//            realm.beginWrite()
+//            realm.add(newZOI)
+//            try realm.commitWrite()
         } catch {
+            
         }
     }
     
     /// Save ZPI in local database
     /// - Parameter zois: Raw information
     public class func saveZoisInDB(zois: [[String: Any]]) {
-        var zoisToDB: [ZOIModel] = []
+        var zoiArray: [ZOI] = []
         for zoi in zois {
-            let newZOi = ZOIModel()
-            newZOi.setValue(UUID().uuidString, forKey: "zoiId")
-            newZOi.setValue(zoi["idVisits"], forKey: "idVisits")
+            let newZOi = ZOI()
+            newZOi.zoiId  = UUID().uuidString
+            newZOi.idVisits = zoi["idVisits"] as! [String]
             var visitArrivalDate = [Date]()
             var visitDepartureDate = [Date]()
             var duration = 0
             var startTime = Date()
             var endTime = Date()
-            var arrayIdVisits: [String] = [String]()
+            var arrayIdVisits: [String] = []
             if let list = zoi["idVisits"] as? [String] {
                 arrayIdVisits = list
             } else {
-                arrayIdVisits = Array((zoi["idVisits"] as! List<String>).elements)
+                // TODO: validate this
+                //arrayIdVisits = Array((zoi["idVisits"] as! List<String>).elements)
             }
             if arrayIdVisits.count != 0 {
                 for id in arrayIdVisits {
@@ -227,31 +172,55 @@ public class ZOIs {
                 startTime = visitArrivalDate.reduce(visitArrivalDate[0], { $0.timeIntervalSince1970 < $1.timeIntervalSince1970 ? $0 : $1 })
                 endTime = visitDepartureDate.reduce(visitDepartureDate[0], { $0.timeIntervalSince1970 > $1.timeIntervalSince1970 ? $0 : $1 })
             }
-            newZOi.setValue(startTime, forKey: "startTime")
-            newZOi.setValue(endTime, forKey: "endTime")
-            newZOi.setValue(duration, forKey: "duration")
-            newZOi.setValue(zoi["weekly_density"], forKey: "weekly_density")
-            newZOi.setValue(zoi["period"], forKey: "period")
-            newZOi.setValue((zoi["mean"] as! [Any])[0] as! Double, forKey: "latMean")
-            newZOi.setValue((zoi["mean"] as! [Any])[1] as! Double, forKey: "lngMean")
-            newZOi.setValue(zoi["age"], forKey: "age")
-            newZOi.setValue(zoi["accumulator"], forKey: "accumulator")
-            newZOi.setValue(zoi["covariance_det"], forKey: "covariance_det")
-            newZOi.setValue(zoi["prior_probability"], forKey: "prior_probability")
-            newZOi.setValue(zoi["x00Covariance_matrix_inverse"], forKey: "x00Covariance_matrix_inverse")
-            newZOi.setValue(zoi["x01Covariance_matrix_inverse"], forKey: "x01Covariance_matrix_inverse")
-            newZOi.setValue(zoi["x10Covariance_matrix_inverse"], forKey: "x10Covariance_matrix_inverse")
-            newZOi.setValue(zoi["x11Covariance_matrix_inverse"], forKey: "x11Covariance_matrix_inverse")
-            newZOi.setValue(zoi["WktPolygon"], forKey: "wktPolygon")
-            zoisToDB.append(newZOi)
+            newZOi.startTime = startTime
+            newZOi.endTime = endTime
+            newZOi.duration = Int64(duration)
+            newZOi.weekly_density = zoi["weekly_density"] as! [Double]
+            newZOi.period = zoi["period"] as? String
+            newZOi.latMean = (zoi["mean"] as! [Any])[0] as! Double
+            newZOi.lngMean = (zoi["mean"] as! [Any])[1] as! Double
+            newZOi.age = zoi["age"] as! Double
+            newZOi.accumulator = zoi["accumulator"] as! Double
+            newZOi.covariance_det = zoi["covariance_det"] as! Double
+            newZOi.prior_probability = zoi["prior_probability"] as! Double
+            newZOi.x00Covariance_matrix_inverse = zoi["x00Covariance_matrix_inverse"] as! Double
+            newZOi.x01Covariance_matrix_inverse = zoi["x01Covariance_matrix_inverse"] as! Double
+            newZOi.x10Covariance_matrix_inverse = zoi["x10Covariance_matrix_inverse"] as! Double
+            newZOi.x11Covariance_matrix_inverse = zoi["x11Covariance_matrix_inverse"] as! Double
+            newZOi.wktPolygon = zoi["WktPolygon"] as? String
+            zoiArray.append(newZOi)
         }
         
         do {
-            let realm = try Realm()
-            realm.beginWrite()
-            realm.delete(realm.objects(ZOIModel.self))
-            realm.add(zoisToDB)
-            try realm.commitWrite()
+//            let realm = try Realm()
+//            realm.beginWrite()
+//            realm.delete(realm.objects(ZOIModel.self))
+//            realm.add(zoisToDB)
+//            try realm.commitWrite()
+            let _ = try WoosmapDataManager.connect.deleteAll(entityClass: ZOIDB.self)
+            try zoiArray.forEach { row in
+                let newRec:ZOIDB = ZOIDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
+                newRec.accumulator = row.accumulator
+                newRec.age =  row.age
+                newRec.covariance_det =  row.covariance_det
+                newRec.duration =  row.duration
+                newRec.endTime =  row.endTime
+                newRec.idVisits = row.idVisits
+                newRec.latMean =  row.latMean
+                newRec.lngMean =  row.lngMean
+                newRec.period =  row.period
+                newRec.prior_probability =  row.prior_probability
+                newRec.startTime =  row.startTime
+                newRec.weekly_density =  row.weekly_density
+                newRec.wktPolygon =  row.wktPolygon
+                newRec.x00Covariance_matrix_inverse =  row.x00Covariance_matrix_inverse
+                newRec.x01Covariance_matrix_inverse =  row.x01Covariance_matrix_inverse
+                newRec.x10Covariance_matrix_inverse =  row.x10Covariance_matrix_inverse
+                newRec.x11Covariance_matrix_inverse =  row.x11Covariance_matrix_inverse
+                newRec.zoiId =  row.zoiId
+                let _ = try WoosmapDataManager.connect.save(entity: newRec)
+            }
+            
         } catch {
         }
     }
@@ -282,7 +251,7 @@ public class ZOIs {
             zoiToAdd["endTime"] = zoiFromDB.endTime
             zoiToAdd["duration"] = zoiFromDB.duration
             zoiToAdd["weekly_density"] = zoiFromDB.weekly_density
-            zoiToAdd["weeks_on_zoi"] = []
+            zoiToAdd["weeks_on_zoi"] = [] as [Double]
             zoiToAdd["period"] = zoiFromDB.period
             zoiToAdd["covariance_det"] = zoiFromDB.covariance_det
             zoiToAdd["x00Covariance_matrix_inverse"] = zoiFromDB.x00Covariance_matrix_inverse
@@ -325,7 +294,7 @@ public class ZOIs {
             zoiToAdd["duration"] = zoiFromDB.duration
             zoiToAdd["weekly_density"] = zoiFromDB.weekly_density
             zoiToAdd["period"] = zoiFromDB.period
-            zoiToAdd["weeks_on_zoi"] = []
+            zoiToAdd["weeks_on_zoi"] = [] as [Double]
             zoiToAdd["covariance_det"] = zoiFromDB.covariance_det
             zoiToAdd["x00Covariance_matrix_inverse"] = zoiFromDB.x00Covariance_matrix_inverse
             zoiToAdd["x01Covariance_matrix_inverse"] = zoiFromDB.x01Covariance_matrix_inverse
@@ -373,7 +342,7 @@ public class ZOIs {
             zoiToAdd["endTime"] = zoiFromDB.endTime
             zoiToAdd["duration"] = zoiFromDB.duration
             zoiToAdd["weekly_density"] = zoiFromDB.weekly_density
-            zoiToAdd["weeks_on_zoi"] = []
+            zoiToAdd["weeks_on_zoi"] = [] as [Double]
             zoiToAdd["period"] = zoiFromDB.period
             zoiToAdd["covariance_det"] = zoiFromDB.covariance_det
             zoiToAdd["x00Covariance_matrix_inverse"] = zoiFromDB.x00Covariance_matrix_inverse
@@ -397,13 +366,15 @@ public class ZOIs {
     /// - Returns: ZOIs
     public class func getAll() -> [ZOI] {
         do {
-            let realm = try Realm()
-            let zois = realm.objects(ZOIModel.self)
+//            let realm = try Realm()
+//            let zois = realm.objects(ZOIModel.self)
+            
+            let zois = try WoosmapDataManager.connect.retrieve(entityClass: ZOIDB.self)
             
             var externalZois: [ZOI] = []
             
             for zoi in zois {
-                externalZois.append(ZOI(zoiModel: zoi))
+                externalZois.append(ZOI(zoiDB: zoi))
             }
             
             return externalZois
@@ -415,10 +386,11 @@ public class ZOIs {
     /// Delete All ZOI information
     public class func deleteAll() {
         do {
-            let realm = try Realm()
-            realm.beginWrite()
-            realm.delete(realm.objects(ZOIModel.self))
-            try realm.commitWrite()
+//            let realm = try Realm()
+//            realm.beginWrite()
+//            realm.delete(realm.objects(ZOIModel.self))
+//            try realm.commitWrite()
+            let _ = try WoosmapDataManager.connect.deleteAll(entityClass: ZOIDB.self)
         } catch {
         }
     }
@@ -427,22 +399,18 @@ public class ZOIs {
     /// - Returns: Work/Home ZOI
     public class func getWorkHomeZOI() -> [ZOI] {
         do {
-            let realm = try Realm()
             let predicate = NSPredicate(format: "period == %@ OR period == %@", "WORK_PERIOD", "HOME_PERIOD")
-            let fetchedResults = realm.objects(ZOIModel.self).filter(predicate)
-            return toZOI(zoiModels: Array(fetchedResults))
+            let fetchedResults = try WoosmapDataManager.connect.retrieve(entityClass: ZOIDB.self, predicate: predicate)
+            return fetchedResults.map { zoi in
+                return ZOI(zoiDB: zoi)
+            }
+            
+//            let realm = try Realm()
+//            let fetchedResults = realm.objects(ZOIModel.self).filter(predicate)
+//            return toZOI(zoiModels: Array(fetchedResults))
         } catch {
         }
         return []
     }
 }
 
-
-private func toZOI(zoiModels: [ZOIModel]) -> [ZOI] {
-    var externalZois: [ZOI] = []
-    
-    for zoi in zoiModels {
-        externalZois.append(ZOI(zoiModel: zoi))
-    }
-    return externalZois
-}

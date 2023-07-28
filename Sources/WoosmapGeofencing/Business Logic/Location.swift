@@ -4,47 +4,7 @@
 //
 
 import Foundation
-@_implementationOnly import RealmSwift
 import CoreLocation
-
-/// Location Object
-class LocationModel: Object {
-    
-    /// Date
-    @objc public dynamic var date: Date? = nil
-    
-    /// Latitude
-    @objc public dynamic var latitude: Double = 0.0
-    
-    /// Description
-    @objc public dynamic var locationDescription: String?
-    
-    /// ID
-    @objc public dynamic var locationId: String? = nil
-    
-    /// Longitude
-    @objc public dynamic var longitude: Double = 0.0
-    
-    public override init() {
-        
-    }
-    
-    /// Create new Location object
-    /// - Parameters:
-    ///   - locationId:
-    ///   - latitude:
-    ///   - longitude:
-    ///   - dateCaptured:
-    ///   - descriptionToSave:
-    public init(locationId: String, latitude: Double, longitude: Double, dateCaptured: Date, descriptionToSave: String) {
-        self.locationId = locationId
-        self.latitude = latitude
-        self.longitude = longitude
-        self.date = dateCaptured
-        self.locationDescription = descriptionToSave
-    }
-    
-}
 
 /// Location object
 public class Location  {
@@ -76,12 +36,20 @@ public class Location  {
         self.locationDescription = descriptionToSave
     }
 
-    fileprivate init(locationModel: LocationModel) {
-        self.date = locationModel.date
-        self.latitude = locationModel.latitude
-        self.locationDescription = locationModel.locationDescription
-        self.locationId = locationModel.locationId
-        self.longitude = locationModel.longitude
+//    fileprivate init(locationModel: LocationModel) {
+//        self.date = locationModel.date
+//        self.latitude = locationModel.latitude
+//        self.locationDescription = locationModel.locationDescription
+//        self.locationId = locationModel.locationId
+//        self.longitude = locationModel.longitude
+//    }
+    
+    fileprivate init(locationDB: LocationDB) {
+        self.date = locationDB.date
+        self.latitude = locationDB.latitude
+        self.locationDescription = locationDB.locationDescription
+        self.locationId = locationDB.locationId
+        self.longitude = locationDB.longitude
     }
 }
 
@@ -93,15 +61,26 @@ public class Locations {
     /// - Returns: Locations
     public class func add(locations: [CLLocation]) -> Location {
         do {
-            let realm = try Realm()
+            
             let location = locations.last!
             // create Location ID
             let locationId = UUID().uuidString
-            let entry = LocationModel(locationId: locationId, latitude: location.coordinate.latitude, longitude: location.coordinate.longitude, dateCaptured: Date(), descriptionToSave: "description")
-            realm.beginWrite()
-            realm.add(entry)
-            try realm.commitWrite()
-            return Location(locationModel: entry)
+            
+//            let entry = LocationModel(locationId: locationId, latitude: location.coordinate.latitude, longitude: location.coordinate.longitude, dateCaptured: Date(), descriptionToSave: "description")
+//            let realm = try Realm()
+//            realm.beginWrite()
+//            realm.add(entry)
+//            try realm.commitWrite()
+            
+            //Save in Core DB
+            let newRec:LocationDB = LocationDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
+            newRec.locationId = locationId
+            newRec.latitude = location.coordinate.latitude
+            newRec.longitude = location.coordinate.longitude
+            newRec.date = Date()
+            newRec.locationDescription = "description"
+            let _ = try WoosmapDataManager.connect.save(entity: newRec)
+            return Location(locationDB: newRec)
         } catch {
         }
         return Location()
@@ -123,12 +102,21 @@ public class Locations {
             return
         }
         
-        let locationModel = LocationModel(locationId: locationId, latitude: location.latitude, longitude: location.longitude, dateCaptured: date, descriptionToSave: description)
+//        let locationModel = LocationModel(locationId: locationId, latitude: location.latitude, longitude: location.longitude, dateCaptured: date, descriptionToSave: description)
         do {
-            let realm = try Realm()
-            realm.beginWrite()
-            realm.add(locationModel)
-            try realm.commitWrite()
+//            let realm = try Realm()
+//            realm.beginWrite()
+//            realm.add(locationModel)
+//            try realm.commitWrite()
+            
+            //Save in Core DB
+            let newRec:LocationDB = LocationDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
+            newRec.locationId = locationId
+            newRec.latitude = location.latitude
+            newRec.longitude = location.longitude
+            newRec.date = date
+            newRec.locationDescription = description
+            let _ = try WoosmapDataManager.connect.save(entity: newRec)
         } catch {
         }
     }
@@ -137,11 +125,17 @@ public class Locations {
     /// - Returns: Locations
     public class func getAll() -> [Location] {
         do {
-            let realm = try Realm()
-            let locations = realm.objects(LocationModel.self)
-            return Array(locations).map { location in
-                return Location(locationModel: location)
-            }
+//            let realm = try Realm()
+//            let locations = realm.objects(LocationModel.self)
+//            return Array(locations).map { location in
+//                return Location(locationModel: location)
+//            }
+            //Core DB
+            let locations = try WoosmapDataManager.connect.retrieve(entityClass: LocationDB.self)
+            return Array((locations).map({ location in
+                return Location(locationDB: location)
+            }))
+            
         } catch {
         }
         return []
@@ -153,12 +147,18 @@ public class Locations {
     @available(*, deprecated, message: "Use getLocationFromId:id instead")
     private class func getLocationByLocationID(locationId: String) -> Location? {
         do {
-            let realm = try Realm()
             let predicate = NSPredicate(format: "locationId == %@", locationId)
-            let fetchedResults = realm.objects(LocationModel.self).filter(predicate)
+//            let realm = try Realm()
+//            let fetchedResults = realm.objects(LocationModel.self).filter(predicate)
+//            if let aLocation = fetchedResults.first {
+//                return Location(locationModel: aLocation)
+//            }
+            //Core DB
+            let fetchedResults = try WoosmapDataManager.connect.retrieve(entityClass: LocationDB.self, predicate: predicate)
             if let aLocation = fetchedResults.first {
-                return Location(locationModel: aLocation)
+                return Location(locationDB: aLocation)
             }
+            
         } catch {
         }
         return nil
@@ -169,11 +169,17 @@ public class Locations {
     /// - Returns: Location
     public class func getLocationFromId(id: String) -> Location? {
         do {
-            let realm = try Realm()
+
             let predicate = NSPredicate(format: "locationId == %@", id)
-            let fetchedResults = realm.objects(LocationModel.self).filter(predicate)
-            if let aLocation = fetchedResults.last {
-                return Location(locationModel: aLocation)
+//            let realm = try Realm()
+//            let fetchedResults = realm.objects(LocationModel.self).filter(predicate)
+//            if let aLocation = fetchedResults.last {
+//                return Location(locationModel: aLocation)
+//            }
+            //Core DB
+            let fetchedResults = try WoosmapDataManager.connect.retrieve(entityClass: LocationDB.self, predicate: predicate)
+            if let aLocation = fetchedResults.first {
+                return Location(locationDB: aLocation)
             }
         } catch {
         }
@@ -183,10 +189,11 @@ public class Locations {
     /// Delete all locatons
     public class func deleteAll() {
         do {
-            let realm = try Realm()
-            try realm.write {
-                realm.delete(realm.objects(LocationModel.self))
-            }
+//            let realm = try Realm()
+//            try realm.write {
+//                realm.delete(realm.objects(LocationModel.self))
+//            }
+            let _ = try WoosmapDataManager.connect.deleteAll(entityClass: LocationDB.self)
         } catch let error as NSError {
             print(error)
         }

@@ -4,80 +4,7 @@
 //
 
 import Foundation
-@_implementationOnly import RealmSwift
 import CoreLocation
-
-/// Log Search API
-class LogSearchAPIModel: Object {
-    
-    /// Date
-    @objc public dynamic var date: Date?
-    
-    /// Latitude
-    @objc public dynamic var latitude: Double = 0.0
-    
-    /// Longitude
-    @objc public dynamic var longitude: Double = 0.0
-    
-    /// last Search Location Latitude
-    @objc public dynamic var lastSearchLocationLatitude: Double = 0.0
-    
-    /// last Search Location Longitude
-    @objc public dynamic var lastSearchLocationLongitude: Double = 0.0
-    
-    /// last POI distance
-    @objc public dynamic var lastPOI_distance: String?
-    
-    /// distance Limit
-    @objc public dynamic var distanceLimit: String?
-    
-    /// location Description
-    @objc public dynamic var locationDescription: String?
-    
-    /// distance Traveled
-    @objc public dynamic var distanceTraveled: String?
-    
-    /// distance To Furthest Monitored POI
-    @objc public dynamic var distanceToFurthestMonitoredPOI: String?
-    
-    /// distance Traveled Last Refresh POI Region
-    @objc public dynamic var distanceTraveledLastRefreshPOIRegion: String?
-    
-    /// search API Last Request TimeStamp Value
-    @objc public dynamic var searchAPILastRequestTimeStampValue = 0.0
-    
-    /// send Search API Request
-    @objc public dynamic var sendSearchAPIRequest: Bool = false
-    
-    /// Woosmap API Key
-    @objc public dynamic var woosmapAPIKey: String?
-    
-    /// Search API Request Enable
-    @objc public dynamic var searchAPIRequestEnable: Bool = false
-    
-    override init() {
-        
-    }
-    
-    init(logSearchApi: LogSearchAPI) {
-        self.date = logSearchApi.date
-        self.latitude = logSearchApi.latitude
-        self.longitude = logSearchApi.longitude
-        self.lastSearchLocationLatitude = logSearchApi.lastSearchLocationLatitude
-        self.lastSearchLocationLongitude = logSearchApi.lastSearchLocationLongitude
-        self.lastPOI_distance = logSearchApi.lastPOI_distance
-        self.distanceLimit = logSearchApi.distanceLimit
-        self.locationDescription = logSearchApi.locationDescription
-        self.distanceTraveled = logSearchApi.distanceTraveled
-        self.distanceToFurthestMonitoredPOI = logSearchApi.distanceToFurthestMonitoredPOI
-        self.distanceTraveledLastRefreshPOIRegion = logSearchApi.distanceTraveledLastRefreshPOIRegion
-        self.searchAPILastRequestTimeStampValue = logSearchApi.searchAPILastRequestTimeStampValue
-        self.sendSearchAPIRequest = logSearchApi.sendSearchAPIRequest
-        self.woosmapAPIKey = logSearchApi.woosmapAPIKey
-        self.searchAPIRequestEnable = logSearchApi.searchAPIRequestEnable
-    }
-}
-
 
 public class LogSearchAPI {
     /// Date
@@ -133,10 +60,31 @@ public class LogSearchAPIs {
     /// - Parameter log: Log
     public class func add(log: LogSearchAPI) {
         do {
-            let realm = try Realm()
-            realm.beginWrite()
-            realm.add(LogSearchAPIModel(logSearchApi: log))
-            try realm.commitWrite()
+//            let realm = try Realm()
+//            realm.beginWrite()
+//            realm.add(LogSearchAPIModel(logSearchApi: log))
+//            try realm.commitWrite()
+            
+            
+            //Save in Core DB
+            let newRec:LogSearchAPIDB = LogSearchAPIDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
+            newRec.date = log.date
+            newRec.latitude = log.latitude
+            newRec.longitude = log.longitude
+            newRec.lastSearchLocationLatitude = log.lastSearchLocationLatitude
+            newRec.lastSearchLocationLongitude = log.lastSearchLocationLongitude
+            newRec.lastPOI_distance = log.lastPOI_distance
+            newRec.distanceLimit = log.distanceLimit
+            newRec.locationDescription = log.locationDescription
+            newRec.distanceTraveled = log.distanceTraveled
+            newRec.distanceToFurthestMonitoredPOI = log.distanceToFurthestMonitoredPOI
+            newRec.distanceTraveledLastRefreshPOIRegion = log.distanceTraveledLastRefreshPOIRegion
+            newRec.searchAPILastRequestTimeStampValue = log.searchAPILastRequestTimeStampValue
+            newRec.sendSearchAPIRequest = log.sendSearchAPIRequest
+            newRec.woosmapAPIKey = log.woosmapAPIKey
+            newRec.searchAPIRequestEnable = log.searchAPIRequestEnable
+            let _ = try WoosmapDataManager.connect.save(entity: newRec)
+            
         } catch {
         }
     }
