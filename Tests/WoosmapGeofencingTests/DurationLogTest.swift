@@ -14,10 +14,6 @@ class DurationLogTest: XCTestCase {
     
     override func setUp() {
         super.setUp()
-//        let documentDirectory = try? FileManager.default.url(for: .documentDirectory, in: .userDomainMask,
-//                                                                     appropriateFor: nil, create: false)
-//        let url = documentDirectory!.appendingPathComponent("durationlog\(Date.timeIntervalBetween1970AndReferenceDate).realm")
-//        Realm.Configuration.defaultConfiguration.fileURL = url
         dateFormatter.locale = Locale(identifier: "en_US_POSIX") // set locale to reliable US_POSIX
         dateFormatter.dateFormat = "yyyy-MM-dd' 'HH:mm:ssZ"
     }

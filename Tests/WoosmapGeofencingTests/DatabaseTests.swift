@@ -8,19 +8,12 @@
 import XCTest
 import WoosmapGeofencingCore
 import CoreLocation
-//import RealmSwift
 
 class DatabaseTests: XCTestCase {
     let dateFormatter = DateFormatter()
 
     override func setUp() {
         super.setUp()
-        // Realm.Configuration.defaultConfiguration.inMemoryIdentifier = self.name
-//        let documentDirectory = try? FileManager.default.url(for: .documentDirectory, in: .userDomainMask,
-//                                                        appropriateFor: nil, create: false)
-//        let url = documentDirectory!.appendingPathComponent("my-new-realm.realm")
-//        Realm.Configuration.defaultConfiguration.fileURL = url
-
         cleanDatabase()
         dateFormatter.locale = Locale(identifier: "en_US_POSIX") // set locale to reliable US_POSIX
         dateFormatter.dateFormat = "yyyy-MM-dd' 'HH:mm:ssZ"

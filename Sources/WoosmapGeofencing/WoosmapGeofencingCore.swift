@@ -25,13 +25,8 @@ import CoreLocation
     private override init () {
         super.init()
         self.initServices()
-//        self.initRealm()
     }
     
-    /// Init Offline DB
-//    private func initRealm() {
-//        Realm.Configuration.defaultConfiguration = Realm.Configuration(schemaVersion: 10)
-//    }
     
     /// Location service
     /// - Returns: Location service object
