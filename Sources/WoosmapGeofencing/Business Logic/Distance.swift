@@ -144,11 +144,6 @@ public class Distances {
             } else {
                 print("WoosmapGeofencing.DistanceAPIData " + jsonStructure.status!)
             }
-            
-//            let realm = try Realm()
-//            realm.beginWrite()
-//            realm.add(distanceArray)
-//            try realm.commitWrite()
             try distanceArray.forEach { row in
                 let _ = try WoosmapDataManager.connect.save(entity: row.dbEntity())
             }
@@ -167,10 +162,6 @@ public class Distances {
     /// - Returns: return all distance
     private class func getAll() -> [Distance] {
         do {
-//            let realm = try Realm()
-//            let distances = realm.objects(DistanceModel.self)
-//            return Distances.toDistance(distanceModels: Array(distances))
-            
             let distances = try WoosmapDataManager.connect.retrieve(entityClass: DistanceDB.self)
             return Array((distances).map({ distance in
                 return Distance(distanceDB: distance)
@@ -184,10 +175,6 @@ public class Distances {
     /// Delete all 
     private class func deleteAll() {
         do {
-//            let realm = try Realm()
-//            try realm.write {
-//                realm.delete(realm.objects(DistanceModel.self))
-//            }
             let _ = try WoosmapDataManager.connect.deleteAll(entityClass: DistanceDB.self)
         } catch let error as NSError {
             print(error)

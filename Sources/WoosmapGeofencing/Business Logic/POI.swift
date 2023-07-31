@@ -229,10 +229,6 @@ public class POIs {
                     }
                 }
             }
-//           let realm = try Realm()
-//            realm.beginWrite()
-//            realm.add(aPOIs)
-//            try realm.commitWrite()
             try aPOIs.forEach { row in
                 let _ = try WoosmapDataManager.connect.save(entity: row)
             }
@@ -249,11 +245,6 @@ public class POIs {
     /// - Parameter poi: POI List
     public class func addTest(poi: POI) {
         do {
-//            let realm = try Realm()
-//            realm.beginWrite()
-//            realm.add(POIModel(poi:poi))
-//            try realm.commitWrite()
-            
             let newRec:POIDB = poi.dbEntity()
             let _ = try WoosmapDataManager.connect.save(entity: newRec)
             
@@ -287,9 +278,6 @@ public class POIs {
     
     private class func _getPOIModelbyLocationID(locationId: String) -> POIDB? {
         do {
-//            let realm = try Realm()
-//            let fetchedResults = realm.objects(POIModel.self).filter(predicate)
-            
             let predicate = NSPredicate(format: "locationId == %@", locationId)
             let fetchedResults = try WoosmapDataManager.connect.retrieve(entityClass: POIDB.self, predicate: predicate)
             if let aPOI = fetchedResults.first {
@@ -307,16 +295,6 @@ public class POIs {
     public class func getLastPOIsFromLocationID(locationId: String) -> [POI] {
         do {
             let predicate = NSPredicate(format: "locationId == %@", locationId)
-//            let realm = try Realm()
-//            let fetchedResults = realm.objects(POIModel.self).filter(predicate)
-//            if fetchedResults.first != nil {
-//                var poiArray:[POI] = []
-//                for poi in fetchedResults {
-//                    poiArray.append(POI(poiModel: poi))
-//                }
-//                return poiArray
-//            }
-            
             let fetchedResults = try WoosmapDataManager.connect.retrieve(entityClass: POIDB.self, predicate: predicate)
             if fetchedResults.first != nil {
                 var poiArray:[POI] = []
@@ -337,12 +315,6 @@ public class POIs {
     public class func getPOIbyIdStore(idstore: String) -> POI? {
         do {
             let predicate = NSPredicate(format: "idstore == %@", idstore)
-//            let realm = try Realm()
-//            let fetchedResults = realm.objects(POIModel.self).filter(predicate)
-//            if let aPOI = fetchedResults.first {
-//                return POI(poiModel: aPOI)
-//            }
-            
             let fetchedResults = try WoosmapDataManager.connect.retrieve(entityClass: POIDB.self, predicate: predicate)
             if let aPOI = fetchedResults.first {
                 return POI(poiDB: aPOI)
@@ -361,14 +333,10 @@ public class POIs {
     /// - Returns: Updated POI information
     public class func updatePOIWithDistance(distance: Double, duration: String, locationId: String) -> POI {
         do {
-//            let realm = try Realm()
 
             if let poiToUpdate = POIs._getPOIModelbyLocationID(locationId: locationId) {
-//                realm.beginWrite()
                 poiToUpdate.distance = distance
                 poiToUpdate.duration = duration
-//                realm.add(poiToUpdate)
-//                try realm.commitWrite()
                 _ = try WoosmapDataManager.connect.save(entity: poiToUpdate)
                 return POI(poiDB: poiToUpdate)
             }
@@ -381,10 +349,6 @@ public class POIs {
     /// Delete all POI and clean offline database
     public class func deleteAll() {
         do {
-//            let realm = try Realm()
-//            try realm.write {
-//                realm.delete(realm.objects(POIModel.self))
-//            }
             let _ = try WoosmapDataManager.connect.deleteAll(entityClass: POIDB.self)
         } catch let error as NSError {
             print(error)

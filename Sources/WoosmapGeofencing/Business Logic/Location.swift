@@ -35,14 +35,6 @@ public class Location  {
         self.date = dateCaptured
         self.locationDescription = descriptionToSave
     }
-
-//    fileprivate init(locationModel: LocationModel) {
-//        self.date = locationModel.date
-//        self.latitude = locationModel.latitude
-//        self.locationDescription = locationModel.locationDescription
-//        self.locationId = locationModel.locationId
-//        self.longitude = locationModel.longitude
-//    }
     
     fileprivate init(locationDB: LocationDB) {
         self.date = locationDB.date
@@ -77,11 +69,6 @@ public class Locations {
             let locationId = UUID().uuidString
             
             let entry = Location(locationId: locationId, latitude: location.coordinate.latitude, longitude: location.coordinate.longitude, dateCaptured: Date(), descriptionToSave: "description")
-//            let realm = try Realm()
-//            realm.beginWrite()
-//            realm.add(entry)
-//            try realm.commitWrite()
-            
             //Save in Core DB
             let newRec:LocationDB = entry.dbEntity()
             let _ = try WoosmapDataManager.connect.save(entity: newRec)
@@ -109,11 +96,6 @@ public class Locations {
         
         let locationModel = Location(locationId: locationId, latitude: location.latitude, longitude: location.longitude, dateCaptured: date, descriptionToSave: description)
         do {
-//            let realm = try Realm()
-//            realm.beginWrite()
-//            realm.add(locationModel)
-//            try realm.commitWrite()
-            
             //Save in Core DB
             let newRec:LocationDB = locationModel.dbEntity()
             let _ = try WoosmapDataManager.connect.save(entity: newRec)
@@ -125,11 +107,6 @@ public class Locations {
     /// - Returns: Locations
     public class func getAll() -> [Location] {
         do {
-//            let realm = try Realm()
-//            let locations = realm.objects(LocationModel.self)
-//            return Array(locations).map { location in
-//                return Location(locationModel: location)
-//            }
             //Core DB
             let locations = try WoosmapDataManager.connect.retrieve(entityClass: LocationDB.self)
             return Array((locations).map({ location in
@@ -148,11 +125,6 @@ public class Locations {
     private class func getLocationByLocationID(locationId: String) -> Location? {
         do {
             let predicate = NSPredicate(format: "locationId == %@", locationId)
-//            let realm = try Realm()
-//            let fetchedResults = realm.objects(LocationModel.self).filter(predicate)
-//            if let aLocation = fetchedResults.first {
-//                return Location(locationModel: aLocation)
-//            }
             //Core DB
             let fetchedResults = try WoosmapDataManager.connect.retrieve(entityClass: LocationDB.self, predicate: predicate)
             if let aLocation = fetchedResults.first {
@@ -171,11 +143,6 @@ public class Locations {
         do {
 
             let predicate = NSPredicate(format: "locationId == %@", id)
-//            let realm = try Realm()
-//            let fetchedResults = realm.objects(LocationModel.self).filter(predicate)
-//            if let aLocation = fetchedResults.last {
-//                return Location(locationModel: aLocation)
-//            }
             //Core DB
             let fetchedResults = try WoosmapDataManager.connect.retrieve(entityClass: LocationDB.self, predicate: predicate)
             if let aLocation = fetchedResults.first {
@@ -189,10 +156,6 @@ public class Locations {
     /// Delete all locatons
     public class func deleteAll() {
         do {
-//            let realm = try Realm()
-//            try realm.write {
-//                realm.delete(realm.objects(LocationModel.self))
-//            }
             let _ = try WoosmapDataManager.connect.deleteAll(entityClass: LocationDB.self)
         } catch let error as NSError {
             print(error)

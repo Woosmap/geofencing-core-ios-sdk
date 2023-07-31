@@ -155,11 +155,6 @@ public class ZOIs {
             newZOI.x11Covariance_matrix_inverse = zoi["x11Covariance_matrix_inverse"] as! Double
             newZOI.wktPolygon = zoi["WktPolygon"] as? String
             let _ = try WoosmapDataManager.connect.save(entity: newZOI.dbEntity())
-            
-//            let realm = try Realm()
-//            realm.beginWrite()
-//            realm.add(newZOI)
-//            try realm.commitWrite()
         } catch {
             
         }
@@ -217,11 +212,6 @@ public class ZOIs {
         }
         
         do {
-//            let realm = try Realm()
-//            realm.beginWrite()
-//            realm.delete(realm.objects(ZOIModel.self))
-//            realm.add(zoisToDB)
-//            try realm.commitWrite()
             let _ = try WoosmapDataManager.connect.deleteAll(entityClass: ZOIDB.self)
             try zoiArray.forEach { row in
                 let newRec:ZOIDB = row.dbEntity()
@@ -373,9 +363,6 @@ public class ZOIs {
     /// - Returns: ZOIs
     public class func getAll() -> [ZOI] {
         do {
-//            let realm = try Realm()
-//            let zois = realm.objects(ZOIModel.self)
-            
             let zois = try WoosmapDataManager.connect.retrieve(entityClass: ZOIDB.self)
             
             var externalZois: [ZOI] = []
@@ -393,10 +380,6 @@ public class ZOIs {
     /// Delete All ZOI information
     public class func deleteAll() {
         do {
-//            let realm = try Realm()
-//            realm.beginWrite()
-//            realm.delete(realm.objects(ZOIModel.self))
-//            try realm.commitWrite()
             let _ = try WoosmapDataManager.connect.deleteAll(entityClass: ZOIDB.self)
         } catch {
         }
@@ -411,10 +394,6 @@ public class ZOIs {
             return fetchedResults.map { zoi in
                 return ZOI(zoiDB: zoi)
             }
-            
-//            let realm = try Realm()
-//            let fetchedResults = realm.objects(ZOIModel.self).filter(predicate)
-//            return toZOI(zoiModels: Array(fetchedResults))
         } catch {
         }
         return []

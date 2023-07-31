@@ -132,19 +132,6 @@ public class DurationLog {
     }
 }
 
-
-
-//private func toDurationLogs(durationLogsModel: [DurationLogModel]) -> [DurationLog] {
-//
-//    var durationLogs: [DurationLog] = []
-//
-//    for durationLogModel in durationLogsModel {
-//        durationLogs.append(DurationLog(durationLogModel: durationLogModel))
-//    }
-//    return durationLogs
-//}
-
-
 /// Duration Logs Controller
 public class DurationLogs {
     
@@ -157,14 +144,6 @@ public class DurationLogs {
     /// - Parameter identifier: ID
     public static func addEntryLog(identifier: String){
         do {
-//            let realm = try Realm()
-//            let entry = DurationLogModel()
-//            entry.identifier = identifier
-//            entry.entryTime = Date()
-//            realm.beginWrite()
-//            realm.add(entry)
-//            try realm.commitWrite()
-            
             let newRec:DurationLog = DurationLog()
             newRec.identifier = identifier
             newRec.entryTime = Date()
@@ -185,7 +164,6 @@ public class DurationLogs {
         //Check Entry event for given id
         let predicate = NSPredicate(format: "identifier == %@ AND exitTime = nil", identifier)
         do {
-            //let realm = try Realm()
             let fetchedResults = try WoosmapDataManager.connect.retrieve(entityClass: DurationLogDB.self, predicate: predicate)
             if let log:DurationLogDB  = fetchedResults.first {
                 log.exitTime = Date()
@@ -206,10 +184,6 @@ public class DurationLogs {
     /// - Returns: List of Logs in offile database
     public static func getAll() -> [DurationLog] {
         do {
-//            let realm = try Realm()
-//            let durationLogs = realm.objects(DurationLogModel.self)
-//            return toDurationLogs(durationLogsModel: Array(durationLogs))
-            
             let logs = try WoosmapDataManager.connect.retrieve(entityClass: DurationLogDB.self)
             return Array((logs).map({ log in
                 return DurationLog(durationLogDB: log)
@@ -229,10 +203,6 @@ public class DurationLogs {
     ///```
     public static func deleteAll() {
         do {
-//            let realm = try Realm()
-//            try realm.write {
-//                realm.delete(realm.objects(DurationLogModel.self))
-//            }
             let _ = try WoosmapDataManager.connect.deleteAll(entityClass: DurationLogDB.self)
         } catch let error as NSError {
             print(error)
@@ -280,11 +250,6 @@ public class Regions {
             else{
                 entry.spentTime = DurationLogs.addExitLog(identifier: identifier)
             }
-            
-//            let realm = try Realm()
-//            realm.beginWrite()
-//            realm.add(entry)
-//            try realm.commitWrite()
             let _ = try WoosmapDataManager.connect.save(entity: entry.dbEntity())
             return entry
         } catch {
@@ -297,20 +262,7 @@ public class Regions {
     /// - Parameter classifiedRegion: Custom region
     public static func add(classifiedRegion: Region) {
         
-        //let classifiedRegionModel = RegionModel(region: classifiedRegion)
         do {
-//            let realm = try Realm()
-//            if(classifiedRegionModel.didEnter){
-//                DurationLogs.addEntryLog(identifier: classifiedRegionModel.identifier)
-//                classifiedRegionModel.spentTime = 0
-//            }
-//            else{
-//                classifiedRegionModel.spentTime = DurationLogs.addExitLog(identifier: classifiedRegionModel.identifier)
-//            }
-//            realm.beginWrite()
-//            realm.add(classifiedRegionModel)
-//            try realm.commitWrite()
-            
             let newRec:Region = Region()
             newRec.date = classifiedRegion.date
             newRec.didEnter = classifiedRegion.didEnter
@@ -352,12 +304,6 @@ public class Regions {
                 identifier = id.components(separatedBy: "<id>")[1]
             }
             let predicate = NSPredicate(format: "identifier == %@", identifier)
-//            let realm = try Realm()
-//            let fetchedResults = realm.objects(RegionModel.self).filter(predicate)
-//            if let aRegion = fetchedResults.last {
-//                return Region(regionModel:aRegion)
-//            }
-            
             let fetchedResults = try WoosmapDataManager.connect.retrieve(entityClass: RegionDB.self, predicate: predicate)
             if let aRegion = fetchedResults.first {
                 return Region(regionDB:  aRegion)
@@ -371,10 +317,6 @@ public class Regions {
     /// - Returns: Regions
     public static func getAll() -> [Region] {
         do {
-//            let realm = try Realm()
-//            let regions = realm.objects(RegionModel.self)
-//            return toRegions(regionModels: Array(regions))
-            
             let regions = try WoosmapDataManager.connect.retrieve(entityClass: RegionDB.self)
             return Array((regions).map({ region in
                 return Region(regionDB: region)
@@ -387,10 +329,6 @@ public class Regions {
     /// Delete all regions
     public static func deleteAll() {
         do {
-//            let realm = try Realm()
-//            try realm.write {
-//                realm.delete(realm.objects(RegionModel.self))
-//            }
             let _ = try WoosmapDataManager.connect.deleteAll(entityClass: RegionDB.self)
         } catch let error as NSError {
             print(error)

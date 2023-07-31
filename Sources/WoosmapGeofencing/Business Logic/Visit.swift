@@ -85,11 +85,6 @@ public class Visits {
                 let newVisit = Visit(visitId: UUID().uuidString, arrivalDate: arrivalDate, departureDate: departureDate, latitude: visit.coordinate.latitude, longitude: visit.coordinate.longitude, dateCaptured: Date(), accuracy: visit.horizontalAccuracy)
                 let entry = newVisit.dbEntity()
                 let _ = try WoosmapDataManager.connect.save(entity: entry)
-                
-//                let realm = try Realm()
-//                realm.beginWrite()
-//                realm.add(VisitModel(visit: entry))
-//                try realm.commitWrite()
                 let newRec = Visit(visitDB: entry)
                 if creationOfZOIEnable {
                     ZOIs.createZOIFromVisit(visit: newRec)
@@ -107,11 +102,6 @@ public class Visits {
         do {
             let entry = visit.dbEntity()
             let _ = try WoosmapDataManager.connect.save(entity: entry)
-//            let realm = try Realm()
-//            realm.beginWrite()
-//            realm.add(VisitModel(visit: visit))
-//            try realm.commitWrite()
-            
         } catch {
         }
         ZOIs.createZOIFromVisit(visit: visit)
@@ -142,12 +132,6 @@ public class Visits {
             if let aVisit = fetchedResults.first {
                 return Visit(visitDB: aVisit)
             }
-//            let realm = try Realm()
-//            let predicate = NSPredicate(format: "visitId == %@", id)
-//            let fetchedResults = realm.objects(VisitModel.self).filter(predicate)
-//            if let aVisit = fetchedResults.first {
-//                return Visit(visitModel: aVisit)
-//            }
         } catch {
         }
         return nil
@@ -156,10 +140,6 @@ public class Visits {
     /// Delete All visit information
     public class func deleteAll() {
         do {
-//            let realm = try Realm()
-//            try realm.write {
-//                realm.delete(realm.objects(VisitModel.self))
-//            }
             let _ = try WoosmapDataManager.connect.deleteAll(entityClass: VisitDB.self)
         } catch let error as NSError {
             print(error)
