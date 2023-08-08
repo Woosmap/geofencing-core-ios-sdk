@@ -249,6 +249,9 @@ public class Regions {
             }
             else{
                 entry.spentTime = DurationLogs.addExitLog(identifier: identifier)
+                if(entry.spentTime == 0){ //Do not save if we dont find respective entry event
+                    throw NSError(domain: "Geofance", code: 123) // "Not matching entry event"
+                }
             }
             let _ = try WoosmapDataManager.connect.save(entity: entry.dbEntity())
             return entry

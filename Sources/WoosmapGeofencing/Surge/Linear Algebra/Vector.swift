@@ -607,7 +607,7 @@ internal func dot(_ lhs: Vector<Float>, _ rhs: Vector<Float>) -> Float {
     return dot(lhs.scalars, rhs.scalars)
 }
 
-infix operator •: MultiplicationPrecedence
+//infix operator •: MultiplicationPrecedence
 internal func • (lhs: Vector<Double>, rhs: Vector<Double>) -> Double {
     return dot(lhs, rhs)
 }
