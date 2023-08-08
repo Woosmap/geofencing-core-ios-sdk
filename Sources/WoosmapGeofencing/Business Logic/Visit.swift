@@ -129,7 +129,7 @@ public class Visits {
             
             let predicate = NSPredicate(format: "visitId == %@", id)
             let fetchedResults = try WoosmapDataManager.connect.retrieve(entityClass: VisitDB.self, predicate: predicate)
-            if let aVisit = fetchedResults.first {
+            if let aVisit = fetchedResults.last {
                 return Visit(visitDB: aVisit)
             }
         } catch {

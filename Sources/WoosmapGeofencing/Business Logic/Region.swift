@@ -293,7 +293,6 @@ public class Regions {
             }
             let _ = try WoosmapDataManager.connect.save(entity: newRec.dbEntity())
             
-            
         } catch {
         }
     }
@@ -310,7 +309,7 @@ public class Regions {
             }
             let predicate = NSPredicate(format: "identifier == %@", identifier)
             let fetchedResults = try WoosmapDataManager.connect.retrieve(entityClass: RegionDB.self, predicate: predicate)
-            if let aRegion = fetchedResults.first {
+            if let aRegion = fetchedResults.last {
                 return Region(regionDB:  aRegion)
             }
         } catch {

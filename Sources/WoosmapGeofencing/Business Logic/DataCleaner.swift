@@ -35,10 +35,13 @@ public class DataCleaner {
                     
                 } catch {
                 }
+                UserDefaults.standard.set(Date(), forKey: "lastDateUpdate")
             }
+        } else {
+            // Update date
+            UserDefaults.standard.set(Date(), forKey: "lastDateUpdate")
         }
-        // Update date
-        UserDefaults.standard.set(Date(), forKey: "lastDateUpdate")
+        
     }
     
     /// Delete all data more than x days

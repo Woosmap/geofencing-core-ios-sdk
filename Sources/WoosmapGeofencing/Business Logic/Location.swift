@@ -127,7 +127,7 @@ public class Locations {
             let predicate = NSPredicate(format: "locationId == %@", locationId)
             //Core DB
             let fetchedResults = try WoosmapDataManager.connect.retrieve(entityClass: LocationDB.self, predicate: predicate)
-            if let aLocation = fetchedResults.first {
+            if let aLocation = fetchedResults.last {
                 return Location(locationDB: aLocation)
             }
             
@@ -145,7 +145,7 @@ public class Locations {
             let predicate = NSPredicate(format: "locationId == %@", id)
             //Core DB
             let fetchedResults = try WoosmapDataManager.connect.retrieve(entityClass: LocationDB.self, predicate: predicate)
-            if let aLocation = fetchedResults.first {
+            if let aLocation = fetchedResults.last {
                 return Location(locationDB: aLocation)
             }
         } catch {

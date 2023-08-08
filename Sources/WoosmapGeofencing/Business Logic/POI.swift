@@ -280,7 +280,7 @@ public class POIs {
         do {
             let predicate = NSPredicate(format: "locationId == %@", locationId)
             let fetchedResults = try WoosmapDataManager.connect.retrieve(entityClass: POIDB.self, predicate: predicate)
-            if let aPOI = fetchedResults.first {
+            if let aPOI = fetchedResults.last {
                 return aPOI
             }
         
@@ -296,7 +296,7 @@ public class POIs {
         do {
             let predicate = NSPredicate(format: "locationId == %@", locationId)
             let fetchedResults = try WoosmapDataManager.connect.retrieve(entityClass: POIDB.self, predicate: predicate)
-            if fetchedResults.first != nil {
+            if fetchedResults.last != nil {
                 var poiArray:[POI] = []
                 for poi in fetchedResults {
                     poiArray.append(POI(poiDB: poi))
@@ -316,7 +316,7 @@ public class POIs {
         do {
             let predicate = NSPredicate(format: "idstore == %@", idstore)
             let fetchedResults = try WoosmapDataManager.connect.retrieve(entityClass: POIDB.self, predicate: predicate)
-            if let aPOI = fetchedResults.first {
+            if let aPOI = fetchedResults.last {
                 return POI(poiDB: aPOI)
             }
             
