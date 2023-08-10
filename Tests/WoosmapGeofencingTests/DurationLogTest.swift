@@ -70,9 +70,9 @@ class DurationLogTest: XCTestCase {
             let resultAgain = XCTWaiter.wait(for: [expAgain], timeout: 5.0)
             if resultAgain == XCTWaiter.Result.timedOut {
             let duration = DurationLogs.addExitLog(identifier: "test1")
-            XCTAssert(duration > 10)
+            XCTAssert(duration < 6)
                 let durationNew = DurationLogs.addExitLog(identifier: "test1")
-                XCTAssert(durationNew > 5)
+                XCTAssert(durationNew > 10)
             }
             else{
                 XCTFail("Delay interrupted")

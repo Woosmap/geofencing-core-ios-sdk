@@ -165,7 +165,8 @@ public class DurationLogs {
         let predicate = NSPredicate(format: "identifier == %@ AND exitTime = nil", identifier)
         do {
             let fetchedResults = try WoosmapDataManager.connect.retrieve(entityClass: DurationLogDB.self, predicate: predicate)
-            if let log:DurationLogDB  = fetchedResults.first {
+            //Add LIFO concept
+            if let log:DurationLogDB  = fetchedResults.last {
                 log.exitTime = Date()
                 let _ = try WoosmapDataManager.connect.save(entity: log)
                 return Date().timeIntervalSinceReferenceDate - log.entryTime!.timeIntervalSinceReferenceDate
