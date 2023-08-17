@@ -21,12 +21,39 @@
         <attribute name="exitTime" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="identifier" attributeType="String"/>
     </entity>
+    <entity name="IndoorBeaconDB" representedClassName=".IndoorBeaconDB" syncable="YES" codeGenerationType="class">
+        <attribute name="beaconID" attributeType="String" defaultValueString=""/>
+        <attribute name="date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="distance" attributeType="Double" defaultValueString="-1" usesScalarValueType="YES"/>
+        <attribute name="identifier" attributeType="String" defaultValueString=""/>
+        <attribute name="latitude" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="longitude" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="major" attributeType="String" defaultValueString=""/>
+        <attribute name="minor" attributeType="String" defaultValueString=""/>
+        <attribute name="properties" optional="YES" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromDataTransformer" customClassName="[String:String]"/>
+        <attribute name="venue_id" optional="YES" attributeType="String" defaultValueString="-"/>
+    </entity>
+    <entity name="IndoorVenueDB" representedClassName=".IndoorVenueDB" syncable="YES" codeGenerationType="class">
+        <attribute name="boundingBox" attributeType="String" defaultValueString=""/>
+        <attribute name="date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="distance" attributeType="Double" defaultValueString="-1" usesScalarValueType="YES"/>
+        <attribute name="identifier" attributeType="String" defaultValueString="-"/>
+        <attribute name="latitude" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="longitude" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="name" attributeType="String" defaultValueString=""/>
+    </entity>
     <entity name="LocationDB" representedClassName=".LocationDB" syncable="YES" codeGenerationType="class">
         <attribute name="date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="latitude" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="locationDescription" optional="YES" attributeType="String"/>
         <attribute name="locationId" optional="YES" attributeType="String"/>
         <attribute name="longitude" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+    </entity>
+    <entity name="LogIndoorAPIDB" representedClassName=".LogIndoorAPIDB" syncable="YES" codeGenerationType="class">
+        <attribute name="date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="eventStatus" optional="YES" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromDataTransformer" customClassName="[String:String]"/>
+        <attribute name="log" optional="YES" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromDataTransformer" customClassName="[String: String]"/>
+        <attribute name="message" optional="YES" attributeType="String"/>
     </entity>
     <entity name="LogSearchAPIDB" representedClassName=".LogSearchAPIDB" syncable="YES" codeGenerationType="class">
         <attribute name="date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
