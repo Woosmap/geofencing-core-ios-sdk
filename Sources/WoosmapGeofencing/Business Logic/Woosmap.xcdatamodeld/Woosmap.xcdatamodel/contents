@@ -51,8 +51,8 @@
     </entity>
     <entity name="LogIndoorAPIDB" representedClassName=".LogIndoorAPIDB" syncable="YES" codeGenerationType="class">
         <attribute name="date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
-        <attribute name="eventStatus" optional="YES" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromDataTransformer" customClassName="[String:String]"/>
-        <attribute name="log" optional="YES" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromDataTransformer" customClassName="[String: String]"/>
+        <attribute name="eventStatus" optional="YES" attributeType="String" valueTransformerName="NSSecureUnarchiveFromDataTransformer" customClassName="[String:String]"/>
+        <attribute name="log" optional="YES" attributeType="String" valueTransformerName="NSSecureUnarchiveFromDataTransformer" customClassName="[String: String]"/>
         <attribute name="message" optional="YES" attributeType="String"/>
     </entity>
     <entity name="LogSearchAPIDB" representedClassName=".LogSearchAPIDB" syncable="YES" codeGenerationType="class">
