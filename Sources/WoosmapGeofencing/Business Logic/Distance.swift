@@ -24,16 +24,16 @@ public class Distance {
     var destinationLongitude: Double = 0.0
     
     /// Distance
-    var distance: Int = 0
+    public var distance: Int = 0
     
     /// Distance Text
-    var distanceText: String?
+    public var distanceText: String?
     
     /// Duration
-    var duration: Int = 0
+    public var duration: Int = 0
     
     /// Duration Text
-    var durationText: String?
+    public var durationText: String?
     
     /// mode
     var mode: String?
