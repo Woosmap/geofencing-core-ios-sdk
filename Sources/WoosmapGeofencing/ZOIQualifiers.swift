@@ -343,10 +343,7 @@ func update_weekly_density(visitPoint: LoadedVisit, zoi_gmminfo: inout [String: 
     var weekly_density: [Double] = []
     if let array: [Double] = (zoi_gmminfo["weekly_density"] as? [Any]) as? [Double] {
         weekly_density = array
-    } else {
-        // TODO: validate this
-        //weekly_density = Array((zoi_gmminfo["weekly_density"] as? List<Double>)!.elements)
-    }
+    } 
 
     while start_time < visitPoint.endTime! {
         let hour = myCalendar.component(.hour, from: start_time)
