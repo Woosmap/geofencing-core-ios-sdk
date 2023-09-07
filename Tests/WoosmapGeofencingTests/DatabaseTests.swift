@@ -8,19 +8,12 @@
 import XCTest
 import WoosmapGeofencingCore
 import CoreLocation
-import RealmSwift
 
 class DatabaseTests: XCTestCase {
     let dateFormatter = DateFormatter()
 
     override func setUp() {
         super.setUp()
-        // Realm.Configuration.defaultConfiguration.inMemoryIdentifier = self.name
-        let documentDirectory = try? FileManager.default.url(for: .documentDirectory, in: .userDomainMask,
-                                                        appropriateFor: nil, create: false)
-        let url = documentDirectory!.appendingPathComponent("my-new-realm.realm")
-        Realm.Configuration.defaultConfiguration.fileURL = url
-
         cleanDatabase()
         dateFormatter.locale = Locale(identifier: "en_US_POSIX") // set locale to reliable US_POSIX
         dateFormatter.dateFormat = "yyyy-MM-dd' 'HH:mm:ssZ"
@@ -37,19 +30,20 @@ class DatabaseTests: XCTestCase {
 
         for _ in 0...59 {
             let location = CLLocation(latitude: lat, longitude: lng)
-            Locations.add(locations: [location])
+            let _ = Locations.add(locations: [location])
         }
 
-        XCTAssert(Locations.getAll().count == 60)
+        XCTAssertEqual(Locations.getAll().count, 60)
         
         Locations.deleteAll()
         
-        XCTAssert(Locations.getAll().count == 0)
+        XCTAssertEqual(Locations.getAll().count, 0)
     }
     
     func test_add_delete_POI_in_DB() {
         let lng = 3.8793329
         let lat = 43.6053862
+        XCTAssertEqual(POIs.getAll().count, 0)
 
         for day in 0...59 {
             let id = UUID().uuidString
@@ -65,16 +59,16 @@ class DatabaseTests: XCTestCase {
             
             let poiUpdatedWithDistance = POIs.updatePOIWithDistance(distance: 10.0, duration: "10 min", locationId: id)
             
-            XCTAssert(poiUpdatedWithDistance.distance == 10.0)
-            XCTAssert(poiUpdatedWithDistance.duration == "10 min")
+            XCTAssertEqual(poiUpdatedWithDistance.distance, 10.0)
+            XCTAssertEqual(poiUpdatedWithDistance.duration, "10 min")
             
         }
 
-        XCTAssert(POIs.getAll().count == 60)
+        XCTAssertEqual(POIs.getAll().count, 60)
         
         POIs.deleteAll()
         
-        XCTAssert(POIs.getAll().count == 0)
+        XCTAssertEqual(POIs.getAll().count, 0)
     }
     
     func test_add_delete_Visits_in_DB() {
@@ -117,7 +111,7 @@ class DatabaseTests: XCTestCase {
             let id = UUID().uuidString
             let region = CLCircularRegion(center: CLLocationCoordinate2D(latitude: lat, longitude: lng), radius: 100.0, identifier: id )
             
-            Regions.add(POIregion: region, didEnter: true, fromPositionDetection: false)
+            let _ = Regions.add(POIregion: region, didEnter: true, fromPositionDetection: false)
         }
 
         XCTAssert(Regions.getAll().count == 60)

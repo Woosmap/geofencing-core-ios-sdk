@@ -7,18 +7,18 @@
 //
 
 import Foundation
-import RealmSwift
+import UIKit
 
-public var list_zois_qualifiers: [[String: Any]] = []
+var list_zois_qualifiers: [[String: Any]] = []
 
-public let EXIT_TYPE = "exit"
-public let ENTRY_TYPE = "entry"
+let EXIT_TYPE = "exit"
+let ENTRY_TYPE = "entry"
 
 var PERIODS: [[String: Any]] = []
 var HOME_PERIOD: [[String: Any]] = []
 var WORK_PERIOD: [[String: Any]] = []
 
-public func updateZoisQualifications(zois: [[String: Any]]) -> [[String: Any]] {
+func updateZoisQualifications(zois: [[String: Any]]) -> [[String: Any]] {
     list_zois_qualifiers = zois
     HOME_PERIOD.removeAll()
     WORK_PERIOD.removeAll()
@@ -86,7 +86,7 @@ func update_recurrent_zois_status() {
     }
 }
 
-public func qualify_recurrent_zoi(zois_gmm_info: inout [String: Any]) {
+func qualify_recurrent_zoi(zois_gmm_info: inout [String: Any]) {
     let weekly_density = zois_gmm_info["weekly_density"] as! [Double]
     get_average_presence_intervals(weekly_density: weekly_density, zois_gmm_info: &zois_gmm_info)
 
@@ -111,7 +111,7 @@ public func qualify_recurrent_zoi(zois_gmm_info: inout [String: Any]) {
 
 }
 
-public func get_periods_length(period_segments: [String: Any]) -> Int {
+func get_periods_length(period_segments: [String: Any]) -> Int {
     var periods_length = 0
 
     for (_, value) in period_segments {
@@ -123,7 +123,7 @@ public func get_periods_length(period_segments: [String: Any]) -> Int {
     return periods_length
 }
 
-public func get_time_on_period(period_segments: [String: Any], average_intervals: [[String: Any]]) -> Int {
+func get_time_on_period(period_segments: [String: Any], average_intervals: [[String: Any]]) -> Int {
     var time_spent_on_periods = 0
 
     var compact_intervals = [[Int]]()
@@ -149,7 +149,7 @@ public func get_time_on_period(period_segments: [String: Any], average_intervals
     return time_spent_on_periods
 }
 
-public func intervals_intersection_length(interval1_start: Int, interval1_end: Int, interval2_start: Int, interval2_end: Int) -> Int {
+func intervals_intersection_length(interval1_start: Int, interval1_end: Int, interval2_start: Int, interval2_end: Int) -> Int {
     // We check for intersection
     if (interval1_start <= interval2_start &&  interval2_start <= interval1_end) ||
         (interval1_start <= interval2_end && interval2_end <= interval1_end) ||
@@ -161,7 +161,7 @@ public func intervals_intersection_length(interval1_start: Int, interval1_end: I
     }
 }
 
-public func get_average_presence_intervals(weekly_density: [Double], zois_gmm_info: inout [String: Any]) {
+func get_average_presence_intervals(weekly_density: [Double], zois_gmm_info: inout [String: Any]) {
     let daily_presence_intervals = extract_daily_presence_intervals_from_weekly_density(weekly_density: weekly_density)
 
     if daily_presence_intervals.count == 0 {
@@ -233,7 +233,7 @@ public func get_average_presence_intervals(weekly_density: [Double], zois_gmm_in
 
 }
 
-public func add_first_entry_and_last_exit_to_intervals_if_needed(daily_interval: inout [[String: Any]]) {
+func add_first_entry_and_last_exit_to_intervals_if_needed(daily_interval: inout [[String: Any]]) {
     if !daily_interval.isEmpty {
         let first_interval = daily_interval.first!
         if (first_interval["type"] as! String) == EXIT_TYPE {
@@ -253,7 +253,7 @@ public func add_first_entry_and_last_exit_to_intervals_if_needed(daily_interval:
     }
 }
 
-public func extract_daily_presence_intervals_from_weekly_density(weekly_density: [Double]) -> [String: Any] {
+func extract_daily_presence_intervals_from_weekly_density(weekly_density: [Double]) -> [String: Any] {
     let weekly_density_mean = Statistics().mean(weekly_density)
 
     var daily_presence_intervals = [String: Any]()
@@ -312,7 +312,7 @@ func update_zoi_time_info() {
     }
 }
 
-public func extract_time_and_weeks_from_interval(visitPoint: LoadedVisit, zoi_gmminfo: inout [String: Any]) {
+func extract_time_and_weeks_from_interval(visitPoint: LoadedVisit, zoi_gmminfo: inout [String: Any]) {
     let duration =  Int("\(zoi_gmminfo["duration"]!)")
     zoi_gmminfo["duration"] = duration! + visitPoint.endTime!.seconds(from: visitPoint.startTime!)
 
@@ -334,18 +334,16 @@ public func extract_time_and_weeks_from_interval(visitPoint: LoadedVisit, zoi_gm
     zoi_gmminfo["weeks_on_zoi"] = weeks_on_zoi
 }
 
-public func update_weekly_density(visitPoint: LoadedVisit, zoi_gmminfo: inout [String: Any]) {
+func update_weekly_density(visitPoint: LoadedVisit, zoi_gmminfo: inout [String: Any]) {
     var start_time = visitPoint.startTime!
     var myCalendar = Calendar.current
     // *** define calendar components to use as well Timezone to UTC ***
     myCalendar.timeZone = TimeZone(identifier: "UTC")!
 
-    var weekly_density: [Double] = [Double]()
+    var weekly_density: [Double] = []
     if let array: [Double] = (zoi_gmminfo["weekly_density"] as? [Any]) as? [Double] {
         weekly_density = array
-    } else {
-        weekly_density = Array((zoi_gmminfo["weekly_density"] as? List<Double>)!.elements)
-    }
+    } 
 
     while start_time < visitPoint.endTime! {
         let hour = myCalendar.component(.hour, from: start_time)

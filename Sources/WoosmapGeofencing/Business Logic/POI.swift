@@ -2,66 +2,63 @@
 //  POI.swift
 //  WoosmapGeofencing
 //
-
-import RealmSwift
 import Foundation
 
-/// Point of Intrest DB Object
-public class POI: Object {
+public class POI {
     
     /// JSON Data
-    @objc public dynamic var jsonData: Data?
+    public var jsonData: Data?
     
     /// City
-    @objc public dynamic var city: String?
+    public var city: String?
     
     /// Store ID
-    @objc public dynamic var idstore: String?
+    public var idstore: String?
     
     /// Name
-    @objc public dynamic var name: String?
+    public var name: String?
     
     /// Date
-    @objc public dynamic var date: Date?
+    public var date: Date?
     
     /// Distance
-    @objc public dynamic var distance: Double = 0.0
+    public var distance: Double = 0.0
     
     /// Duration
-    @objc public dynamic var duration: String?
+    public var duration: String?
     
     /// Latitude
-    @objc public dynamic var latitude: Double = 0.0
+    public var latitude: Double = 0.0
     
     /// Location ID
-    @objc public dynamic var locationId: String?
+    public var locationId: String?
     
     /// Longitude
-    @objc public dynamic var longitude: Double = 0.0
+    public var longitude: Double = 0.0
     
     /// Zip Code
-    @objc public dynamic var zipCode: String?
+    public var zipCode: String?
     
     /// Radius
-    @objc public dynamic var radius: Double = 0.0
+    public var radius: Double = 0.0
     
     /// Address
-    @objc public dynamic var address: String?
+    public var address: String?
     
     /// Open Now
-    @objc public dynamic var openNow: Bool = false
+    public var openNow: Bool = false
     
     /// Country Code
-    @objc public dynamic var countryCode: String?
+    public var countryCode: String?
     
     /// Tags
-    @objc public dynamic var tags: String?
+    public var tags: String?
     
     /// Types
-    @objc public dynamic var types: String?
+    public var types: String?
     
     /// Contact
-    @objc public dynamic var contact: String?
+    public var contact: String?
     
     
     /// Create new entry in POI object
@@ -95,7 +92,54 @@ public class POI: Object {
         self.types = types
         self.contact = contact
     }
+    
+    fileprivate convenience init(poiDB: POIDB) {
+        self.init()
+        self.jsonData = poiDB.jsonData
+        self.city = poiDB.city
+        self.idstore = poiDB.idstore
+        self.name = poiDB.name
+        self.date = poiDB.date
+        self.distance = poiDB.distance
+        self.duration = poiDB.duration
+        self.latitude = poiDB.latitude
+        self.locationId = poiDB.locationId
+        self.longitude = poiDB.longitude
+        self.zipCode = poiDB.zipCode
+        self.radius = poiDB.radius
+        self.address = poiDB.address
+        self.openNow = poiDB.openNow
+        self.countryCode = poiDB.countryCode
+        self.tags = poiDB.tags
+        self.types = poiDB.types
+        self.contact = poiDB.contact
+
+    }
+    
+    fileprivate func dbEntity()-> POIDB{
+        let newRec:POIDB = POIDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
+        newRec.jsonData = self.jsonData
+        newRec.city = self.city
+        newRec.idstore = self.idstore
+        newRec.name = self.name
+        newRec.date = self.date
+        newRec.distance = self.distance
+        newRec.duration = self.duration
+        newRec.latitude = self.latitude
+        newRec.locationId = self.locationId
+        newRec.longitude = self.longitude
+        newRec.zipCode = self.zipCode
+        newRec.radius = self.radius
+        newRec.address = self.address
+        newRec.openNow = self.openNow
+        newRec.countryCode = self.countryCode
+        newRec.tags = self.tags
+        newRec.types = self.types
+        newRec.contact = self.contact
+        return newRec
+    }
 }
+
 
 /// POI business class
 public class POIs {
@@ -108,12 +152,11 @@ public class POIs {
     public class func addFromResponseJson(searchAPIResponse: Data, locationId: String) -> [POI] {
         do {
             let jsonStructure = try JSONDecoder().decode(JSONAny.self, from: searchAPIResponse)
-            let realm = try Realm()
-            var aPOIs: [POI] = []
+            var aPOIs: [POIDB] = []
             if let value = jsonStructure.value as? [String: Any] {
                 if let features = value["features"] as? [[String: Any]] {
                     for feature in features {
-                        let poi = POI()
+                        let poi = POIDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
                         poi.jsonData = searchAPIResponse
                         poi.locationId = locationId
                         poi.date = Date()
@@ -186,11 +229,12 @@ public class POIs {
                     }
                 }
             }
-            
-            realm.beginWrite()
-            realm.add(aPOIs)
-            try realm.commitWrite()
-            return aPOIs
+            try aPOIs.forEach { row in
+                let _ = try WoosmapDataManager.connect.save(entity: row)
+            }
+            return aPOIs.map { poi in
+                return POI(poiDB: poi)
+            }
         } catch {
         }
         return []
@@ -201,10 +245,9 @@ public class POIs {
     /// - Parameter poi: POI List
     public class func addTest(poi: POI) {
         do {
-            let realm = try Realm()
-            realm.beginWrite()
-            realm.add(poi)
-            try realm.commitWrite()
+            let newRec:POIDB = poi.dbEntity()
+            let _ = try WoosmapDataManager.connect.save(entity: newRec)
+            
         } catch {
         }
     }
@@ -213,9 +256,10 @@ public class POIs {
     /// - Returns: POI List
     public class func getAll() -> [POI] {
         do {
-            let realm = try Realm()
-            let pois = realm.objects(POI.self)
-            return Array(pois)
+            let pois = try WoosmapDataManager.connect.retrieve(entityClass: POIDB.self)
+            return Array((pois).map({ poi in
+                return POI(poiDB: poi)
+            }))
         } catch {
         }
         return []
@@ -225,13 +269,21 @@ public class POIs {
     /// - Parameter locationId: Location
     /// - Returns: POI Information
     public class func getPOIbyLocationID(locationId: String) -> POI? {
+        if let poiModel = self._getPOIModelbyLocationID(locationId: locationId) {
+            return POI(poiDB: poiModel)
+        } else {
+            return nil
+        }
+    }
+    
+    private class func _getPOIModelbyLocationID(locationId: String) -> POIDB? {
         do {
-            let realm = try Realm()
             let predicate = NSPredicate(format: "locationId == %@", locationId)
-            let fetchedResults = realm.objects(POI.self).filter(predicate)
-            if let aPOI = fetchedResults.first {
+            let fetchedResults = try WoosmapDataManager.connect.retrieve(entityClass: POIDB.self, predicate: predicate)
+            if let aPOI = fetchedResults.last {
                 return aPOI
             }
+        
         } catch {
         }
         return nil
@@ -242,17 +294,16 @@ public class POIs {
     /// - Returns: POI Information
     public class func getLastPOIsFromLocationID(locationId: String) -> [POI] {
         do {
-            let realm = try Realm()
             let predicate = NSPredicate(format: "locationId == %@", locationId)
-            let fetchedResults = realm.objects(POI.self).filter(predicate)
-            if fetchedResults.first != nil {
+            let fetchedResults = try WoosmapDataManager.connect.retrieve(entityClass: POIDB.self, predicate: predicate)
+            if fetchedResults.last != nil {
                 var poiArray:[POI] = []
                 for poi in fetchedResults {
-                    poiArray.append(poi)
+                    poiArray.append(POI(poiDB: poi))
                 }
                 return poiArray
-                
             }
+            
         } catch {
         }
         return []
@@ -263,12 +314,12 @@ public class POIs {
     /// - Returns: POI Information
     public class func getPOIbyIdStore(idstore: String) -> POI? {
         do {
-            let realm = try Realm()
             let predicate = NSPredicate(format: "idstore == %@", idstore)
-            let fetchedResults = realm.objects(POI.self).filter(predicate)
-            if let aPOI = fetchedResults.first {
-                return aPOI
+            let fetchedResults = try WoosmapDataManager.connect.retrieve(entityClass: POIDB.self, predicate: predicate)
+            if let aPOI = fetchedResults.last {
+                return POI(poiDB: aPOI)
             }
+            
         } catch {
         }
         return nil
@@ -282,15 +333,12 @@ public class POIs {
     /// - Returns: Updated POI information
     public class func updatePOIWithDistance(distance: Double, duration: String, locationId: String) -> POI {
         do {
-            let poiToUpdate = POIs.getPOIbyLocationID(locationId: locationId)
-            if poiToUpdate != nil {
-                let realm = try Realm()
-                realm.beginWrite()
-                poiToUpdate?.distance = distance
-                poiToUpdate?.duration = duration
-                realm.add(poiToUpdate!)
-                try realm.commitWrite()
-                return poiToUpdate!
+
+            if let poiToUpdate = POIs._getPOIModelbyLocationID(locationId: locationId) {
+                poiToUpdate.distance = distance
+                poiToUpdate.duration = duration
+                _ = try WoosmapDataManager.connect.save(entity: poiToUpdate)
+                return POI(poiDB: poiToUpdate)
             }
         } catch {
         }
@@ -301,10 +349,7 @@ public class POIs {
     /// Delete all POI and clean offline database
     public class func deleteAll() {
         do {
-            let realm = try Realm()
-            try realm.write {
-                realm.delete(realm.objects(POI.self))
-            }
+            let _ = try WoosmapDataManager.connect.deleteAll(entityClass: POIDB.self)
         } catch let error as NSError {
             print(error)
         }

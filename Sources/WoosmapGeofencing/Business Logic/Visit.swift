@@ -1,13 +1,9 @@
 //
 //  Visit.swift
 //  WoosmapGeofencing
-
-import RealmSwift
 import Foundation
 import CoreLocation
-
-/// Visit Object
-public class Visit: Object {
+public class Visit {
     
     /// Accuracy
     @objc public dynamic var accuracy: Double = 0.0
@@ -50,7 +46,29 @@ public class Visit: Object {
         self.accuracy = accuracy
     }
     
+    convenience  init(visitDB: VisitDB) {
+        self.init()
+        self.visitId = visitDB.visitId
+        self.arrivalDate = visitDB.arrivalDate
+        self.departureDate = visitDB.departureDate
+        self.latitude = visitDB.latitude
+        self.longitude = visitDB.longitude
+        self.date = visitDB.date
+        self.accuracy = visitDB.accuracy
+    }
+    fileprivate func dbEntity()-> VisitDB{
+        let newRec:VisitDB = VisitDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
+        newRec.visitId = self.visitId
+        newRec.arrivalDate = self.arrivalDate
+        newRec.departureDate = self.departureDate
+        newRec.latitude = self.latitude
+        newRec.longitude = self.longitude
+        newRec.date = self.date
+        newRec.accuracy = self.accuracy
+        return newRec
+    }
 }
+
 
 /// Visit Business object
 public class Visits {
@@ -60,19 +78,18 @@ public class Visits {
     /// - Returns: Visit
     public class func add(visit: CLVisit) -> Visit {
         do {
-            let realm = try Realm()
             let calendar = Calendar.current
             let departureDate = calendar.component(.year, from: visit.departureDate) != 4001 ? visit.departureDate : nil
             let arrivalDate = calendar.component(.year, from: visit.arrivalDate) != 4001 ? visit.arrivalDate : nil
             if arrivalDate != nil && departureDate != nil {
-                let entry = Visit(visitId: UUID().uuidString, arrivalDate: arrivalDate, departureDate: departureDate, latitude: visit.coordinate.latitude, longitude: visit.coordinate.longitude, dateCaptured: Date(), accuracy: visit.horizontalAccuracy)
-                realm.beginWrite()
-                realm.add(entry)
-                try realm.commitWrite()
+                let newVisit = Visit(visitId: UUID().uuidString, arrivalDate: arrivalDate, departureDate: departureDate, latitude: visit.coordinate.latitude, longitude: visit.coordinate.longitude, dateCaptured: Date(), accuracy: visit.horizontalAccuracy)
+                let entry = newVisit.dbEntity()
+                let _ = try WoosmapDataManager.connect.save(entity: entry)
+                let newRec = Visit(visitDB: entry)
                 if creationOfZOIEnable {
-                    ZOIs.createZOIFromVisit(visit: entry)
+                    ZOIs.createZOIFromVisit(visit: newRec)
                 }
-                return entry
+                return newRec
             }
         } catch {
         }
@@ -83,10 +100,8 @@ public class Visits {
     /// - Parameter visit: Visit
     public class func addTest(visit: Visit) {
         do {
-            let realm = try Realm()
-            realm.beginWrite()
-            realm.add(visit)
-            try realm.commitWrite()
+            let entry = visit.dbEntity()
+            let _ = try WoosmapDataManager.connect.save(entity: entry)
         } catch {
         }
         ZOIs.createZOIFromVisit(visit: visit)
@@ -95,10 +110,12 @@ public class Visits {
     /// Get All visit information
     /// - Returns: List
     public class func getAll() -> [Visit] {
+        
         do {
-            let realm = try Realm()
-            let visits = realm.objects(Visit.self)
-            return Array(visits)
+            let visits = try WoosmapDataManager.connect.retrieve(entityClass: VisitDB.self)
+            return Array((visits).map({ visit in
+                return Visit(visitDB: visit)
+            }))
         } catch {
         }
         return []
@@ -109,11 +126,11 @@ public class Visits {
     /// - Returns: Visit
     public class func getVisitFromUUID(id: String) -> Visit? {
         do {
-            let realm = try Realm()
+            
             let predicate = NSPredicate(format: "visitId == %@", id)
-            let fetchedResults = realm.objects(Visit.self).filter(predicate)
-            if let aVisit = fetchedResults.first {
-                return aVisit
+            let fetchedResults = try WoosmapDataManager.connect.retrieve(entityClass: VisitDB.self, predicate: predicate)
+            if let aVisit = fetchedResults.last {
+                return Visit(visitDB: aVisit)
             }
         } catch {
         }
@@ -123,10 +140,7 @@ public class Visits {
     /// Delete All visit information
     public class func deleteAll() {
         do {
-            let realm = try Realm()
-            try realm.write {
-                realm.delete(realm.objects(Visit.self))
-            }
+            let _ = try WoosmapDataManager.connect.deleteAll(entityClass: VisitDB.self)
         } catch let error as NSError {
             print(error)
         }

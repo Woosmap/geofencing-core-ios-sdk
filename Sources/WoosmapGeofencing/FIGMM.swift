@@ -4,21 +4,22 @@
 //
 
 import Foundation
-import RealmSwift
+
 
 typealias Scalar = Double
-public var list_zois: [[String: Any]] = []
+
+var list_zois: [[String: Any]] = []
 var list_zois_to_delete: [[String: Any]] = []
 let age_min = 5.0
 let acc_min = 3.0
 
 let chi_squared_value_for_update = chi_squared_value(probability: 0.95)
 
-public func chi_squared_value(probability: Double) -> Double {
+func chi_squared_value(probability: Double) -> Double {
     return -2 * log(1 - probability)
 }
 
-public func figmmForVisit(newVisitPoint: LoadedVisit) -> [[String: Any]] {
+func figmmForVisit(newVisitPoint: LoadedVisit) -> [[String: Any]] {
     
     // Learning
     let zois_have_been_updated = incrementZOI( point: newVisitPoint)
@@ -54,7 +55,9 @@ func clean_clusters_without_visit() {
         if let list = zois_gmm_info["idVisits"] as? [String] {
             listidVisit = list
         } else {
-            listidVisit = Array((zois_gmm_info["idVisits"] as! List<String>).elements)
+            //throw Error("Validate this")
+            // TODO: validate this
+            //listidVisit = Array((zois_gmm_info["idVisits"] as! List<String>).elements)
         }
         if listVisit.isEmpty || listidVisit.isEmpty {
             list_zois.remove(at: index)
@@ -62,7 +65,7 @@ func clean_clusters_without_visit() {
     }
 }
 
-public func setListZOIsFromDB(zoiFromDB: [[String: Any]]) {
+func setListZOIsFromDB(zoiFromDB: [[String: Any]]) {
     list_zois = []
     for zoi in zoiFromDB {
         let covariance_matrix_inverse: Matrix<Scalar> = [
@@ -100,7 +103,7 @@ func trace() {
     }
 }
 
-public func update_zois_prior() {
+func update_zois_prior() {
     var normalization_params = 0.0
     for zois_gmm_info in list_zois {
         normalization_params += zois_gmm_info["accumulator"] as! Double
@@ -145,8 +148,8 @@ func createInitialCluster(newVisitPoint: LoadedVisit) {
     zois_gmm_info["accumulator"] = 1.0
     zois_gmm_info["updated"] = true
     zois_gmm_info["covariance_det"] = pow(covariance_initial_value, 2)
-    zois_gmm_info["idVisits"] = []
-    zois_gmm_info["visitPoint"] = []
+    zois_gmm_info["idVisits"] = [] as [String]
+    zois_gmm_info["visitPoint"] = [] as [LoadedVisit]
     zois_gmm_info["startTime"] = newVisitPoint.startTime
     zois_gmm_info["endTime"] = newVisitPoint.endTime
     
@@ -211,8 +214,8 @@ func predict_as_dict(visitPoint: LoadedVisit) {
     let indexMaxProbPrior = result_x_j_prob_prior_prob_Array.firstIndex(of: Statistics().max(result_x_j_prob_prior_prob_Array))
     
     var idVisitsArray = [String]()
-    if let list = list_zois[indexMaxProbPrior!]["idVisits"] as? List<String> {
-        idVisitsArray = Array(list.elements)
+    if let list = list_zois[indexMaxProbPrior!]["idVisits"] as? [String] {
+        idVisitsArray = list
     }
     idVisitsArray.append(visitPoint.getId())
     list_zois[indexMaxProbPrior!]["idVisits"] = idVisitsArray
@@ -345,11 +348,12 @@ func getProbabilityOfXKnowingCluster(cov_determinants: [Double], sqr_mahalanobis
     return probability_of_x_knowing_cluster
 }
 
-public func deleteVisitOnZoi(visitsToDelete: LoadedVisit) -> [[String: Any]] {
+func deleteVisitOnZoi(visitsToDelete: LoadedVisit) -> [[String: Any]] {
     for (index, zois_gmm_info) in list_zois.enumerated() {
         var listIdVisit: [String] = [String]()
-        if let list = zois_gmm_info["idVisits"] as? List<String> {
-            listIdVisit = Array(list.elements)
+        // TODO: validate this
+        if let list = zois_gmm_info["idVisits"] as? [String] {
+            listIdVisit = list
         }
         let listIdVisitToSave = listIdVisit.filter { $0 != visitsToDelete.getId() }
         list_zois[index]["idVisits"] = listIdVisitToSave

@@ -19,36 +19,36 @@
 // THE SOFTWARE.
 
 /// Memory region.
-public struct UnsafeMemory<Element>: Sequence {
+struct UnsafeMemory<Element>: Sequence {
     /// Pointer to the first element
-    public var pointer: UnsafePointer<Element>
+    var pointer: UnsafePointer<Element>
 
     /// Pointer stride between elements
-    public var stride: Int
+    var stride: Int
 
     /// Number of elements
-    public var count: Int
+    var count: Int
 
-    public init(pointer: UnsafePointer<Element>, stride: Int = 1, count: Int) {
+    init(pointer: UnsafePointer<Element>, stride: Int = 1, count: Int) {
         self.pointer = pointer
         self.stride = stride
         self.count = count
     }
 
-    public func makeIterator() -> UnsafeMemoryIterator<Element> {
+    func makeIterator() -> UnsafeMemoryIterator<Element> {
         return UnsafeMemoryIterator(self)
     }
 }
 
-public struct UnsafeMemoryIterator<Element>: IteratorProtocol {
+struct UnsafeMemoryIterator<Element>: IteratorProtocol {
     let base: UnsafeMemory<Element>
     var index: Int?
 
-    public init(_ base: UnsafeMemory<Element>) {
+    init(_ base: UnsafeMemory<Element>) {
         self.base = base
     }
 
-    public mutating func next() -> Element? {
+    mutating func next() -> Element? {
         let newIndex: Int
         if let index = index {
             newIndex = index + 1
@@ -66,15 +66,15 @@ public struct UnsafeMemoryIterator<Element>: IteratorProtocol {
 }
 
 /// Protocol for collections that can be accessed via `UnsafeMemory`
-public protocol UnsafeMemoryAccessible: Collection {
+protocol UnsafeMemoryAccessible: Collection {
     func withUnsafeMemory<Result>(_ body: (UnsafeMemory<Element>) throws -> Result) rethrows -> Result
 }
 
-public func withUnsafeMemory<L, Result>(_ lhs: L, _ body: (UnsafeMemory<L.Element>) throws -> Result) rethrows -> Result where L: UnsafeMemoryAccessible {
+func withUnsafeMemory<L, Result>(_ lhs: L, _ body: (UnsafeMemory<L.Element>) throws -> Result) rethrows -> Result where L: UnsafeMemoryAccessible {
     return try lhs.withUnsafeMemory(body)
 }
 
-public func withUnsafeMemory<L, R, Result>(_ lhs: L, _ rhs: R, _ body: (UnsafeMemory<L.Element>, UnsafeMemory<R.Element>) throws -> Result) rethrows -> Result where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible {
+func withUnsafeMemory<L, R, Result>(_ lhs: L, _ rhs: R, _ body: (UnsafeMemory<L.Element>, UnsafeMemory<R.Element>) throws -> Result) rethrows -> Result where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible {
     return try lhs.withUnsafeMemory { lhsMemory in
         try rhs.withUnsafeMemory { rhsMemory in
             try body(lhsMemory, rhsMemory)

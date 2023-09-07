@@ -4,56 +4,53 @@
 //
 
 import Foundation
-import RealmSwift
 import CoreLocation
 
-/// Log Search API
-public class LogSearchAPI: Object {
-    
+public class LogSearchAPI {
     /// Date
-    @objc public dynamic var date: Date?
+     var date: Date?
     
     /// Latitude
-    @objc public dynamic var latitude: Double = 0.0
+     var latitude: Double = 0.0
     
     /// Longitude
-    @objc public dynamic var longitude: Double = 0.0
+    var longitude: Double = 0.0
     
     /// last Search Location Latitude
-    @objc public dynamic var lastSearchLocationLatitude: Double = 0.0
+    var lastSearchLocationLatitude: Double = 0.0
     
     /// last Search Location Longitude
-    @objc public dynamic var lastSearchLocationLongitude: Double = 0.0
+    var lastSearchLocationLongitude: Double = 0.0
     
     /// last POI distance
-    @objc public dynamic var lastPOI_distance: String?
+    var lastPOI_distance: String?
     
     /// distance Limit
-    @objc public dynamic var distanceLimit: String?
+    var distanceLimit: String?
     
     /// location Description
-    @objc public dynamic var locationDescription: String?
+    var locationDescription: String?
     
     /// distance Traveled
-    @objc public dynamic var distanceTraveled: String?
+    var distanceTraveled: String?
     
     /// distance To Furthest Monitored POI
-    @objc public dynamic var distanceToFurthestMonitoredPOI: String?
+    var distanceToFurthestMonitoredPOI: String?
     
     /// distance Traveled Last Refresh POI Region
-    @objc public dynamic var distanceTraveledLastRefreshPOIRegion: String?
+    var distanceTraveledLastRefreshPOIRegion: String?
     
     /// search API Last Request TimeStamp Value
-    @objc public dynamic var searchAPILastRequestTimeStampValue = 0.0
+    var searchAPILastRequestTimeStampValue = 0.0
     
     /// send Search API Request
-    @objc public dynamic var sendSearchAPIRequest: Bool = false
+    var sendSearchAPIRequest: Bool = false
     
     /// Woosmap API Key
-    @objc public dynamic var woosmapAPIKey: String?
+    var woosmapAPIKey: String?
     
     /// Search API Request Enable
-    @objc public dynamic var searchAPIRequestEnable: Bool = false
+    var searchAPIRequestEnable: Bool = false
 }
 
 /// Object : LogSearchAPIs
@@ -63,10 +60,25 @@ public class LogSearchAPIs {
     /// - Parameter log: Log
     public class func add(log: LogSearchAPI) {
         do {
-            let realm = try Realm()
-            realm.beginWrite()
-            realm.add(log)
-            try realm.commitWrite()
+            //Save in Core DB
+            let newRec:LogSearchAPIDB = LogSearchAPIDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
+            newRec.date = log.date
+            newRec.latitude = log.latitude
+            newRec.longitude = log.longitude
+            newRec.lastSearchLocationLatitude = log.lastSearchLocationLatitude
+            newRec.lastSearchLocationLongitude = log.lastSearchLocationLongitude
+            newRec.lastPOI_distance = log.lastPOI_distance
+            newRec.distanceLimit = log.distanceLimit
+            newRec.locationDescription = log.locationDescription
+            newRec.distanceTraveled = log.distanceTraveled
+            newRec.distanceToFurthestMonitoredPOI = log.distanceToFurthestMonitoredPOI
+            newRec.distanceTraveledLastRefreshPOIRegion = log.distanceTraveledLastRefreshPOIRegion
+            newRec.searchAPILastRequestTimeStampValue = log.searchAPILastRequestTimeStampValue
+            newRec.sendSearchAPIRequest = log.sendSearchAPIRequest
+            newRec.woosmapAPIKey = log.woosmapAPIKey
+            newRec.searchAPIRequestEnable = log.searchAPIRequestEnable
+            let _ = try WoosmapDataManager.connect.save(entity: newRec)
+            
         } catch {
         }
     }

@@ -1,7 +1,7 @@
 import Foundation
 import AdSupport
 import CoreLocation
-import RealmSwift
+
 
 /**
  WoosmapGeofencingCore main class. Cannot be instanciated, use `shared` property to access singleton
@@ -25,13 +25,8 @@ import RealmSwift
     private override init () {
         super.init()
         self.initServices()
-        self.initRealm()
     }
     
-    /// Init Offline DB
-    private func initRealm() {
-        Realm.Configuration.defaultConfiguration = Realm.Configuration(schemaVersion: 10)
-    }
     
     /// Location service
     /// - Returns: Location service object

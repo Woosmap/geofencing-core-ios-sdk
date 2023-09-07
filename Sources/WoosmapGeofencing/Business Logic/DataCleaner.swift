@@ -4,8 +4,6 @@
 //
 
 import Foundation
-import RealmSwift
-
 /// Data cleaning form offline databse
 public class DataCleaner {
     
@@ -21,43 +19,39 @@ public class DataCleaner {
             if dateComponents.day! >= 1 {
                 // Cleanning database
                 do {
-                    let realm = try Realm()
                     let limitDate = Calendar.current.date(byAdding: .day, value: -dataDurationDelay, to: Date())
                     let predicate = NSPredicate(format: "(date <= %@)", limitDate! as CVarArg)
-                    let locationFetchedResults = realm.objects(Location.self).filter(predicate)
-                    let poiFetchedResults = realm.objects(POI.self).filter(predicate)
-                    let distanceFetchedResults = realm.objects(Distance.self).filter(predicate)
-                    let regionFetchedResults = realm.objects(Region.self).filter(predicate)
-                    let visitFetchedResults = realm.objects(Visit.self).filter(predicate)
+                    let visitFetchedResults = try WoosmapDataManager.connect.retrieve(entityClass: VisitDB.self,predicate: predicate)
                     if !visitFetchedResults.isEmpty {
-                        ZOIs.updateZOI(visits: Array(visitFetchedResults))
+                        ZOIs.updateZOI(visits: Array(visitFetchedResults).map({ visitModel in
+                            return Visit(visitDB: visitModel)
+                        }))
                     }
-                    realm.beginWrite()
-                    realm.delete(locationFetchedResults)
-                    realm.delete(poiFetchedResults)
-                    realm.delete(visitFetchedResults)
-                    realm.delete(distanceFetchedResults)
-                    realm.delete(regionFetchedResults)
-                    try realm.commitWrite()
+                    let _ = try WoosmapDataManager.connect.deleteAll(entityClass: LocationDB.self,predicate: predicate)
+                    let _ = try WoosmapDataManager.connect.deleteAll(entityClass: POIDB.self,predicate: predicate)
+                    let _ = try WoosmapDataManager.connect.deleteAll(entityClass: VisitDB.self,predicate: predicate)
+                    let _ = try WoosmapDataManager.connect.deleteAll(entityClass: DistanceDB.self,predicate: predicate)
+                    let _ = try WoosmapDataManager.connect.deleteAll(entityClass: RegionDB.self,predicate: predicate)
+                    
                 } catch {
                 }
+                UserDefaults.standard.set(Date(), forKey: "lastDateUpdate")
             }
+        } else {
+            // Update date
+            UserDefaults.standard.set(Date(), forKey: "lastDateUpdate")
         }
-        // Update date
-        UserDefaults.standard.set(Date(), forKey: "lastDateUpdate")
+        
     }
     
     /// Delete all data more than x days
     /// - Parameter days: Days
     func removeLocationOlderThan(days: Int) {
         do {
-            let realm = try Realm()
+            
             let limitDate = Calendar.current.date(byAdding: .day, value: -days, to: Date())
             let predicate = NSPredicate(format: "(date <= %@)", limitDate! as CVarArg)
-            let fetchedResults = realm.objects(Location.self).filter(predicate)
-            try realm.write {
-                realm.delete(fetchedResults)
-            }
+            let _ = try WoosmapDataManager.connect.deleteAll(entityClass: LocationDB.self,predicate: predicate)
         } catch {
         }
     }
@@ -66,13 +60,9 @@ public class DataCleaner {
     /// - Parameter days: days
     func removePOIOlderThan(days: Int) {
         do {
-            let realm = try Realm()
             let limitDate = Calendar.current.date(byAdding: .day, value: -days, to: Date())
             let predicate = NSPredicate(format: "(date <= %@)", limitDate! as CVarArg)
-            let fetchedResults = realm.objects(POI.self).filter(predicate)
-            try realm.write {
-                realm.delete(fetchedResults)
-            }
+            let _ = try WoosmapDataManager.connect.deleteAll(entityClass: POIDB.self,predicate: predicate)
         } catch {
         }
     }
@@ -81,16 +71,16 @@ public class DataCleaner {
     /// - Parameter days: days
     func removeVisitOlderThan(days: Int) {
         do {
-            let realm = try Realm()
+
             let limitDate = Calendar.current.date(byAdding: .day, value: -days, to: Date())
             let predicate = NSPredicate(format: "(date <= %@)", limitDate! as CVarArg)
-            let fetchedResults = realm.objects(Visit.self).filter(predicate)
-            try realm.write {
-                if !fetchedResults.isEmpty {
-                    ZOIs.updateZOI(visits: Array(fetchedResults))
-                }
-                realm.delete(fetchedResults)
+            let fetchedResults = try WoosmapDataManager.connect.retrieve(entityClass: VisitDB.self,predicate: predicate)
+            if !fetchedResults.isEmpty {
+                ZOIs.updateZOI(visits: Array(fetchedResults).map({ visitModel in
+                    return Visit(visitDB: visitModel)
+                }))
             }
+            let _ = try WoosmapDataManager.connect.deleteAll(entityClass: VisitDB.self,predicate: predicate)
         } catch {
         }
     }

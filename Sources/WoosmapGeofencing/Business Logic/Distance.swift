@@ -5,96 +5,87 @@
 //
 
 import Foundation
-import RealmSwift
 import CoreLocation
-
-/// Distance Object
-public class Distance: Object {
-    
+/// Distance object
+public class Distance {
     /// Date
-    @objc public dynamic var date: Date?
+    var date: Date?
     
     /// origin Latitude
-    @objc public dynamic var originLatitude: Double = 0.0
+    var originLatitude: Double = 0.0
     
     /// origin Longitude
-    @objc public dynamic var originLongitude: Double = 0.0
+    var originLongitude: Double = 0.0
     
     /// Destination Latitude
-    @objc public dynamic var destinationLatitude: Double = 0.0
+    var destinationLatitude: Double = 0.0
     
     /// Destination Longitude
-    @objc public dynamic var destinationLongitude: Double = 0.0
+    var destinationLongitude: Double = 0.0
     
     /// Distance
-    @objc public dynamic var distance: Int = 0
+    public var distance: Int = 0
     
     /// Distance Text
-    @objc public dynamic var distanceText: String?
+    public var distanceText: String?
     
     /// Duration
-    @objc public dynamic var duration: Int = 0
+    public var duration: Int = 0
     
     /// Duration Text
-    @objc public dynamic var durationText: String?
+    public var durationText: String?
     
     /// mode
-    @objc public dynamic var mode: String?
+    var mode: String?
     
     /// Units
-    @objc public dynamic var units: String?
+    var units: String?
     
     /// Routing
-    @objc public dynamic var routing: String?
+    var routing: String?
     
     /// Status
-    @objc public dynamic var status: String?
+    var status: String?
     
     /// Location Id
-    @objc public dynamic var locationId: String?
+    var locationId: String?
     
-    
-    /// Create new distance object
-    /// - Parameters:
-    ///   - originLatitude:
-    ///   - originLongitude:
-    ///   - destinationLatitude:
-    ///   - destinationLongitude:
-    ///   - dateCaptured:
-    ///   - distance:
-    ///   - duration:
-    ///   - mode:
-    ///   - units:
-    ///   - routing:
-    ///   - status:
-    ///   - locationId:
-    convenience public init(originLatitude: Double,
-                            originLongitude: Double,
-                            destinationLatitude: Double,
-                            destinationLongitude: Double,
-                            dateCaptured: Date,
-                            distance: Int,
-                            duration: Int,
-                            mode: String,
-                            units: String,
-                            routing: String,
-                            status: String,
-                            locationId: String) {
+    convenience fileprivate init(distanceDB: DistanceDB) {
         self.init()
-        self.originLatitude = originLatitude
-        self.originLongitude = originLongitude
-        self.destinationLatitude = destinationLatitude
-        self.destinationLongitude = destinationLongitude
-        self.date = dateCaptured
-        self.distance = distance
-        self.duration = duration
-        self.mode = mode
-        self.units = units
-        self.routing = routing
-        self.status = status
-        self.locationId = locationId
+        self.date = distanceDB.date
+        self.originLatitude = distanceDB.originLatitude
+        self.originLongitude = distanceDB.originLongitude
+        self.destinationLatitude = distanceDB.destinationLatitude
+        self.destinationLongitude = distanceDB.destinationLongitude
+        self.distance = Int(distanceDB.distance)
+        self.distanceText = distanceDB.distanceText
+        self.duration = Int(distanceDB.duration)
+        self.durationText = distanceDB.durationText
+        self.mode = distanceDB.mode
+        self.units = distanceDB.units
+        self.routing = distanceDB.routing
+        self.status = distanceDB.status
+        self.locationId = distanceDB.locationId
     }
     
+    fileprivate func dbEntity() -> DistanceDB {
+        let newRec:DistanceDB = DistanceDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
+        newRec.date = self.date
+        newRec.originLatitude = self.originLatitude
+        newRec.originLongitude = self.originLongitude
+        newRec.destinationLatitude = self.destinationLatitude
+        newRec.destinationLongitude = self.destinationLongitude
+        newRec.distance = Int32(self.distance)
+        newRec.distanceText = self.distanceText
+        newRec.duration = Int32(self.duration)
+        newRec.durationText = self.durationText
+        newRec.mode = self.mode
+        newRec.units = self.units
+        newRec.routing = self.routing
+        newRec.status = self.status
+        newRec.locationId = self.locationId
+        return newRec
+    }
 }
 
 /// Distance Object
@@ -140,9 +131,9 @@ public class Distances {
                         let distanceText = element.distance?.text
                         let durationValue = element.duration?.value ?? 0
                         let durationText = element.duration?.text ?? ""
-                        distance.distance = distanceValue ?? 0
+                        distance.distance = Int(distanceValue ?? 0)
                         distance.distanceText = distanceText
-                        distance.duration = durationValue
+                        distance.duration = Int(durationValue)
                         distance.durationText = durationText
                         distance.status = element.status
                         distance.locationId = locationId
@@ -153,11 +144,10 @@ public class Distances {
             } else {
                 print("WoosmapGeofencing.DistanceAPIData " + jsonStructure.status!)
             }
+            try distanceArray.forEach { row in
+                let _ = try WoosmapDataManager.connect.save(entity: row.dbEntity())
+            }
             
-            let realm = try Realm()
-            realm.beginWrite()
-            realm.add(distanceArray)
-            try realm.commitWrite()
             return distanceArray
             
         } catch let error as NSError {
@@ -170,25 +160,27 @@ public class Distances {
     
     /// Get all distance object
     /// - Returns: return all distance
-    public class func getAll() -> [Distance] {
+    private class func getAll() -> [Distance] {
         do {
-            let realm = try Realm()
-            let distances = realm.objects(Distance.self)
-            return Array(distances)
+            let distances = try WoosmapDataManager.connect.retrieve(entityClass: DistanceDB.self)
+            return Array((distances).map({ distance in
+                return Distance(distanceDB: distance)
+            }))
+            
         } catch {
         }
         return []
     }
     
     /// Delete all 
-    public class func deleteAll() {
+    private class func deleteAll() {
         do {
-            let realm = try Realm()
-            try realm.write {
-                realm.delete(realm.objects(Distance.self))
-            }
+            let _ = try WoosmapDataManager.connect.deleteAll(entityClass: DistanceDB.self)
         } catch let error as NSError {
             print(error)
         }
     }
 }
+
+
+

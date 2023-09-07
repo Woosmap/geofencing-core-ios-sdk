@@ -795,7 +795,7 @@ internal func dot<L, R>(_ lhs: L, _ rhs: R) -> Double where L: UnsafeMemoryAcces
     }
 }
 
-infix operator •: MultiplicationPrecedence
+//infix operator •: MultiplicationPrecedence
 
 internal func • <L, R>(lhs: L, rhs: R) -> Double where L: UnsafeMemoryAccessible, R: UnsafeMemoryAccessible, L.Element == Double, R.Element == Double {
     return dot(lhs, rhs)

@@ -2,74 +2,112 @@
 //  ZOI.swift
 //  WoosmapGeofencing
 //
-
-import RealmSwift
 import Foundation
 
-/// Zone of Intrest Object
-public class ZOI: Object {
-    
+public class ZOI {
     /// Accumulator
-    @objc public dynamic var accumulator: Double = 0.0
+    public var accumulator: Double = 0
     
     /// Age
-    @objc public dynamic var age: Double = 0.0
+    public var age: Double = 0
     
     /// Covariance_det
-    @objc public dynamic var covariance_det: Double = 0.0
+    public var covariance_det: Double = 0
     
     /// Duration
-    @objc public dynamic var duration: Int64 = 0
+    public var duration: Int64 = 0
     
     /// End Time
-    @objc public dynamic var endTime: Date?
+    public var endTime: Date? = nil
     
     /// Visit ID
-    public dynamic var idVisits = List<String>()
+    public var idVisits: [String] = []
     
     /// LatMean
-    @objc public dynamic var latMean: Double = 0.0
+    public var latMean: Double = 0.0
     
     /// LngMean
-    @objc public dynamic var lngMean: Double = 0.0
+    public var lngMean: Double = 0.0
     
     /// Period
-    @objc public dynamic var period: String?
+    public var period: String? = nil
     
     /// Prior Probability
-    @objc public dynamic var prior_probability: Double = 0.0
+    public var prior_probability: Double = 0.0
     
     /// Start Time
-    @objc public dynamic var startTime: Date?
+    public var startTime: Date? = nil
     
     /// Weekly Density
-    public dynamic var weekly_density = List<Double>()
+    public var weekly_density: [Double] = []
     
     /// wktPolygon
-    @objc public dynamic var wktPolygon: String?
+    public var wktPolygon: String? = nil
     
     /// x00Covariance_matrix_inverse
-    @objc public dynamic var x00Covariance_matrix_inverse: Double = 0.0
+    public var x00Covariance_matrix_inverse: Double = 0.0
     
     /// x01Covariance_matrix_inverse
-    @objc public dynamic var x01Covariance_matrix_inverse: Double = 0.0
+    public var x01Covariance_matrix_inverse: Double = 0.0
     
     /// x10Covariance_matrix_inverse
-    @objc public dynamic var x10Covariance_matrix_inverse: Double = 0.0
+    public var x10Covariance_matrix_inverse: Double = 0.0
     
     /// x11Covariance_matrix_inverse
-    @objc public dynamic var x11Covariance_matrix_inverse: Double = 0.0
+    public var x11Covariance_matrix_inverse: Double = 0.0
     
     /// ID
-    @objc public dynamic var zoiId: String?
-    
-    /// Primary Key
-    /// - Returns: zoiId
-    public override class func primaryKey() -> String? {
-        return "zoiId"
+    public var zoiId: String?
+    public init() {
+        
     }
+    
+    fileprivate init(zoiDB: ZOIDB) {
+        self.accumulator = zoiDB.accumulator
+        self.age =  zoiDB.age
+        self.covariance_det =  zoiDB.covariance_det
+        self.duration =  zoiDB.duration
+        self.endTime =  zoiDB.endTime
+        self.idVisits = zoiDB.idVisits ?? []
+        self.latMean =  zoiDB.latMean
+        self.lngMean =  zoiDB.lngMean
+        self.period =  zoiDB.period
+        self.prior_probability =  zoiDB.prior_probability
+        self.startTime =  zoiDB.startTime
+        self.weekly_density =  zoiDB.weekly_density ?? []
+        self.wktPolygon =  zoiDB.wktPolygon
+        self.x00Covariance_matrix_inverse =  zoiDB.x00Covariance_matrix_inverse
+        self.x01Covariance_matrix_inverse =  zoiDB.x01Covariance_matrix_inverse
+        self.x10Covariance_matrix_inverse =  zoiDB.x10Covariance_matrix_inverse
+        self.x11Covariance_matrix_inverse =  zoiDB.x11Covariance_matrix_inverse
+        self.zoiId =  zoiDB.zoiId
+    }
+    
+    fileprivate func dbEntity()-> ZOIDB{
+        let newRec:ZOIDB = ZOIDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
+        newRec.accumulator = self.accumulator
+        newRec.age = self.age
+        newRec.covariance_det = self.covariance_det
+        newRec.duration = self.duration
+        newRec.endTime = self.endTime
+        newRec.idVisits = self.idVisits
+        newRec.latMean = self.latMean
+        newRec.lngMean = self.lngMean
+        newRec.period = self.period
+        newRec.prior_probability = self.prior_probability
+        newRec.startTime = self.startTime
+        newRec.weekly_density = self.weekly_density
+        newRec.wktPolygon = self.wktPolygon
+        newRec.x00Covariance_matrix_inverse = self.x00Covariance_matrix_inverse
+        newRec.x01Covariance_matrix_inverse = self.x01Covariance_matrix_inverse
+        newRec.x10Covariance_matrix_inverse = self.x10Covariance_matrix_inverse
+        newRec.x11Covariance_matrix_inverse = self.x11Covariance_matrix_inverse
+        newRec.zoiId = self.zoiId
+        
+        return newRec
+    }
+    
 }
-
 /// ZOI business class
 public class ZOIs {
     
@@ -77,10 +115,10 @@ public class ZOIs {
     /// - Parameter zoi: Raw information
     public class func createZOIFrom(zoi: [String: Any]) {
         do {
-            let realm = try Realm()
+            
             let newZOI = ZOI()
             newZOI.zoiId = UUID().uuidString
-            newZOI.idVisits = zoi["idVisits"] as! List<String>
+            newZOI.idVisits = zoi["idVisits"] as! [String]
             var visitArrivalDate = [Date]()
             var visitDepartureDate = [Date]()
             var duration = 0
@@ -98,48 +136,49 @@ public class ZOIs {
                 startTime = visitArrivalDate.reduce(visitArrivalDate[0], { $0.timeIntervalSince1970 < $1.timeIntervalSince1970 ? $0 : $1 })
                 endTime = visitDepartureDate.reduce(visitDepartureDate[0], { $0.timeIntervalSince1970 > $1.timeIntervalSince1970 ? $0 : $1 })
             }
-            newZOI.setValue(startTime, forKey: "startTime")
-            newZOI.setValue(endTime, forKey: "endTime")
-            newZOI.setValue(duration, forKey: "duration")
-            newZOI.setValue(zoi["weekly_density"], forKey: "weekly_density")
-            newZOI.setValue(zoi["period"], forKey: "period")
-            newZOI.setValue((zoi["mean"] as! [Any])[0] as! Double, forKey: "latMean")
-            newZOI.setValue((zoi["mean"] as! [Any])[1] as! Double, forKey: "lngMean")
-            newZOI.setValue(zoi["age"], forKey: "age")
-            newZOI.setValue(zoi["accumulator"], forKey: "accumulator")
-            newZOI.setValue(zoi["covariance_det"], forKey: "covariance_det")
-            newZOI.setValue(zoi["prior_probability"], forKey: "prior_probability")
-            newZOI.setValue(zoi["x00Covariance_matrix_inverse"], forKey: "x00Covariance_matrix_inverse")
-            newZOI.setValue(zoi["x01Covariance_matrix_inverse"], forKey: "x01Covariance_matrix_inverse")
-            newZOI.setValue(zoi["x10Covariance_matrix_inverse"], forKey: "x10Covariance_matrix_inverse")
-            newZOI.setValue(zoi["x11Covariance_matrix_inverse"], forKey: "x11Covariance_matrix_inverse")
-            newZOI.setValue(zoi["WktPolygon"], forKey: "wktPolygon")
             
-            realm.beginWrite()
-            realm.add(newZOI)
-            try realm.commitWrite()
+            newZOI.startTime = startTime // .setValue(startTime, forKey: "startTime")
+            newZOI.endTime = endTime//setValue(endTime, forKey: "endTime")
+            newZOI.duration = Int64(duration)//setValue(duration, forKey: "duration")
+            newZOI.weekly_density = zoi["weekly_density"] as! [Double] //setValue(, forKey: "weekly_density")
+            newZOI.period = zoi["period"] as? String //(zoi["period"], forKey: "period")
+            newZOI.latMean = (zoi["mean"] as! [Any])[0] as! Double
+            newZOI.lngMean = (zoi["mean"] as! [Any])[1] as! Double
+            newZOI.age = zoi["age"] as! Double
+            newZOI.accumulator = zoi["accumulator"] as! Double
+            newZOI.covariance_det = zoi["covariance_det"] as! Double
+            newZOI.prior_probability = zoi["prior_probability"] as! Double
+            
+            newZOI.x00Covariance_matrix_inverse = zoi["x00Covariance_matrix_inverse"] as! Double
+            newZOI.x01Covariance_matrix_inverse = zoi["x01Covariance_matrix_inverse"] as! Double
+            newZOI.x10Covariance_matrix_inverse = zoi["x10Covariance_matrix_inverse"] as! Double
+            newZOI.x11Covariance_matrix_inverse = zoi["x11Covariance_matrix_inverse"] as! Double
+            newZOI.wktPolygon = zoi["WktPolygon"] as? String
+            let _ = try WoosmapDataManager.connect.save(entity: newZOI.dbEntity())
         } catch {
+            
         }
     }
     
     /// Save ZPI in local database
     /// - Parameter zois: Raw information
     public class func saveZoisInDB(zois: [[String: Any]]) {
-        var zoisToDB: [ZOI] = []
+        var zoiArray: [ZOI] = []
         for zoi in zois {
             let newZOi = ZOI()
-            newZOi.setValue(UUID().uuidString, forKey: "zoiId")
-            newZOi.setValue(zoi["idVisits"], forKey: "idVisits")
+            newZOi.zoiId  = UUID().uuidString
+            newZOi.idVisits = zoi["idVisits"] as! [String]
             var visitArrivalDate = [Date]()
             var visitDepartureDate = [Date]()
             var duration = 0
             var startTime = Date()
             var endTime = Date()
-            var arrayIdVisits: [String] = [String]()
+            var arrayIdVisits: [String] = []
             if let list = zoi["idVisits"] as? [String] {
                 arrayIdVisits = list
             } else {
-                arrayIdVisits = Array((zoi["idVisits"] as! List<String>).elements)
+                // TODO: validate this
+                //arrayIdVisits = Array((zoi["idVisits"] as! List<String>).elements)
             }
             if arrayIdVisits.count != 0 {
                 for id in arrayIdVisits {
@@ -153,31 +192,32 @@ public class ZOIs {
                 startTime = visitArrivalDate.reduce(visitArrivalDate[0], { $0.timeIntervalSince1970 < $1.timeIntervalSince1970 ? $0 : $1 })
                 endTime = visitDepartureDate.reduce(visitDepartureDate[0], { $0.timeIntervalSince1970 > $1.timeIntervalSince1970 ? $0 : $1 })
             }
-            newZOi.setValue(startTime, forKey: "startTime")
-            newZOi.setValue(endTime, forKey: "endTime")
-            newZOi.setValue(duration, forKey: "duration")
-            newZOi.setValue(zoi["weekly_density"], forKey: "weekly_density")
-            newZOi.setValue(zoi["period"], forKey: "period")
-            newZOi.setValue((zoi["mean"] as! [Any])[0] as! Double, forKey: "latMean")
-            newZOi.setValue((zoi["mean"] as! [Any])[1] as! Double, forKey: "lngMean")
-            newZOi.setValue(zoi["age"], forKey: "age")
-            newZOi.setValue(zoi["accumulator"], forKey: "accumulator")
-            newZOi.setValue(zoi["covariance_det"], forKey: "covariance_det")
-            newZOi.setValue(zoi["prior_probability"], forKey: "prior_probability")
-            newZOi.setValue(zoi["x00Covariance_matrix_inverse"], forKey: "x00Covariance_matrix_inverse")
-            newZOi.setValue(zoi["x01Covariance_matrix_inverse"], forKey: "x01Covariance_matrix_inverse")
-            newZOi.setValue(zoi["x10Covariance_matrix_inverse"], forKey: "x10Covariance_matrix_inverse")
-            newZOi.setValue(zoi["x11Covariance_matrix_inverse"], forKey: "x11Covariance_matrix_inverse")
-            newZOi.setValue(zoi["WktPolygon"], forKey: "wktPolygon")
-            zoisToDB.append(newZOi)
+            newZOi.startTime = startTime
+            newZOi.endTime = endTime
+            newZOi.duration = Int64(duration)
+            newZOi.weekly_density = zoi["weekly_density"] as! [Double]
+            newZOi.period = zoi["period"] as? String
+            newZOi.latMean = (zoi["mean"] as! [Any])[0] as! Double
+            newZOi.lngMean = (zoi["mean"] as! [Any])[1] as! Double
+            newZOi.age = zoi["age"] as! Double
+            newZOi.accumulator = zoi["accumulator"] as! Double
+            newZOi.covariance_det = zoi["covariance_det"] as! Double
+            newZOi.prior_probability = zoi["prior_probability"] as! Double
+            newZOi.x00Covariance_matrix_inverse = zoi["x00Covariance_matrix_inverse"] as! Double
+            newZOi.x01Covariance_matrix_inverse = zoi["x01Covariance_matrix_inverse"] as! Double
+            newZOi.x10Covariance_matrix_inverse = zoi["x10Covariance_matrix_inverse"] as! Double
+            newZOi.x11Covariance_matrix_inverse = zoi["x11Covariance_matrix_inverse"] as! Double
+            newZOi.wktPolygon = zoi["WktPolygon"] as? String
+            zoiArray.append(newZOi)
         }
         
         do {
-            let realm = try Realm()
-            realm.beginWrite()
-            realm.delete(realm.objects(ZOI.self))
-            realm.add(zoisToDB)
-            try realm.commitWrite()
+            let _ = try WoosmapDataManager.connect.deleteAll(entityClass: ZOIDB.self)
+            try zoiArray.forEach { row in
+                let newRec:ZOIDB = row.dbEntity()
+                let _ = try WoosmapDataManager.connect.save(entity: newRec)
+            }
+            
         } catch {
         }
     }
@@ -208,7 +248,7 @@ public class ZOIs {
             zoiToAdd["endTime"] = zoiFromDB.endTime
             zoiToAdd["duration"] = zoiFromDB.duration
             zoiToAdd["weekly_density"] = zoiFromDB.weekly_density
-            zoiToAdd["weeks_on_zoi"] = []
+            zoiToAdd["weeks_on_zoi"] = [] as [Double]
             zoiToAdd["period"] = zoiFromDB.period
             zoiToAdd["covariance_det"] = zoiFromDB.covariance_det
             zoiToAdd["x00Covariance_matrix_inverse"] = zoiFromDB.x00Covariance_matrix_inverse
@@ -251,7 +291,7 @@ public class ZOIs {
             zoiToAdd["duration"] = zoiFromDB.duration
             zoiToAdd["weekly_density"] = zoiFromDB.weekly_density
             zoiToAdd["period"] = zoiFromDB.period
-            zoiToAdd["weeks_on_zoi"] = []
+            zoiToAdd["weeks_on_zoi"] = [] as [Double]
             zoiToAdd["covariance_det"] = zoiFromDB.covariance_det
             zoiToAdd["x00Covariance_matrix_inverse"] = zoiFromDB.x00Covariance_matrix_inverse
             zoiToAdd["x01Covariance_matrix_inverse"] = zoiFromDB.x01Covariance_matrix_inverse
@@ -299,7 +339,7 @@ public class ZOIs {
             zoiToAdd["endTime"] = zoiFromDB.endTime
             zoiToAdd["duration"] = zoiFromDB.duration
             zoiToAdd["weekly_density"] = zoiFromDB.weekly_density
-            zoiToAdd["weeks_on_zoi"] = []
+            zoiToAdd["weeks_on_zoi"] = [] as [Double]
             zoiToAdd["period"] = zoiFromDB.period
             zoiToAdd["covariance_det"] = zoiFromDB.covariance_det
             zoiToAdd["x00Covariance_matrix_inverse"] = zoiFromDB.x00Covariance_matrix_inverse
@@ -323,9 +363,15 @@ public class ZOIs {
     /// - Returns: ZOIs
     public class func getAll() -> [ZOI] {
         do {
-            let realm = try Realm()
-            let zois = realm.objects(ZOI.self)
-            return Array(zois)
+            let zois = try WoosmapDataManager.connect.retrieve(entityClass: ZOIDB.self)
+            
+            var externalZois: [ZOI] = []
+            
+            for zoi in zois {
+                externalZois.append(ZOI(zoiDB: zoi))
+            }
+            
+            return externalZois
         } catch {
         }
         return []
@@ -334,10 +380,7 @@ public class ZOIs {
     /// Delete All ZOI information
     public class func deleteAll() {
         do {
-            let realm = try Realm()
-            realm.beginWrite()
-            realm.delete(realm.objects(ZOI.self))
-            try realm.commitWrite()
+            let _ = try WoosmapDataManager.connect.deleteAll(entityClass: ZOIDB.self)
         } catch {
         }
     }
@@ -346,12 +389,14 @@ public class ZOIs {
     /// - Returns: Work/Home ZOI
     public class func getWorkHomeZOI() -> [ZOI] {
         do {
-            let realm = try Realm()
             let predicate = NSPredicate(format: "period == %@ OR period == %@", "WORK_PERIOD", "HOME_PERIOD")
-            let fetchedResults = realm.objects(ZOI.self).filter(predicate)
-            return Array(fetchedResults)
+            let fetchedResults = try WoosmapDataManager.connect.retrieve(entityClass: ZOIDB.self, predicate: predicate)
+            return fetchedResults.map { zoi in
+                return ZOI(zoiDB: zoi)
+            }
         } catch {
         }
         return []
     }
 }
+

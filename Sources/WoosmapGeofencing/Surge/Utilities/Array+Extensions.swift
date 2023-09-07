@@ -19,7 +19,7 @@
 // THE SOFTWARE.
 
 extension Array: UnsafeMemoryAccessible, UnsafeMutableMemoryAccessible {
-    public func withUnsafeMemory<Result>(_ action: (UnsafeMemory<Element>) throws -> Result) rethrows -> Result {
+    func withUnsafeMemory<Result>(_ action: (UnsafeMemory<Element>) throws -> Result) rethrows -> Result {
         return try withUnsafeBufferPointer { ptr in
             guard let base = ptr.baseAddress else {
                 fatalError("Array is missing its pointer")
@@ -29,7 +29,7 @@ extension Array: UnsafeMemoryAccessible, UnsafeMutableMemoryAccessible {
         }
     }
 
-    public mutating func withUnsafeMutableMemory<Result>(_ action: (UnsafeMutableMemory<Element>) throws -> Result) rethrows -> Result {
+    mutating func withUnsafeMutableMemory<Result>(_ action: (UnsafeMutableMemory<Element>) throws -> Result) rethrows -> Result {
         return try withUnsafeMutableBufferPointer { ptr in
             guard let base = ptr.baseAddress else {
                 fatalError("Array is missing its pointer")

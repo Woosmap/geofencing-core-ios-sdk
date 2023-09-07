@@ -4,67 +4,54 @@
 //
 
 import Foundation
-import RealmSwift
 import CoreLocation
 
-/// Offline Databse: Region
-public class Region: Object {
-    
+public class Region {
     /// date
-    @objc public dynamic var date: Date = Date()
+     public dynamic var date: Date = Date()
     
     /// didEnter
-    @objc public dynamic var didEnter: Bool = false
+     public dynamic var didEnter: Bool = false
     
     /// identifier
-    @objc public dynamic var identifier: String = ""
+     public dynamic var identifier: String = ""
     
     /// latitude
-    @objc public dynamic var latitude: Double = 0.0
+     public dynamic var latitude: Double = 0.0
     
     /// longitude
-    @objc public dynamic var longitude: Double = 0.0
+     public dynamic var longitude: Double = 0.0
     
     /// radius
-    @objc public dynamic var radius: Double = 0.0
+     public dynamic var radius: Double = 0.0
     
     /// fromPositionDetection
-    @objc public dynamic var fromPositionDetection: Bool = false
+     public dynamic var fromPositionDetection: Bool = false
     
     /// distance
-    @objc public dynamic var distance = 0;
+     public dynamic var distance = 0;
     
     /// distanceText
-    @objc public dynamic var distanceText = "";
+     public dynamic var distanceText = "";
     
     /// duration
-    @objc public dynamic var duration = 0;
+     public dynamic var duration = 0;
     
     /// durationText
-    @objc public dynamic var durationText = "";
+     public dynamic var durationText = "";
     
     /// type
-    @objc public dynamic var type = "circle";
+     public dynamic var type = "circle";
     
     /// origin
-    @objc public dynamic var origin = "";
+     public dynamic var origin = "";
     
     /// eventName
-    @objc public dynamic var eventName: String = "";
+     public dynamic var eventName: String = "";
     
     /// spentTime
-    @objc public dynamic var spentTime: Double = 0;
+     public dynamic var spentTime: Double = 0;
     
-    /// Create new region object
-    /// - Parameters:
-    ///   - latitude:
-    ///   - longitude:
-    ///   - radius:
-    ///   - dateCaptured:
-    ///   - identifier:
-    ///   - didEnter:
-    ///   - fromPositionDetection:
-    ///   - eventName:
     convenience public init(latitude: Double, longitude: Double, radius: Double, dateCaptured: Date, identifier: String, didEnter: Bool, fromPositionDetection: Bool, eventName: String) {
         self.init()
         self.latitude = latitude
@@ -76,21 +63,74 @@ public class Region: Object {
         self.fromPositionDetection = fromPositionDetection
         self.eventName = eventName
     }
+    
+    fileprivate convenience init(regionDB: RegionDB) {
+        self.init()
+        self.date = regionDB.date ?? Date()
+        self.didEnter = regionDB.didEnter
+        self.identifier = regionDB.identifier ?? ""
+        self.latitude = regionDB.latitude
+        self.longitude = regionDB.longitude
+        self.radius = regionDB.radius
+        self.fromPositionDetection = regionDB.fromPositionDetection
+        self.distance = Int(regionDB.distance)
+        self.distanceText = regionDB.distanceText ?? ""
+        self.duration = Int(regionDB.duration)
+        self.durationText = regionDB.durationText ?? ""
+        self.type = regionDB.type ?? ""
+        self.origin = regionDB.origin ?? ""
+        self.eventName = regionDB.eventName ?? ""
+        self.spentTime = regionDB.spentTime
+    }
+    
+    fileprivate func dbEntity() -> RegionDB {
+        let newRec:RegionDB = RegionDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
+        newRec.date = self.date
+        newRec.didEnter = self.didEnter
+        newRec.identifier = self.identifier
+        newRec.latitude = self.latitude
+        newRec.longitude = self.longitude
+        newRec.radius = self.radius
+        newRec.fromPositionDetection = self.fromPositionDetection
+        newRec.distance = Double (self.distance)
+        newRec.distanceText = self.distanceText
+        newRec.duration = Double(self.duration)
+        newRec.durationText = self.durationText
+        newRec.type  = self.type
+        newRec.origin = self.origin
+        newRec.eventName = self.eventName
+        newRec.spentTime = self.spentTime
+        return newRec
+    }
 }
 
-/// Offline Database: DurationLog
-public class DurationLog: Object {
+
+public class DurationLog {
     
     /// identifier
-    @objc public dynamic var identifier: String = ""
+    public dynamic var identifier: String = ""
     
     /// entryTime
-    @objc public dynamic var entryTime: Date = Date()
+    public dynamic var entryTime: Date = Date()
     
     /// exitTime
-    @objc public dynamic var exitTime: Date?
+    public dynamic var exitTime: Date?
+    
+    fileprivate convenience init(durationLogDB: DurationLogDB) {
+        self.init()
+        self.identifier = durationLogDB.identifier ?? ""
+        self.entryTime = durationLogDB.entryTime ?? Date()
+        self.exitTime = durationLogDB.exitTime
+    }
+    
+    fileprivate func dbEntity() -> DurationLogDB {
+        let newRec:DurationLogDB = DurationLogDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
+        newRec.identifier = self.identifier
+        newRec.entryTime = self.entryTime
+        newRec.exitTime = self.exitTime
+        return newRec
+    }
 }
-
 
 /// Duration Logs Controller
 public class DurationLogs {
@@ -104,13 +144,10 @@ public class DurationLogs {
     /// - Parameter identifier: ID
     public static func addEntryLog(identifier: String){
         do {
-            let realm = try Realm()
-            let entry = DurationLog()
-            entry.identifier = identifier
-            entry.entryTime = Date()
-            realm.beginWrite()
-            realm.add(entry)
-            try realm.commitWrite()
+            let newRec:DurationLog = DurationLog()
+            newRec.identifier = identifier
+            newRec.entryTime = Date()
+            let _ = try WoosmapDataManager.connect.save(entity: newRec.dbEntity())
         } catch {
         }
     }
@@ -127,13 +164,12 @@ public class DurationLogs {
         //Check Entry event for given id
         let predicate = NSPredicate(format: "identifier == %@ AND exitTime = nil", identifier)
         do {
-            let realm = try Realm()
-            let fetchedResults = realm.objects(DurationLog.self).filter(predicate)
-            if let log:DurationLog  = fetchedResults.first {
-                try realm.write {
-                    log.exitTime = Date()
-                }
-                return Date().timeIntervalSinceReferenceDate - log.entryTime.timeIntervalSinceReferenceDate
+            let fetchedResults = try WoosmapDataManager.connect.retrieve(entityClass: DurationLogDB.self, predicate: predicate)
+            //Add LIFO concept
+            if let log:DurationLogDB  = fetchedResults.last {
+                log.exitTime = Date()
+                let _ = try WoosmapDataManager.connect.save(entity: log)
+                return Date().timeIntervalSinceReferenceDate - log.entryTime!.timeIntervalSinceReferenceDate
             }
         } catch {
         }
@@ -149,9 +185,11 @@ public class DurationLogs {
     /// - Returns: List of Logs in offile database
     public static func getAll() -> [DurationLog] {
         do {
-            let realm = try Realm()
-            let regions = realm.objects(DurationLog.self)
-            return Array(regions)
+            let logs = try WoosmapDataManager.connect.retrieve(entityClass: DurationLogDB.self)
+            return Array((logs).map({ log in
+                return DurationLog(durationLogDB: log)
+            }))
+            
         } catch {
         }
         return []
@@ -166,10 +204,7 @@ public class DurationLogs {
     ///```
     public static func deleteAll() {
         do {
-            let realm = try Realm()
-            try realm.write {
-                realm.delete(realm.objects(DurationLog.self))
-            }
+            let _ = try WoosmapDataManager.connect.deleteAll(entityClass: DurationLogDB.self)
         } catch let error as NSError {
             print(error)
         }
@@ -185,7 +220,7 @@ public class Regions {
     /// - Returns: Region
     public static func add(POIregion: CLRegion, didEnter: Bool, fromPositionDetection: Bool) -> Region {
         do {
-            let realm = try Realm()
+            
             let latRegion = (POIregion as! CLCircularRegion).center.latitude
             let lngRegion = (POIregion as! CLCircularRegion).center.longitude
             let radius = (POIregion as! CLCircularRegion).radius
@@ -207,17 +242,21 @@ public class Regions {
                                didEnter: didEnter,
                                fromPositionDetection: fromPositionDetection,
                                eventName: eventName)
+        
             entry.origin = origin
             if(didEnter){
-                DurationLogs.addEntryLog(identifier: entry.identifier)
+                DurationLogs.addEntryLog(identifier: identifier)
                 entry.spentTime = 0
             }
             else{
-                entry.spentTime = DurationLogs.addExitLog(identifier: entry.identifier)
+                entry.spentTime = DurationLogs.addExitLog(identifier: identifier)
+                if(entry.spentTime == 0){ //Do not save if we dont find respective entry event
+                    throw NSError(domain: "WoosmapGeofance",
+                                  code: 402,
+                                  userInfo: [NSLocalizedDescriptionKey: "No matching entry event found"])
+                }
             }
-            realm.beginWrite()
-            realm.add(entry)
-            try realm.commitWrite()
+            let _ = try WoosmapDataManager.connect.save(entity: entry.dbEntity())
             return entry
         } catch {
         }
@@ -228,18 +267,33 @@ public class Regions {
     /// Add Custom region
     /// - Parameter classifiedRegion: Custom region
     public static func add(classifiedRegion: Region) {
+        
         do {
-            let realm = try Realm()
+            let newRec:Region = Region()
+            newRec.date = classifiedRegion.date
+            newRec.didEnter = classifiedRegion.didEnter
+            newRec.identifier = classifiedRegion.identifier
+            newRec.latitude = classifiedRegion.latitude
+            newRec.longitude = classifiedRegion.longitude
+            newRec.radius = classifiedRegion.radius
+            newRec.fromPositionDetection = classifiedRegion.fromPositionDetection
+            newRec.distance = classifiedRegion.distance
+            newRec.distanceText = classifiedRegion.distanceText
+            newRec.duration = classifiedRegion.duration
+            newRec.durationText = classifiedRegion.durationText
+            newRec.type = classifiedRegion.type
+            newRec.origin = classifiedRegion.origin
+            newRec.eventName = classifiedRegion.eventName
+            
             if(classifiedRegion.didEnter){
                 DurationLogs.addEntryLog(identifier: classifiedRegion.identifier)
-                classifiedRegion.spentTime = 0
+                newRec.spentTime = 0
             }
             else{
-                classifiedRegion.spentTime = DurationLogs.addExitLog(identifier: classifiedRegion.identifier)
+                newRec.spentTime = DurationLogs.addExitLog(identifier: classifiedRegion.identifier)
             }
-            realm.beginWrite()
-            realm.add(classifiedRegion)
-            try realm.commitWrite()
+            let _ = try WoosmapDataManager.connect.save(entity: newRec.dbEntity())
+            
         } catch {
         }
     }
@@ -249,16 +303,15 @@ public class Regions {
     /// - Returns: Region
     public static func getRegionFromId(id: String) -> Region? {
         do {
-            let realm = try Realm()
             var identifier = id
             if((id.contains(RegionType.poi.rawValue) || id.contains(RegionType.custom.rawValue))
                && id.contains("<id>")) {
                 identifier = id.components(separatedBy: "<id>")[1]
             }
             let predicate = NSPredicate(format: "identifier == %@", identifier)
-            let fetchedResults = realm.objects(Region.self).filter(predicate)
+            let fetchedResults = try WoosmapDataManager.connect.retrieve(entityClass: RegionDB.self, predicate: predicate)
             if let aRegion = fetchedResults.last {
-                return aRegion
+                return Region(regionDB:  aRegion)
             }
         } catch {
         }
@@ -269,9 +322,10 @@ public class Regions {
     /// - Returns: Regions
     public static func getAll() -> [Region] {
         do {
-            let realm = try Realm()
-            let regions = realm.objects(Region.self)
-            return Array(regions)
+            let regions = try WoosmapDataManager.connect.retrieve(entityClass: RegionDB.self)
+            return Array((regions).map({ region in
+                return Region(regionDB: region)
+            }))
         } catch {
         }
         return []
@@ -280,10 +334,7 @@ public class Regions {
     /// Delete all regions
     public static func deleteAll() {
         do {
-            let realm = try Realm()
-            try realm.write {
-                realm.delete(realm.objects(Region.self))
-            }
+            let _ = try WoosmapDataManager.connect.deleteAll(entityClass: RegionDB.self)
         } catch let error as NSError {
             print(error)
         }
