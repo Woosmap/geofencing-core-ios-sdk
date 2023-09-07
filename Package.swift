@@ -12,16 +12,11 @@ let package = Package(
             name: "WoosmapGeofencingCore",
             targets: ["WoosmapGeofencingCore"])
     ],
-    dependencies: [
-        // Realm
-        .package(url: "https://github.com/realm/realm-cocoa", from: "10.5.1")
-    ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
         // Targets can depend on other targets in this package, and on products in packages which this package depends on.
         .target(
             name: "WoosmapGeofencingCore",
-            dependencies: ["RealmSwift"],
             path: "Sources/WoosmapGeofencing"),
         .testTarget(
             name: "WoosmapGeofencingTests",
