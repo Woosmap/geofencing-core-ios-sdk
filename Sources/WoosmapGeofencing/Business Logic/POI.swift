@@ -138,6 +138,28 @@ public class POI {
         newRec.contact = self.contact
         return newRec
     }
+    public var user_properties:[String:Any] {
+        get {
+            var returnValues: [String:Any] = [:]
+            let jsonStructure = try? JSONDecoder().decode(JSONAny.self, from:  self.jsonData ?? Data.init())
+            if let value = jsonStructure!.value as? [String: Any] {
+                if let features = value["features"] as? [[String: Any]] {
+                    for feature in features {
+                        if let properties = feature["properties"] as? [String: Any] {
+                            let idstoreFromJson = properties["store_id"] as? String ?? ""
+                            if let userProperties = properties["user_properties"] as? [String: Any] {
+                                if (idstoreFromJson == self.idstore) {
+                                    returnValues = userProperties
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            return returnValues
+        }
+    }
 }
 
 
