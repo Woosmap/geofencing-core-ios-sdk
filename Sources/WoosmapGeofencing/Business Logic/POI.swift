@@ -138,6 +138,8 @@ public class POI {
         newRec.contact = self.contact
         return newRec
     }
+    
+    /// Read custom properties associated with POI
     public var user_properties:[String:Any] {
         get {
             var returnValues: [String:Any] = [:]
