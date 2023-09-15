@@ -111,5 +111,15 @@ public var userPropertiesFilter : [String] = []
 
 public var poiRadius:Any = ""
 
+/// Enum which maps an appropiate symbol which added as prefix for each log message
+public enum WosmapLogEvent: Int {
+    case none = 0
+    case error = 1 // error
+    case warn = 2// warn
+    case info = 3// info
+    case debug = 4 // debug
+    case trace = 5 // trace
+}
 
 
+public var logLevel:WosmapLogEvent = WosmapLogEvent.trace
