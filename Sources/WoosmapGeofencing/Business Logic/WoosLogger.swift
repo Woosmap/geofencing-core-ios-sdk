@@ -16,7 +16,7 @@ extension Logger {
 
     /// Logs the view cycles like a view that appeared.
     @available(iOS 14.0, *)
-    static let sdklog = Logger(subsystem: subsystem, category: "WoosmapGeofencing")
+    static let sdklog = Logger(subsystem: subsystem, category: "WoosmapGeofencingSDK")
 }
 
 /// Enum which maps an appropiate symbol which added as prefix for each log message
@@ -166,7 +166,7 @@ class WoosLog {
     }
     
     class func isValidLevel(level:WosmapLogEvent) -> Bool{
-        if (level.rawValue <= logLevel.rawValue ){
+        if (level.rawValue <= logLevelSDK.rawValue ){
             return true
         }
         else{

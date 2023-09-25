@@ -5,7 +5,7 @@
 
 import Foundation
 import CoreLocation
-
+import os
 /// Location service implementation
 public class LocationServiceCoreImpl: NSObject,
                                     LocationService,
@@ -509,7 +509,14 @@ public class LocationServiceCoreImpl: NSObject,
                 if let error = error {
                     NSLog("error: \(error)")
                 } else {
-                    print("=>>>>>> searchAPIRequest")
+                    if(WoosLog.isValidLevel(level: .trace)){
+                        if #available(iOS 14.0, *) {
+                            Logger.sdklog.trace("\(LogEvent.v.rawValue) searchAPI called ")
+                        } else {
+                            WoosLog.trace("searchAPI called")
+                        }
+                    }
+    
                     let pois:[POI] = POIs.addFromResponseJson(searchAPIResponse: data!, locationId: locationId)
                     
                     if(pois.isEmpty) {
@@ -541,7 +548,13 @@ public class LocationServiceCoreImpl: NSObject,
     ///   - error: Error info
     public func locationManager(_ manager: CLLocationManager, monitoringDidFailFor region: CLRegion?, withError error: Error) {
         if region is CLCircularRegion{
-            print("WoosmapGeofencing Error : can't create geofence \((region?.identifier ?? "")) \(error.localizedDescription)")
+            if(WoosLog.isValidLevel(level: .error)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.error("\(LogEvent.e.rawValue) WoosmapGeofencing Error : can't create geofence \((region?.identifier ?? "")) \(error.localizedDescription)")
+                } else {
+                    WoosLog.error("WoosmapGeofencing Error : can't create geofence \((region?.identifier ?? "")) \(error.localizedDescription)")
+                }
+            }
         }
     }
     
@@ -684,7 +697,13 @@ public class LocationServiceCoreImpl: NSObject,
     /// Location arror trace
     /// - Parameter error: <#error description#>
     public func tracingLocationDidFailWithError(error: Error) {
-        print("\(error)")
+        if(WoosLog.isValidLevel(level: .error)){
+            if #available(iOS 14.0, *) {
+                Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) error: \(error)")
+            } else {
+                WoosLog.error("\(#function) error: \(error)")
+            }
+        }
     }
     
     

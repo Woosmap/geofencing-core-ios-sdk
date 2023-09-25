@@ -3,7 +3,7 @@
 //  WoosmapGeofencing
 //
 import Foundation
-
+import os
 public class POI {
     
     /// JSON Data
@@ -375,7 +375,13 @@ public class POIs {
         do {
             let _ = try WoosmapDataManager.connect.deleteAll(entityClass: POIDB.self)
         } catch let error as NSError {
-            print(error)
+            if(WoosLog.isValidLevel(level: .error)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) error: \(error)")
+                } else {
+                    WoosLog.error("\(#function) error: \(error)")
+                }
+            }
         }
     }
 }

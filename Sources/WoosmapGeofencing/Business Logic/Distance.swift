@@ -6,6 +6,7 @@
 
 import Foundation
 import CoreLocation
+import os
 /// Distance object
 public class Distance {
     /// Date
@@ -142,7 +143,13 @@ public class Distances {
                     }
                 }
             } else {
-                print("WoosmapGeofencing.DistanceAPIData " + jsonStructure.status!)
+                if(WoosLog.isValidLevel(level: .info)){
+                    if #available(iOS 14.0, *) {
+                        Logger.sdklog.info("\(LogEvent.v.rawValue) \(#function) \(jsonStructure.status ?? "")")
+                    } else {
+                        WoosLog.info("\(#function) error: \(jsonStructure.status ?? "")")
+                    }
+                }
             }
             try distanceArray.forEach { row in
                 let _ = try WoosmapDataManager.connect.save(entity: row.dbEntity())
@@ -151,7 +158,13 @@ public class Distances {
             return distanceArray
             
         } catch let error as NSError {
-            print(error)
+            if(WoosLog.isValidLevel(level: .error)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) error: \(error)")
+                } else {
+                    WoosLog.error("\(#function) error: \(error)")
+                }
+            }
         }
         
         return []
@@ -177,7 +190,13 @@ public class Distances {
         do {
             let _ = try WoosmapDataManager.connect.deleteAll(entityClass: DistanceDB.self)
         } catch let error as NSError {
-            print(error)
+            if(WoosLog.isValidLevel(level: .error)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) error: \(error)")
+                } else {
+                    WoosLog.error("\(#function) error: \(error)")
+                }
+            }
         }
     }
 }

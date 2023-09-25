@@ -5,7 +5,7 @@
 
 import Foundation
 import CoreLocation
-
+import os
 public class Region {
     /// date
      public dynamic var date: Date = Date()
@@ -206,7 +206,13 @@ public class DurationLogs {
         do {
             let _ = try WoosmapDataManager.connect.deleteAll(entityClass: DurationLogDB.self)
         } catch let error as NSError {
-            print(error)
+            if(WoosLog.isValidLevel(level: .error)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) error: \(error)")
+                } else {
+                    WoosLog.error("\(#function) error: \(error)")
+                }
+            }
         }
     }
 }
@@ -336,7 +342,13 @@ public class Regions {
         do {
             let _ = try WoosmapDataManager.connect.deleteAll(entityClass: RegionDB.self)
         } catch let error as NSError {
-            print(error)
+            if(WoosLog.isValidLevel(level: .error)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) error: \(error)")
+                } else {
+                    WoosLog.error("\(#function) error: \(error)")
+                }
+            }
         }
     }
 }
