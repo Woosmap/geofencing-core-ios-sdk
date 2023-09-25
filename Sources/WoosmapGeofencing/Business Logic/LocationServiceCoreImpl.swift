@@ -389,6 +389,7 @@ public class LocationServiceCoreImpl: NSObject,
     }
     
     open func searchAPIRequest(location: Location) {
+        
 #if DEBUG
         let logAPI = LogSearchAPI()
         logAPI.date = Date()
@@ -396,7 +397,7 @@ public class LocationServiceCoreImpl: NSObject,
         logAPI.longitude = location.longitude
         logAPI.woosmapAPIKey = WoosmapAPIKey
         logAPI.searchAPIRequestEnable = searchAPIRequestEnable
-        NSLog("=>>>>>> searchAPIRequest WoosmapKey = %@", WoosmapAPIKey)
+        
         logAPI.lastSearchLocationLatitude = lastSearchLocation.latitude
         logAPI.lastSearchLocationLongitude = lastSearchLocation.longitude
 #endif
@@ -407,8 +408,19 @@ public class LocationServiceCoreImpl: NSObject,
         
         let POIClassified = POIs.getAll().sorted(by: { $0.distance > $1.distance })
         let lastPOI = POIClassified.first
+        
+        if let poilog = lastPOI{
+            if(WoosLog.isValidLevel(level: .trace)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.trace("\(LogEvent.v.rawValue) \(#function) Your location is near to \(poilog.idstore ?? "-") with distance \(poilog.distance) meters")
+                } else {
+                    WoosLog.trace("\(#function) Your location is near to \(poilog.idstore ?? "-") with distance \(poilog.distance) meters")
+                }
+            }
+        }
+        
+        
 #if DEBUG
-        NSLog("=>>>>>> lastPOI distance = %@", String(lastPOI?.distance ?? 0))
         logAPI.lastPOI_distance = String(lastPOI?.distance ?? 0)
         logAPI.searchAPILastRequestTimeStampValue = searchAPILastRequestTimeStamp
 #endif
@@ -428,9 +440,15 @@ public class LocationServiceCoreImpl: NSObject,
             if (timeEllapsed < searchAPIRefreshDelayDay*3600*24) {
                 let distanceLimit = lastPOI!.distance - lastPOI!.radius
                 let distanceTraveled =  CLLocation(latitude: lastSearchLocation.latitude, longitude: lastSearchLocation.longitude).distance(from: currentLocation!)
+                
+                if(WoosLog.isValidLevel(level: .trace)){
+                    if #available(iOS 14.0, *) {
+                        Logger.sdklog.trace("\(LogEvent.v.rawValue) \(#function) distanceLimit \(distanceLimit) distanceTraveled \(distanceTraveled) meters")
+                    } else {
+                        WoosLog.trace("\(#function) distanceLimit \(distanceLimit) distanceTraveled \(distanceTraveled) meters")
+                    }
+                }
 #if DEBUG
-                NSLog("=>>>>>> distanceLimit = %@", String(distanceLimit))
-                NSLog("=>>>>>> distanceTraveled = %@", String(distanceTraveled))
                 logAPI.distanceLimit = String(distanceLimit)
                 logAPI.distanceTraveled = String(distanceTraveled)
 #endif
@@ -502,22 +520,33 @@ public class LocationServiceCoreImpl: NSObject,
         woosApiCall(with: components.url!) { [self] (data, response, error) in
             if let response = response as? HTTPURLResponse {
                 if response.statusCode != 200 {
-                    NSLog("statusCode: \(response.statusCode)")
+                    if(WoosLog.isValidLevel(level: .error)){
+                        if #available(iOS 14.0, *) {
+                            Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) SearchAPI failed with status \(response.statusCode)")
+                        } else {
+                            WoosLog.error("\(#function) SearchAPI failed with status \(response.statusCode)")
+                        }
+                    }
                     delegate.serachAPIError(error: "Error Search API " + String(response.statusCode))
                     return
                 }
                 if let error = error {
-                    NSLog("error: \(error)")
-                } else {
-                    if(WoosLog.isValidLevel(level: .trace)){
+                    if(WoosLog.isValidLevel(level: .error)){
                         if #available(iOS 14.0, *) {
-                            Logger.sdklog.trace("\(LogEvent.v.rawValue) searchAPI called ")
+                            Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) SearchAPI Error \(error)")
                         } else {
-                            WoosLog.trace("searchAPI called")
+                            WoosLog.error("\(#function) SearchAPI Error \(error)")
                         }
                     }
-    
+                } else {
                     let pois:[POI] = POIs.addFromResponseJson(searchAPIResponse: data!, locationId: locationId)
+                    if(WoosLog.isValidLevel(level: .trace)){
+                        if #available(iOS 14.0, *) {
+                            Logger.sdklog.trace("\(LogEvent.v.rawValue) searchAPI called. Returned \(pois.count) poi(s)")
+                        } else {
+                            WoosLog.trace("searchAPI called. Returned \(pois.count) poi(s)")
+                        }
+                    }
                     
                     if(pois.isEmpty) {
                         searchAPILastRequestTimeStamp = Date().timeIntervalSince1970
@@ -670,12 +699,24 @@ public class LocationServiceCoreImpl: NSObject,
                 DispatchQueue.main.async {
                     if let response = response as? HTTPURLResponse {
                         if response.statusCode != 200 {
-                            NSLog("statusCode: \(response.statusCode)")
+                            if(WoosLog.isValidLevel(level: .error)){
+                                if #available(iOS 14.0, *) {
+                                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) DistanceAPI failed with status \(response.statusCode)")
+                                } else {
+                                    WoosLog.error("\(#function) Distance failed with status \(response.statusCode)")
+                                }
+                            }
                             delegateDistance.distanceAPIError(error: "Error Distance API " + String(response.statusCode))
                             return
                         }
                         if let error = error {
-                            NSLog("error: \(error)")
+                            if(WoosLog.isValidLevel(level: .error)){
+                                if #available(iOS 14.0, *) {
+                                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) DistanceAPI Error \(error)")
+                                } else {
+                                    WoosLog.error("\(#function) DistanceAPI Error \(error)")
+                                }
+                            }
                         } else {
                             let distance = Distances.addFromResponseJson(APIResponse: data!,
                                                                          locationId: locationId,

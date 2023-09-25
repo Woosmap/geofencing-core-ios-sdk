@@ -149,6 +149,13 @@ public class DurationLogs {
             newRec.entryTime = Date()
             let _ = try WoosmapDataManager.connect.save(entity: newRec.dbEntity())
         } catch {
+            if(WoosLog.isValidLevel(level: .error)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) error: \(error)")
+                } else {
+                    WoosLog.error("\(#function) error: \(error)")
+                }
+            }
         }
     }
     
@@ -172,6 +179,13 @@ public class DurationLogs {
                 return Date().timeIntervalSinceReferenceDate - log.entryTime!.timeIntervalSinceReferenceDate
             }
         } catch {
+            if(WoosLog.isValidLevel(level: .error)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) error: \(error)")
+                } else {
+                    WoosLog.error("\(#function) error: \(error)")
+                }
+            }
         }
         return 0
     }
@@ -191,6 +205,13 @@ public class DurationLogs {
             }))
             
         } catch {
+            if(WoosLog.isValidLevel(level: .error)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) error: \(error)")
+                } else {
+                    WoosLog.error("\(#function) error: \(error)")
+                }
+            }
         }
         return []
     }
@@ -265,6 +286,13 @@ public class Regions {
             let _ = try WoosmapDataManager.connect.save(entity: entry.dbEntity())
             return entry
         } catch {
+            if(WoosLog.isValidLevel(level: .error)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) error: \(error)")
+                } else {
+                    WoosLog.error("\(#function) error: \(error)")
+                }
+            }
         }
         return Region()
     }
@@ -301,6 +329,13 @@ public class Regions {
             let _ = try WoosmapDataManager.connect.save(entity: newRec.dbEntity())
             
         } catch {
+            if(WoosLog.isValidLevel(level: .error)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) error: \(error)")
+                } else {
+                    WoosLog.error("\(#function) error: \(error)")
+                }
+            }
         }
     }
     
@@ -320,6 +355,13 @@ public class Regions {
                 return Region(regionDB:  aRegion)
             }
         } catch {
+            if(WoosLog.isValidLevel(level: .error)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) error: \(error)")
+                } else {
+                    WoosLog.error("\(#function) error: \(error)")
+                }
+            }
         }
         return nil
     }
@@ -333,6 +375,13 @@ public class Regions {
                 return Region(regionDB: region)
             }))
         } catch {
+            if(WoosLog.isValidLevel(level: .error)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) error: \(error)")
+                } else {
+                    WoosLog.error("\(#function) error: \(error)")
+                }
+            }
         }
         return []
     }

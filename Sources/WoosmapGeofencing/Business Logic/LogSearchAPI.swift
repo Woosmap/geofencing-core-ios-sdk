@@ -5,7 +5,7 @@
 
 import Foundation
 import CoreLocation
-
+import os
 public class LogSearchAPI {
     /// Date
      var date: Date?
@@ -80,6 +80,13 @@ public class LogSearchAPIs {
             let _ = try WoosmapDataManager.connect.save(entity: newRec)
             
         } catch {
+            if(WoosLog.isValidLevel(level: .error)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) error: \(error)")
+                } else {
+                    WoosLog.error("\(#function) error: \(error)")
+                }
+            }
         }
     }
     

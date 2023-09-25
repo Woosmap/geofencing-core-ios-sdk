@@ -28,12 +28,12 @@ extension Logger {
 /// - warning: Log type warning
 /// - severe: Log type severe
 internal enum LogEvent: String {
+    case s = "[🔥]" // severe
     case e = "[‼️]" // error
+    case w = "[⚠️]" // warning
     case i = "[ℹ️]" // info
     case d = "[💬]" // debug
     case v = "[🔬]" // verbose
-    case w = "[⚠️]" // warning
-    case s = "[🔥]" // severe
 }
 
 

@@ -3,7 +3,7 @@
 //  WoosmapGeofencing
 //
 import Foundation
-
+import os
 public class ZOI {
     /// Accumulator
     public var accumulator: Double = 0
@@ -156,7 +156,13 @@ public class ZOIs {
             newZOI.wktPolygon = zoi["WktPolygon"] as? String
             let _ = try WoosmapDataManager.connect.save(entity: newZOI.dbEntity())
         } catch {
-            
+            if(WoosLog.isValidLevel(level: .error)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) error: \(error)")
+                } else {
+                    WoosLog.error("\(#function) error: \(error)")
+                }
+            }
         }
     }
     
@@ -219,6 +225,13 @@ public class ZOIs {
             }
             
         } catch {
+            if(WoosLog.isValidLevel(level: .error)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) error: \(error)")
+                } else {
+                    WoosLog.error("\(#function) error: \(error)")
+                }
+            }
         }
     }
     
@@ -373,6 +386,13 @@ public class ZOIs {
             
             return externalZois
         } catch {
+            if(WoosLog.isValidLevel(level: .error)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) error: \(error)")
+                } else {
+                    WoosLog.error("\(#function) error: \(error)")
+                }
+            }
         }
         return []
     }
@@ -382,6 +402,13 @@ public class ZOIs {
         do {
             let _ = try WoosmapDataManager.connect.deleteAll(entityClass: ZOIDB.self)
         } catch {
+            if(WoosLog.isValidLevel(level: .error)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) error: \(error)")
+                } else {
+                    WoosLog.error("\(#function) error: \(error)")
+                }
+            }
         }
     }
     
@@ -395,6 +422,13 @@ public class ZOIs {
                 return ZOI(zoiDB: zoi)
             }
         } catch {
+            if(WoosLog.isValidLevel(level: .error)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) error: \(error)")
+                } else {
+                    WoosLog.error("\(#function) error: \(error)")
+                }
+            }
         }
         return []
     }

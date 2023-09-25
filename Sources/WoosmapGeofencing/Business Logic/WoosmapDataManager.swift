@@ -3,7 +3,7 @@
 //  WoosmapGeofencing
 import Foundation
 import CoreData
-
+import os
 internal class WoosmapDataManager:NSObject {
     
     public static let connect = WoosmapDataManager()
@@ -13,18 +13,29 @@ internal class WoosmapDataManager:NSObject {
     var module: String      =  "WoosmapGeofencing"
     
     lazy var woosmapDB: NSPersistentContainer = {
-        let messageKitBundle = Bundle(identifier: self.identifier)
+        var messageKitBundle = Bundle(identifier: self.identifier)
+        if messageKitBundle == nil{
+            messageKitBundle = Bundle.main
+        }
         let modelURL = messageKitBundle!.url(forResource: self.model, withExtension: "momd")!
         let managedObjectModel =  NSManagedObjectModel(contentsOf: modelURL)
         let container = NSPersistentContainer(name: self.model, managedObjectModel: managedObjectModel!)
         container.loadPersistentStores { (storeDescription, error) in
             if let err = error{
+                if(WoosLog.isValidLevel(level: .error)){
+                    if #available(iOS 14.0, *) {
+                        Logger.sdklog.error("\(LogEvent.s.rawValue) \(#function) Loading of store failed:\(err)")
+                    } else {
+                        WoosLog.critical("\(#function) Loading of store failed:\(err)")
+                    }
+                }
                 fatalError("❌ Loading of store failed:\(err)")
             }
         }
         return container
     }()
     
+
     override init(){
         super.init()
         module = NSStringFromClass(WoosmapDataManager.self).components(separatedBy: ".").first!
@@ -49,7 +60,13 @@ internal class WoosmapDataManager:NSObject {
             }
             return true
         } catch let error as NSError {
-            print("Deleted all my data in myEntity error : \(error) \(error.userInfo)")
+            if(WoosLog.isValidLevel(level: .error)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) Deleted all my data in \(entityName) error : \(error) \(error.userInfo)")
+                } else {
+                    WoosLog.error("\(#function) Deleted all my data in \(entityName) error : \(error) \(error.userInfo)")
+                }
+            }
             throw error
         }
     }
@@ -69,7 +86,13 @@ internal class WoosmapDataManager:NSObject {
             let fetchedResult = try context.fetch(request)
             return fetchedResult as? [T] ?? []
         }catch let fetchErr {
-            print("❌ Failed to fetch \(entityName):",fetchErr)
+            if(WoosLog.isValidLevel(level: .error)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) Failed to fetch \(entityName): \(fetchErr)")
+                } else {
+                    WoosLog.error("\(#function) Failed to fetch \(entityName): \(fetchErr)")
+                }
+            }
             throw fetchErr
         }
     }
@@ -80,7 +103,13 @@ internal class WoosmapDataManager:NSObject {
             try   entity.managedObjectContext?.save()
             return true
         } catch let error {
-            print("❌ Failed to create/update record: \(error.localizedDescription)")
+            if(WoosLog.isValidLevel(level: .error)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) Failed to create/update record: \(error.localizedDescription)")
+                } else {
+                    WoosLog.error("\(#function) Failed to create/update record: \(error.localizedDescription)")
+                }
+            }
             throw error
         }
     }

@@ -181,6 +181,13 @@ public class Distances {
             }))
             
         } catch {
+            if(WoosLog.isValidLevel(level: .error)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) error: \(error)")
+                } else {
+                    WoosLog.error("\(#function) error: \(error)")
+                }
+            }
         }
         return []
     }

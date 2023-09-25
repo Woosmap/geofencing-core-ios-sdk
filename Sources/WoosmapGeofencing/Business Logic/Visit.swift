@@ -93,6 +93,13 @@ public class Visits {
                 return newRec
             }
         } catch {
+            if(WoosLog.isValidLevel(level: .error)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) error: \(error)")
+                } else {
+                    WoosLog.error("\(#function) error: \(error)")
+                }
+            }
         }
         return Visit()
     }
@@ -104,6 +111,13 @@ public class Visits {
             let entry = visit.dbEntity()
             let _ = try WoosmapDataManager.connect.save(entity: entry)
         } catch {
+            if(WoosLog.isValidLevel(level: .error)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) error: \(error)")
+                } else {
+                    WoosLog.error("\(#function) error: \(error)")
+                }
+            }
         }
         ZOIs.createZOIFromVisit(visit: visit)
     }
@@ -118,6 +132,13 @@ public class Visits {
                 return Visit(visitDB: visit)
             }))
         } catch {
+            if(WoosLog.isValidLevel(level: .error)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) error: \(error)")
+                } else {
+                    WoosLog.error("\(#function) error: \(error)")
+                }
+            }
         }
         return []
     }
@@ -134,6 +155,13 @@ public class Visits {
                 return Visit(visitDB: aVisit)
             }
         } catch {
+            if(WoosLog.isValidLevel(level: .error)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) error: \(error)")
+                } else {
+                    WoosLog.error("\(#function) error: \(error)")
+                }
+            }
         }
         return nil
     }
