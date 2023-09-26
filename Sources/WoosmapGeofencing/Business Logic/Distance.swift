@@ -143,11 +143,11 @@ public class Distances {
                     }
                 }
             } else {
-                if(WoosLog.isValidLevel(level: .info)){
+                if(WoosLog.isValidLevel(level: .warn)){
                     if #available(iOS 14.0, *) {
-                        Logger.sdklog.info("\(LogEvent.v.rawValue) \(#function) \(jsonStructure.status ?? "")")
+                        Logger.sdklog.warning("\(LogEvent.w.rawValue) \(#function) \(jsonStructure.status ?? "")")
                     } else {
-                        WoosLog.info("\(#function) error: \(jsonStructure.status ?? "")")
+                        WoosLog.warning("\(#function) error: \(jsonStructure.status ?? "")")
                     }
                 }
             }

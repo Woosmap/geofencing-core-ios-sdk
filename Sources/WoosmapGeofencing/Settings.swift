@@ -141,4 +141,4 @@ public enum WosmapLogEvent: Int {
 }
 
 
-internal var logLevelSDK:WosmapLogEvent = WosmapLogEvent.trace
+internal var logLevelSDK:WosmapLogEvent = WosmapLogEvent.warn
