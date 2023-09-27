@@ -315,9 +315,9 @@ public class LocationServiceCoreImpl: NSObject,
             self.regionDelegate?.didEnterPOIRegion(POIregion: regionEnter)
             if(WoosLog.isValidLevel(level: .info)){
                 if #available(iOS 14.0, *) {
-                    Logger.sdklog.info("\(LogEvent.i.rawValue) \(#function) You are inside POI Region \(regionEnter.identifier)")
+                    Logger.sdklog.info("\(LogEvent.i.rawValue) \(#function) You are inside POI Region \(regionEnter.identifier) of type \(regionEnter.type)")
                 } else {
-                    WoosLog.info("\(#function) You are inside POI Region \(regionEnter.identifier)")
+                    WoosLog.info("\(#function) You are inside POI Region \(regionEnter.identifier) of type \(regionEnter.type)")
                 }
             }
         }
@@ -841,21 +841,14 @@ public class LocationServiceCoreImpl: NSObject,
                     
                     if (didEnter) {
                         self.regionDelegate?.didEnterPOIRegion(POIregion: newRegionLog)
-                        if(WoosLog.isValidLevel(level: .info)){
-                            if #available(iOS 14.0, *) {
-                                Logger.sdklog.info("\(LogEvent.i.rawValue) \(#function) You are inside POI Region \(newRegionLog.identifier)")
-                            } else {
-                                WoosLog.info("\(#function) You are inside POI Region \(newRegionLog.identifier)")
-                            }
-                        }
                     } else {
                         self.regionDelegate?.didExitPOIRegion(POIregion: newRegionLog)
-                        if(WoosLog.isValidLevel(level: .info)){
-                            if #available(iOS 14.0, *) {
-                                Logger.sdklog.info("\(LogEvent.i.rawValue) \(#function) You are exited POI Region \(newRegionLog.identifier)")
-                            } else {
-                                WoosLog.info("\(#function) You are exited POI Region \(newRegionLog.identifier)")
-                            }
+                    }
+                    if(WoosLog.isValidLevel(level: .info)){
+                        if #available(iOS 14.0, *) {
+                            Logger.sdklog.info("\(LogEvent.i.rawValue) \(#function) You are \(didEnter ? "Inside": "exited") POI Region \(newRegionLog.identifier) of type \(newRegionLog.type)")
+                        } else {
+                            WoosLog.info("\(#function) You are \(didEnter ? "Inside": "exited") POI Region \(newRegionLog.identifier) of type \(newRegionLog.type)")
                         }
                     }
                 }
@@ -867,21 +860,14 @@ public class LocationServiceCoreImpl: NSObject,
             if newRegionLog.identifier != "" {
                 if (didEnter) {
                     self.regionDelegate?.didEnterPOIRegion(POIregion: newRegionLog)
-                    if(WoosLog.isValidLevel(level: .info)){
-                        if #available(iOS 14.0, *) {
-                            Logger.sdklog.info("\(LogEvent.i.rawValue) \(#function) You are inside POI Region \(newRegionLog.identifier)")
-                        } else {
-                            WoosLog.info("\(#function) You are inside POI Region \(newRegionLog.identifier)")
-                        }
-                    }
                 } else {
                     self.regionDelegate?.didExitPOIRegion(POIregion: newRegionLog)
-                    if(WoosLog.isValidLevel(level: .info)){
-                        if #available(iOS 14.0, *) {
-                            Logger.sdklog.info("\(LogEvent.i.rawValue) \(#function) You are exited POI Region \(newRegionLog.identifier)")
-                        } else {
-                            WoosLog.info("\(#function) You are exited POI Region \(newRegionLog.identifier)")
-                        }
+                }
+                if(WoosLog.isValidLevel(level: .info)){
+                    if #available(iOS 14.0, *) {
+                        Logger.sdklog.info("\(LogEvent.i.rawValue) \(#function) You are \(didEnter ? "Inside": "exited") POI Region \(newRegionLog.identifier) of type \(newRegionLog.type)")
+                    } else {
+                        WoosLog.info("\(#function) You are \(didEnter ? "Inside": "exited") POI Region \(newRegionLog.identifier) of type \(newRegionLog.type)")
                     }
                 }
             }
