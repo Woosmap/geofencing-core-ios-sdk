@@ -59,8 +59,30 @@ public class LocationServiceCoreImpl: NSObject,
         guard var myLocationManager = self.locationManager else {
             return
         }
+        if let backgroundMode:[String] = Bundle.main.infoDictionary?["UIBackgroundModes"] as? [String]{
+            if backgroundMode.contains("location"){
+                myLocationManager.allowsBackgroundLocationUpdates = true
+            }
+            else{
+                if(WoosLog.isValidLevel(level: .warn)){
+                    if #available(iOS 14.0, *) {
+                        Logger.sdklog.warning("\(LogEvent.w.rawValue) Permission: background location permission disabled.Please set background mode as location in your info.plist")
+                    } else {
+                        WoosLog.warning("Permission: background permission disabled.Please set background mode as location in your info.plist")
+                    }
+                }
+            }
+        }
+        else{
+            if(WoosLog.isValidLevel(level: .warn)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.warning("\(LogEvent.w.rawValue) Permission: background permission disabled.Please set background mode as location in your info.plist")
+                } else {
+                    WoosLog.warning("Permission: background location permission disabled.Please set background mode as location in your info.plist")
+                }
+            }
+        }
         
-        myLocationManager.allowsBackgroundLocationUpdates = true
         myLocationManager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
         myLocationManager.distanceFilter = 10
         myLocationManager.pausesLocationUpdatesAutomatically = true
@@ -74,6 +96,17 @@ public class LocationServiceCoreImpl: NSObject,
     func requestAuthorization () {
         if CLLocationManager.authorizationStatus() == .notDetermined {
             locationManager?.requestAlwaysAuthorization()
+        }
+        else{
+            if (CLLocationManager.authorizationStatus() == .denied){
+                if(WoosLog.isValidLevel(level: .warn)){
+                    if #available(iOS 14.0, *) {
+                        Logger.sdklog.warning("\(LogEvent.w.rawValue) Permission: Location permission not granted")
+                    } else {
+                        WoosLog.warning("Permission: Location permission not granted")
+                    }
+                }
+            }
         }
     }
     
@@ -92,12 +125,26 @@ public class LocationServiceCoreImpl: NSObject,
         if visitEnable {
             self.locationManager?.startMonitoringVisits()
         }
+        if(WoosLog.isValidLevel(level: .trace)){
+            if #available(iOS 14.0, *) {
+                Logger.sdklog.trace("\(LogEvent.v.rawValue) trace: Starting Location service")
+            } else {
+                WoosLog.trace("trace: Starting Location service")
+            }
+        }
     }
     
     /// Stop Locaton service to receive pause location update
     public func stopUpdatingLocation() {
         if (!modeHighfrequencyLocation) {
             self.locationManager?.stopUpdatingLocation()
+            if(WoosLog.isValidLevel(level: .trace)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.trace("\(LogEvent.v.rawValue) trace: Stoped Location service")
+                } else {
+                    WoosLog.trace("trace: Stoped Location service")
+                }
+            }
         }
     }
     
@@ -105,11 +152,25 @@ public class LocationServiceCoreImpl: NSObject,
     public func startMonitoringSignificantLocationChanges() {
         self.requestAuthorization()
         self.locationManager?.startMonitoringSignificantLocationChanges()
+        if(WoosLog.isValidLevel(level: .trace)){
+            if #available(iOS 14.0, *) {
+                Logger.sdklog.trace("\(LogEvent.v.rawValue) trace: Requested Significant Monitoring")
+            } else {
+                WoosLog.trace("trace: Requested Significant Monitoring")
+            }
+        }
     }
     
     /// Pause Monitoring Significant Location Changes
     public func stopMonitoringSignificantLocationChanges() {
         self.locationManager?.stopMonitoringSignificantLocationChanges()
+        if(WoosLog.isValidLevel(level: .trace)){
+            if #available(iOS 14.0, *) {
+                Logger.sdklog.trace("\(LogEvent.v.rawValue) trace: Stopped Significant Monitoring")
+            } else {
+                WoosLog.trace("trace: Stopped Significant Monitoring")
+            }
+        }
     }
     
     /// Stop mnitoring region
@@ -118,6 +179,13 @@ public class LocationServiceCoreImpl: NSObject,
         for region in monitoredRegions {
             if getRegionType(identifier: region.identifier) == RegionType.position {
                 self.locationManager?.stopMonitoring(for: region)
+            }
+        }
+        if(WoosLog.isValidLevel(level: .trace)){
+            if #available(iOS 14.0, *) {
+                Logger.sdklog.trace("\(LogEvent.v.rawValue) trace: Stopped Monitoring Region")
+            } else {
+                WoosLog.trace("trace: Stopped Monitoring Region")
             }
         }
     }
@@ -173,7 +241,13 @@ public class LocationServiceCoreImpl: NSObject,
     ///   - manager: location service
     ///   - status: new status
     public func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {
-        
+        if(WoosLog.isValidLevel(level: .info)){
+            if #available(iOS 14.0, *) {
+                Logger.sdklog.info("\(LogEvent.i.rawValue) trace: Location manager status \(status.rawValue)")
+            } else {
+                WoosLog.info("trace: Location manager status \(status.rawValue)")
+            }
+        }
     }
     
     /// Handle all error callback in case of something wrong in service
