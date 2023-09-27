@@ -313,6 +313,13 @@ public class LocationServiceCoreImpl: NSObject,
                                           didEnter: true,
                                           fromPositionDetection: true)
             self.regionDelegate?.didEnterPOIRegion(POIregion: regionEnter)
+            if(WoosLog.isValidLevel(level: .info)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.info("\(LogEvent.i.rawValue) \(#function) You are inside POI Region \(regionEnter.identifier)")
+                } else {
+                    WoosLog.info("\(#function) You are inside POI Region \(regionEnter.identifier)")
+                }
+            }
         }
     }
     
@@ -342,6 +349,13 @@ public class LocationServiceCoreImpl: NSObject,
             let visitRecorded = Visits.add(visit: visit)
             if visitRecorded.visitId != nil {
                 delegate.processVisit(visit: visitRecorded)
+                if(WoosLog.isValidLevel(level: .info)){
+                    if #available(iOS 14.0, *) {
+                        Logger.sdklog.info("\(LogEvent.d.rawValue) \(#function) Visit recorded at \(visitRecorded.visitId ?? "-")")
+                    } else {
+                        WoosLog.info("\(#function) Visit recored at \(visitRecorded.visitId ?? "-")")
+                    }
+                }
                 handleVisitEvent(visit: visitRecorded)
             }
         }
@@ -379,6 +393,13 @@ public class LocationServiceCoreImpl: NSObject,
         
         // Retrieve location
         delegate.tracingLocation(location: locationSaved)
+        if(WoosLog.isValidLevel(level: .trace)){
+            if #available(iOS 14.0, *) {
+                Logger.sdklog.trace("\(LogEvent.v.rawValue) \(#function) location:\(locationSaved.latitude),\(locationSaved.longitude)")
+            } else {
+                WoosLog.trace("\(#function) location:\(locationSaved.latitude),\(locationSaved.longitude)")
+            }
+        }
         
         self.currentLocation = location
         
@@ -727,7 +748,6 @@ public class LocationServiceCoreImpl: NSObject,
                                                                          distanceLanguage: distanceLanguage,
                                                                          distanceMethod: distanceMethod)
                             delegateDistance.distanceAPIResponse(distance: distance)
-                            
                         }
                     }
                 }
@@ -821,8 +841,22 @@ public class LocationServiceCoreImpl: NSObject,
                     
                     if (didEnter) {
                         self.regionDelegate?.didEnterPOIRegion(POIregion: newRegionLog)
+                        if(WoosLog.isValidLevel(level: .info)){
+                            if #available(iOS 14.0, *) {
+                                Logger.sdklog.info("\(LogEvent.i.rawValue) \(#function) You are inside POI Region \(newRegionLog.identifier)")
+                            } else {
+                                WoosLog.info("\(#function) You are inside POI Region \(newRegionLog.identifier)")
+                            }
+                        }
                     } else {
                         self.regionDelegate?.didExitPOIRegion(POIregion: newRegionLog)
+                        if(WoosLog.isValidLevel(level: .info)){
+                            if #available(iOS 14.0, *) {
+                                Logger.sdklog.info("\(LogEvent.i.rawValue) \(#function) You are exited POI Region \(newRegionLog.identifier)")
+                            } else {
+                                WoosLog.info("\(#function) You are exited POI Region \(newRegionLog.identifier)")
+                            }
+                        }
                     }
                 }
             }
@@ -833,8 +867,22 @@ public class LocationServiceCoreImpl: NSObject,
             if newRegionLog.identifier != "" {
                 if (didEnter) {
                     self.regionDelegate?.didEnterPOIRegion(POIregion: newRegionLog)
+                    if(WoosLog.isValidLevel(level: .info)){
+                        if #available(iOS 14.0, *) {
+                            Logger.sdklog.info("\(LogEvent.i.rawValue) \(#function) You are inside POI Region \(newRegionLog.identifier)")
+                        } else {
+                            WoosLog.info("\(#function) You are inside POI Region \(newRegionLog.identifier)")
+                        }
+                    }
                 } else {
                     self.regionDelegate?.didExitPOIRegion(POIregion: newRegionLog)
+                    if(WoosLog.isValidLevel(level: .info)){
+                        if #available(iOS 14.0, *) {
+                            Logger.sdklog.info("\(LogEvent.i.rawValue) \(#function) You are exited POI Region \(newRegionLog.identifier)")
+                        } else {
+                            WoosLog.info("\(#function) You are exited POI Region \(newRegionLog.identifier)")
+                        }
+                    }
                 }
             }
         }
@@ -868,6 +916,13 @@ public class LocationServiceCoreImpl: NSObject,
                 classifiedRegion.identifier = classifiedZOI.period ?? ""
                 Regions.add(classifiedRegion: classifiedRegion)
                 self.regionDelegate?.homeZOIEnter(classifiedRegion: classifiedRegion)
+                if(WoosLog.isValidLevel(level: .info)){
+                    if #available(iOS 14.0, *) {
+                        Logger.sdklog.info("\(LogEvent.i.rawValue) \(#function) You are \(classifiedRegion.didEnter ? "inside": "exited" ) home Region")
+                    } else {
+                        WoosLog.info("\(#function) You are \(classifiedRegion.didEnter ? "inside": "exited" ) home Region")
+                    }
+                }
                 handleZOIClassifiedEvent(region: classifiedRegion)
             }
         }

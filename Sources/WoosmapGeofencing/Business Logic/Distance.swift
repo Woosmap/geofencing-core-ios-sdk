@@ -114,7 +114,16 @@ public class Distances {
         do {
             var distanceArray: [Distance] = []
             let jsonStructure = try JSONDecoder().decode(DistanceAPIData.self, from: APIResponse)
+        
             if jsonStructure.status == "OK" {
+                if(WoosLog.isValidLevel(level: .trace)){
+                    if #available(iOS 14.0, *) {
+                        Logger.sdklog.trace("\(LogEvent.v.rawValue) \(#function) Distance API response \(jsonStructure.rows?.count ?? 0)")
+                    } else {
+                        WoosLog.trace("\(#function) Distance API response \(jsonStructure.rows?.count ?? 0)")
+                    }
+                }
+                
                 for row in jsonStructure.rows! {
                     var indexElement = 0
                     for element in row.elements! {
