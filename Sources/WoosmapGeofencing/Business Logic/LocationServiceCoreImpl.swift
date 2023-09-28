@@ -389,9 +389,9 @@ public class LocationServiceCoreImpl: NSObject,
             self.regionDelegate?.didEnterPOIRegion(POIregion: regionEnter)
             if(WoosLog.isValidLevel(level: .info)){
                 if #available(iOS 14.0, *) {
-                    Logger.sdklog.info("\(LogEvent.i.rawValue)  You are inside POI Region \(regionEnter.identifier) of type \(regionEnter.type)")
+                    Logger.sdklog.info("\(LogEvent.i.rawValue)  Event: You are inside POI Region \(regionEnter.identifier) of type \(regionEnter.type)")
                 } else {
-                    WoosLog.info("You are inside POI Region \(regionEnter.identifier) of type \(regionEnter.type)")
+                    WoosLog.info("Event: You are inside POI Region \(regionEnter.identifier) of type \(regionEnter.type)")
                 }
             }
         }
@@ -425,9 +425,9 @@ public class LocationServiceCoreImpl: NSObject,
                 delegate.processVisit(visit: visitRecorded)
                 if(WoosLog.isValidLevel(level: .info)){
                     if #available(iOS 14.0, *) {
-                        Logger.sdklog.info("\(LogEvent.d.rawValue) \(#function) Visit recorded at \(visitRecorded.visitId ?? "-")")
+                        Logger.sdklog.info("\(LogEvent.d.rawValue) Event: Visit recorded at \(visitRecorded.visitId ?? "-")")
                     } else {
-                        WoosLog.info("\(#function) Visit recored at \(visitRecorded.visitId ?? "-")")
+                        WoosLog.info("Event: Visit recored at \(visitRecorded.visitId ?? "-")")
                     }
                 }
                 handleVisitEvent(visit: visitRecorded)
@@ -920,9 +920,9 @@ public class LocationServiceCoreImpl: NSObject,
                     }
                     if(WoosLog.isValidLevel(level: .info)){
                         if #available(iOS 14.0, *) {
-                            Logger.sdklog.info("\(LogEvent.i.rawValue) RegionLog: You are \(didEnter ? "Inside": "exited") POI Region \(newRegionLog.identifier) of type \(newRegionLog.type)")
+                            Logger.sdklog.info("\(LogEvent.i.rawValue) Event: You are \(didEnter ? "Inside": "exited") POI Region \(newRegionLog.identifier) of type \(newRegionLog.type)")
                         } else {
-                            WoosLog.info("RegionLog: You are \(didEnter ? "Inside": "exited") POI Region \(newRegionLog.identifier) of type \(newRegionLog.type)")
+                            WoosLog.info("Event: You are \(didEnter ? "Inside": "exited") POI Region \(newRegionLog.identifier) of type \(newRegionLog.type)")
                         }
                     }
                 }
@@ -939,9 +939,9 @@ public class LocationServiceCoreImpl: NSObject,
                 }
                 if(WoosLog.isValidLevel(level: .info)){
                     if #available(iOS 14.0, *) {
-                        Logger.sdklog.info("\(LogEvent.i.rawValue) RegionLog: You are \(didEnter ? "Inside": "exited") POI Region \(newRegionLog.identifier) of type \(newRegionLog.type)")
+                        Logger.sdklog.info("\(LogEvent.i.rawValue) Event: You are \(didEnter ? "Inside": "exited") POI Region \(newRegionLog.identifier) of type \(newRegionLog.type)")
                     } else {
-                        WoosLog.info("RegionLog: You are \(didEnter ? "Inside": "exited") POI Region \(newRegionLog.identifier) of type \(newRegionLog.type)")
+                        WoosLog.info("Event: You are \(didEnter ? "Inside": "exited") POI Region \(newRegionLog.identifier) of type \(newRegionLog.type)")
                     }
                 }
             }
@@ -978,9 +978,9 @@ public class LocationServiceCoreImpl: NSObject,
                 self.regionDelegate?.homeZOIEnter(classifiedRegion: classifiedRegion)
                 if(WoosLog.isValidLevel(level: .info)){
                     if #available(iOS 14.0, *) {
-                        Logger.sdklog.info("\(LogEvent.i.rawValue) \(#function) You are \(classifiedRegion.didEnter ? "inside": "exited" ) home Region")
+                        Logger.sdklog.info("\(LogEvent.i.rawValue) Event: You are \(classifiedRegion.didEnter ? "inside": "exited" ) home Region")
                     } else {
-                        WoosLog.info("\(#function) You are \(classifiedRegion.didEnter ? "inside": "exited" ) home Region")
+                        WoosLog.info("Event: You are \(classifiedRegion.didEnter ? "inside": "exited" ) home Region")
                     }
                 }
                 handleZOIClassifiedEvent(region: classifiedRegion)
