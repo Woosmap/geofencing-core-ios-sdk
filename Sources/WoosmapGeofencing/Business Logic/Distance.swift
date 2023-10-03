@@ -116,14 +116,6 @@ public class Distances {
             let jsonStructure = try JSONDecoder().decode(DistanceAPIData.self, from: APIResponse)
         
             if jsonStructure.status == "OK" {
-                if(WoosLog.isValidLevel(level: .trace)){
-                    if #available(iOS 14.0, *) {
-                        Logger.sdklog.trace("\(LogEvent.v.rawValue) \(#function) Distance API response \(jsonStructure.rows?.count ?? 0)")
-                    } else {
-                        WoosLog.trace("\(#function) Distance API response \(jsonStructure.rows?.count ?? 0)")
-                    }
-                }
-                
                 for row in jsonStructure.rows! {
                     var indexElement = 0
                     for element in row.elements! {
@@ -151,12 +143,21 @@ public class Distances {
                         indexElement+=1
                     }
                 }
+                
+                if(WoosLog.isValidLevel(level: .trace)){
+                    let apitext = String(decoding: APIResponse, as: UTF8.self)
+                    if #available(iOS 14.0, *) {
+                        Logger.sdklog.trace("\(LogEvent.v.rawValue) \(#function) Distance API response \(apitext)")
+                    } else {
+                        WoosLog.trace("\(#function) Distance API response \(jsonStructure.rows?.count ?? 0)")
+                    }
+                }
             } else {
                 if(WoosLog.isValidLevel(level: .warn)){
                     if #available(iOS 14.0, *) {
-                        Logger.sdklog.warning("\(LogEvent.w.rawValue) \(#function) \(jsonStructure.status ?? "")")
+                        Logger.sdklog.warning("\(LogEvent.w.rawValue) \(#function) \(jsonStructure.status ?? "") distance between \(origin.coordinate.latitude),\(origin.coordinate.longitude) and \(destination)")
                     } else {
-                        WoosLog.warning("\(#function) error: \(jsonStructure.status ?? "")")
+                        WoosLog.warning("\(#function) error: \(jsonStructure.status ?? "") distance between  \(origin.coordinate.latitude),\(origin.coordinate.longitude) and \(destination)")
                     }
                 }
             }
