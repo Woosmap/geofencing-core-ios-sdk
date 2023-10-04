@@ -5,7 +5,7 @@
 
 import Foundation
 import CoreLocation
-
+import os
 /// Location object
 public class Location  {
     /// Date
@@ -74,6 +74,13 @@ public class Locations {
             let _ = try WoosmapDataManager.connect.save(entity: newRec)
             return Location(locationDB: newRec)
         } catch {
+            if(WoosLog.isValidLevel(level: .error)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) error: \(error)")
+                } else {
+                    WoosLog.error("\(#function) error: \(error)")
+                }
+            }
         }
         return Location()
     }
@@ -100,6 +107,13 @@ public class Locations {
             let newRec:LocationDB = locationModel.dbEntity()
             let _ = try WoosmapDataManager.connect.save(entity: newRec)
         } catch {
+            if(WoosLog.isValidLevel(level: .error)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) error: \(error)")
+                } else {
+                    WoosLog.error("\(#function) error: \(error)")
+                }
+            }
         }
     }
     
@@ -114,6 +128,13 @@ public class Locations {
             }))
             
         } catch {
+            if(WoosLog.isValidLevel(level: .error)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) error: \(error)")
+                } else {
+                    WoosLog.error("\(#function) error: \(error)")
+                }
+            }
         }
         return []
     }
@@ -132,6 +153,13 @@ public class Locations {
             }
             
         } catch {
+            if(WoosLog.isValidLevel(level: .error)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) error: \(error)")
+                } else {
+                    WoosLog.error("\(#function) error: \(error)")
+                }
+            }
         }
         return nil
     }
@@ -149,6 +177,13 @@ public class Locations {
                 return Location(locationDB: aLocation)
             }
         } catch {
+            if(WoosLog.isValidLevel(level: .error)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) error: \(error)")
+                } else {
+                    WoosLog.error("\(#function) error: \(error)")
+                }
+            }
         }
         return nil
     }
@@ -158,7 +193,13 @@ public class Locations {
         do {
             let _ = try WoosmapDataManager.connect.deleteAll(entityClass: LocationDB.self)
         } catch let error as NSError {
-            print(error)
+            if(WoosLog.isValidLevel(level: .error)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) error: \(error)")
+                } else {
+                    WoosLog.error("\(#function) error: \(error)")
+                }
+            }
         }
     }
 }

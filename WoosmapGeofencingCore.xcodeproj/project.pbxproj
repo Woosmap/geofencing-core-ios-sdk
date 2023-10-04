@@ -27,6 +27,7 @@
 		5F468E082A2499DF006F6D94 /* Random.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F468DF62A2499DF006F6D94 /* Random.swift */; };
 		5F468E092A2499DF006F6D94 /* Logarithm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F468DF82A2499DF006F6D94 /* Logarithm.swift */; };
 		5F5CD5EA28A6302C0074D7DD /* DurationLogTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F5CD5E928A6302C0074D7DD /* DurationLogTest.swift */; };
+		5F84A8142AB425A2002B1735 /* WoosLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F84A8132AB425A2002B1735 /* WoosLogger.swift */; };
 		5FB3E7A32872F2BE0035653E /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FB3E7A22872F2BE0035653E /* LocationService.swift */; };
 		5FB3E7A52872F3170035653E /* LocationServiceCoreImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FB3E7A42872F3170035653E /* LocationServiceCoreImpl.swift */; };
 		A24796FF2726DF700081AADC /* Distance.swift in Sources */ = {isa = PBXBuildFile; fileRef = A24796FE2726DF700081AADC /* Distance.swift */; };
@@ -97,6 +98,7 @@
 		5F468DF62A2499DF006F6D94 /* Random.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Random.swift; sourceTree = "<group>"; };
 		5F468DF82A2499DF006F6D94 /* Logarithm.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Logarithm.swift; sourceTree = "<group>"; };
 		5F5CD5E928A6302C0074D7DD /* DurationLogTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DurationLogTest.swift; sourceTree = "<group>"; };
+		5F84A8132AB425A2002B1735 /* WoosLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WoosLogger.swift; sourceTree = "<group>"; };
 		5FB3E7A22872F2BE0035653E /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
 		5FB3E7A42872F3170035653E /* LocationServiceCoreImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationServiceCoreImpl.swift; sourceTree = "<group>"; };
 		A216FBA923E9CEA70003AAC8 /* WoosmapGeofencingCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = WoosmapGeofencingCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -297,6 +299,7 @@
 				A24796FE2726DF700081AADC /* Distance.swift */,
 				A248052D27DA5E8900E5B7CD /* LogSearchAPI.swift */,
 				5FB3E7A42872F3170035653E /* LocationServiceCoreImpl.swift */,
+				5F84A8132AB425A2002B1735 /* WoosLogger.swift */,
 			);
 			path = "Business Logic";
 			sourceTree = "<group>";
@@ -445,6 +448,7 @@
 				5F468E092A2499DF006F6D94 /* Logarithm.swift in Sources */,
 				A2710EEF25B5C9D100AF62F5 /* ZOI.swift in Sources */,
 				A2710EFB25B5CB3500AF62F5 /* Region.swift in Sources */,
+				5F84A8142AB425A2002B1735 /* WoosLogger.swift in Sources */,
 				5F468E072A2499DF006F6D94 /* Arithmetic.swift in Sources */,
 				5F468E022A2499DF006F6D94 /* Pointers.swift in Sources */,
 				5F468E052A2499DF006F6D94 /* UnsafeMemory.swift in Sources */,
@@ -639,6 +643,7 @@
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				INFOPLIST_FILE = "$(SRCROOT)/Sources/WoosmapGeofencing/Info.plist";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -668,6 +673,7 @@
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				INFOPLIST_FILE = "$(SRCROOT)/Sources/WoosmapGeofencing/Info.plist";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

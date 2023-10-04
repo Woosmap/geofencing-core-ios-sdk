@@ -5,7 +5,7 @@
 
 import Foundation
 import CoreLocation
-
+import os
 /// Location service implementation
 public class LocationServiceCoreImpl: NSObject,
                                     LocationService,
@@ -59,8 +59,30 @@ public class LocationServiceCoreImpl: NSObject,
         guard var myLocationManager = self.locationManager else {
             return
         }
+        if let backgroundMode:[String] = Bundle.main.infoDictionary?["UIBackgroundModes"] as? [String]{
+            if backgroundMode.contains("location"){
+                myLocationManager.allowsBackgroundLocationUpdates = true
+            }
+            else{
+                if(WoosLog.isValidLevel(level: .warn)){
+                    if #available(iOS 14.0, *) {
+                        Logger.sdklog.warning("\(LogEvent.w.rawValue) Permission: background location permission disabled.Please set background mode as location in your info.plist")
+                    } else {
+                        WoosLog.warning("Permission: background permission disabled.Please set background mode as location in your info.plist")
+                    }
+                }
+            }
+        }
+        else{
+            if(WoosLog.isValidLevel(level: .warn)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.warning("\(LogEvent.w.rawValue) Permission: background permission disabled.Please set background mode as location in your info.plist")
+                } else {
+                    WoosLog.warning("Permission: background location permission disabled.Please set background mode as location in your info.plist")
+                }
+            }
+        }
         
-        myLocationManager.allowsBackgroundLocationUpdates = true
         myLocationManager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
         myLocationManager.distanceFilter = 10
         myLocationManager.pausesLocationUpdatesAutomatically = true
@@ -74,6 +96,17 @@ public class LocationServiceCoreImpl: NSObject,
     func requestAuthorization () {
         if CLLocationManager.authorizationStatus() == .notDetermined {
             locationManager?.requestAlwaysAuthorization()
+        }
+        else{
+            if (CLLocationManager.authorizationStatus() == .denied){
+                if(WoosLog.isValidLevel(level: .warn)){
+                    if #available(iOS 14.0, *) {
+                        Logger.sdklog.warning("\(LogEvent.w.rawValue) Permission: Location permission not granted")
+                    } else {
+                        WoosLog.warning("Permission: Location permission not granted")
+                    }
+                }
+            }
         }
     }
     
@@ -92,12 +125,26 @@ public class LocationServiceCoreImpl: NSObject,
         if visitEnable {
             self.locationManager?.startMonitoringVisits()
         }
+        if(WoosLog.isValidLevel(level: .trace)){
+            if #available(iOS 14.0, *) {
+                Logger.sdklog.trace("\(LogEvent.v.rawValue) trace: Starting Location service")
+            } else {
+                WoosLog.trace("trace: Starting Location service")
+            }
+        }
     }
     
     /// Stop Locaton service to receive pause location update
     public func stopUpdatingLocation() {
         if (!modeHighfrequencyLocation) {
             self.locationManager?.stopUpdatingLocation()
+            if(WoosLog.isValidLevel(level: .trace)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.trace("\(LogEvent.v.rawValue) trace: Stoped Location service")
+                } else {
+                    WoosLog.trace("trace: Stoped Location service")
+                }
+            }
         }
     }
     
@@ -105,11 +152,25 @@ public class LocationServiceCoreImpl: NSObject,
     public func startMonitoringSignificantLocationChanges() {
         self.requestAuthorization()
         self.locationManager?.startMonitoringSignificantLocationChanges()
+        if(WoosLog.isValidLevel(level: .trace)){
+            if #available(iOS 14.0, *) {
+                Logger.sdklog.trace("\(LogEvent.v.rawValue) trace: Requested Significant Monitoring")
+            } else {
+                WoosLog.trace("trace: Requested Significant Monitoring")
+            }
+        }
     }
     
     /// Pause Monitoring Significant Location Changes
     public func stopMonitoringSignificantLocationChanges() {
         self.locationManager?.stopMonitoringSignificantLocationChanges()
+        if(WoosLog.isValidLevel(level: .trace)){
+            if #available(iOS 14.0, *) {
+                Logger.sdklog.trace("\(LogEvent.v.rawValue) trace: Stopped Significant Monitoring")
+            } else {
+                WoosLog.trace("trace: Stopped Significant Monitoring")
+            }
+        }
     }
     
     /// Stop mnitoring region
@@ -118,6 +179,13 @@ public class LocationServiceCoreImpl: NSObject,
         for region in monitoredRegions {
             if getRegionType(identifier: region.identifier) == RegionType.position {
                 self.locationManager?.stopMonitoring(for: region)
+            }
+        }
+        if(WoosLog.isValidLevel(level: .trace)){
+            if #available(iOS 14.0, *) {
+                Logger.sdklog.trace("\(LogEvent.v.rawValue) trace: Stopped Monitoring Region")
+            } else {
+                WoosLog.trace("trace: Stopped Monitoring Region")
             }
         }
     }
@@ -173,7 +241,13 @@ public class LocationServiceCoreImpl: NSObject,
     ///   - manager: location service
     ///   - status: new status
     public func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {
-        
+        if(WoosLog.isValidLevel(level: .info)){
+            if #available(iOS 14.0, *) {
+                Logger.sdklog.info("\(LogEvent.i.rawValue) trace: Location manager status \(status.rawValue)")
+            } else {
+                WoosLog.info("trace: Location manager status \(status.rawValue)")
+            }
+        }
     }
     
     /// Handle all error callback in case of something wrong in service
@@ -313,6 +387,13 @@ public class LocationServiceCoreImpl: NSObject,
                                           didEnter: true,
                                           fromPositionDetection: true)
             self.regionDelegate?.didEnterPOIRegion(POIregion: regionEnter)
+            if(WoosLog.isValidLevel(level: .info)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.info("\(LogEvent.i.rawValue)  Event: You are inside POI Region \(regionEnter.identifier) of type \(regionEnter.type)")
+                } else {
+                    WoosLog.info("Event: You are inside POI Region \(regionEnter.identifier) of type \(regionEnter.type)")
+                }
+            }
         }
     }
     
@@ -342,6 +423,13 @@ public class LocationServiceCoreImpl: NSObject,
             let visitRecorded = Visits.add(visit: visit)
             if visitRecorded.visitId != nil {
                 delegate.processVisit(visit: visitRecorded)
+                if(WoosLog.isValidLevel(level: .info)){
+                    if #available(iOS 14.0, *) {
+                        Logger.sdklog.info("\(LogEvent.d.rawValue) Event: Visit recorded at \(visitRecorded.visitId ?? "-")")
+                    } else {
+                        WoosLog.info("Event: Visit recored at \(visitRecorded.visitId ?? "-")")
+                    }
+                }
                 handleVisitEvent(visit: visitRecorded)
             }
         }
@@ -379,6 +467,13 @@ public class LocationServiceCoreImpl: NSObject,
         
         // Retrieve location
         delegate.tracingLocation(location: locationSaved)
+        if(WoosLog.isValidLevel(level: .trace)){
+            if #available(iOS 14.0, *) {
+                Logger.sdklog.trace("\(LogEvent.v.rawValue) \(#function) location:\(locationSaved.latitude),\(locationSaved.longitude)")
+            } else {
+                WoosLog.trace("\(#function) location:\(locationSaved.latitude),\(locationSaved.longitude)")
+            }
+        }
         
         self.currentLocation = location
         
@@ -389,6 +484,7 @@ public class LocationServiceCoreImpl: NSObject,
     }
     
     open func searchAPIRequest(location: Location) {
+        
 #if DEBUG
         let logAPI = LogSearchAPI()
         logAPI.date = Date()
@@ -396,7 +492,7 @@ public class LocationServiceCoreImpl: NSObject,
         logAPI.longitude = location.longitude
         logAPI.woosmapAPIKey = WoosmapAPIKey
         logAPI.searchAPIRequestEnable = searchAPIRequestEnable
-        NSLog("=>>>>>> searchAPIRequest WoosmapKey = %@", WoosmapAPIKey)
+        
         logAPI.lastSearchLocationLatitude = lastSearchLocation.latitude
         logAPI.lastSearchLocationLongitude = lastSearchLocation.longitude
 #endif
@@ -407,8 +503,19 @@ public class LocationServiceCoreImpl: NSObject,
         
         let POIClassified = POIs.getAll().sorted(by: { $0.distance > $1.distance })
         let lastPOI = POIClassified.first
+        
+        if let poilog = lastPOI{
+            if(WoosLog.isValidLevel(level: .trace)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.trace("\(LogEvent.v.rawValue) \(#function) Your location is near to \(poilog.idstore ?? "-") with distance \(poilog.distance) meters")
+                } else {
+                    WoosLog.trace("\(#function) Your location is near to \(poilog.idstore ?? "-") with distance \(poilog.distance) meters")
+                }
+            }
+        }
+        
+        
 #if DEBUG
-        NSLog("=>>>>>> lastPOI distance = %@", String(lastPOI?.distance ?? 0))
         logAPI.lastPOI_distance = String(lastPOI?.distance ?? 0)
         logAPI.searchAPILastRequestTimeStampValue = searchAPILastRequestTimeStamp
 #endif
@@ -428,9 +535,15 @@ public class LocationServiceCoreImpl: NSObject,
             if (timeEllapsed < searchAPIRefreshDelayDay*3600*24) {
                 let distanceLimit = lastPOI!.distance - lastPOI!.radius
                 let distanceTraveled =  CLLocation(latitude: lastSearchLocation.latitude, longitude: lastSearchLocation.longitude).distance(from: currentLocation!)
+                
+                if(WoosLog.isValidLevel(level: .trace)){
+                    if #available(iOS 14.0, *) {
+                        Logger.sdklog.trace("\(LogEvent.v.rawValue) \(#function) distanceLimit \(distanceLimit) distanceTraveled \(distanceTraveled) meters")
+                    } else {
+                        WoosLog.trace("\(#function) distanceLimit \(distanceLimit) distanceTraveled \(distanceTraveled) meters")
+                    }
+                }
 #if DEBUG
-                NSLog("=>>>>>> distanceLimit = %@", String(distanceLimit))
-                NSLog("=>>>>>> distanceTraveled = %@", String(distanceTraveled))
                 logAPI.distanceLimit = String(distanceLimit)
                 logAPI.distanceTraveled = String(distanceTraveled)
 #endif
@@ -502,15 +615,33 @@ public class LocationServiceCoreImpl: NSObject,
         woosApiCall(with: components.url!) { [self] (data, response, error) in
             if let response = response as? HTTPURLResponse {
                 if response.statusCode != 200 {
-                    NSLog("statusCode: \(response.statusCode)")
+                    if(WoosLog.isValidLevel(level: .error)){
+                        if #available(iOS 14.0, *) {
+                            Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) SearchAPI failed with status \(response.statusCode)")
+                        } else {
+                            WoosLog.error("\(#function) SearchAPI failed with status \(response.statusCode)")
+                        }
+                    }
                     delegate.serachAPIError(error: "Error Search API " + String(response.statusCode))
                     return
                 }
                 if let error = error {
-                    NSLog("error: \(error)")
+                    if(WoosLog.isValidLevel(level: .error)){
+                        if #available(iOS 14.0, *) {
+                            Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) SearchAPI Error \(error)")
+                        } else {
+                            WoosLog.error("\(#function) SearchAPI Error \(error)")
+                        }
+                    }
                 } else {
-                    print("=>>>>>> searchAPIRequest")
                     let pois:[POI] = POIs.addFromResponseJson(searchAPIResponse: data!, locationId: locationId)
+                    if(WoosLog.isValidLevel(level: .trace)){
+                        if #available(iOS 14.0, *) {
+                            Logger.sdklog.trace("\(LogEvent.v.rawValue) searchAPI called. Returned \(pois.count) poi(s)")
+                        } else {
+                            WoosLog.trace("searchAPI called. Returned \(pois.count) poi(s)")
+                        }
+                    }
                     
                     if(pois.isEmpty) {
                         searchAPILastRequestTimeStamp = Date().timeIntervalSince1970
@@ -541,7 +672,13 @@ public class LocationServiceCoreImpl: NSObject,
     ///   - error: Error info
     public func locationManager(_ manager: CLLocationManager, monitoringDidFailFor region: CLRegion?, withError error: Error) {
         if region is CLCircularRegion{
-            print("WoosmapGeofencing Error : can't create geofence \((region?.identifier ?? "")) \(error.localizedDescription)")
+            if(WoosLog.isValidLevel(level: .error)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.error("\(LogEvent.e.rawValue) WoosmapGeofencing Error : can't create geofence \((region?.identifier ?? "")) \(error.localizedDescription)")
+                } else {
+                    WoosLog.error("WoosmapGeofencing Error : can't create geofence \((region?.identifier ?? "")) \(error.localizedDescription)")
+                }
+            }
         }
     }
     
@@ -657,12 +794,24 @@ public class LocationServiceCoreImpl: NSObject,
                 DispatchQueue.main.async {
                     if let response = response as? HTTPURLResponse {
                         if response.statusCode != 200 {
-                            NSLog("statusCode: \(response.statusCode)")
+                            if(WoosLog.isValidLevel(level: .error)){
+                                if #available(iOS 14.0, *) {
+                                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) DistanceAPI failed with status \(response.statusCode)")
+                                } else {
+                                    WoosLog.error("\(#function) Distance failed with status \(response.statusCode)")
+                                }
+                            }
                             delegateDistance.distanceAPIError(error: "Error Distance API " + String(response.statusCode))
                             return
                         }
                         if let error = error {
-                            NSLog("error: \(error)")
+                            if(WoosLog.isValidLevel(level: .error)){
+                                if #available(iOS 14.0, *) {
+                                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) DistanceAPI Error \(error)")
+                                } else {
+                                    WoosLog.error("\(#function) DistanceAPI Error \(error)")
+                                }
+                            }
                         } else {
                             let distance = Distances.addFromResponseJson(APIResponse: data!,
                                                                          locationId: locationId,
@@ -673,7 +822,6 @@ public class LocationServiceCoreImpl: NSObject,
                                                                          distanceLanguage: distanceLanguage,
                                                                          distanceMethod: distanceMethod)
                             delegateDistance.distanceAPIResponse(distance: distance)
-                            
                         }
                     }
                 }
@@ -684,7 +832,13 @@ public class LocationServiceCoreImpl: NSObject,
     /// Location arror trace
     /// - Parameter error: <#error description#>
     public func tracingLocationDidFailWithError(error: Error) {
-        print("\(error)")
+        if(WoosLog.isValidLevel(level: .error)){
+            if #available(iOS 14.0, *) {
+                Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) error: \(error)")
+            } else {
+                WoosLog.error("\(#function) error: \(error)")
+            }
+        }
     }
     
     
@@ -764,6 +918,13 @@ public class LocationServiceCoreImpl: NSObject,
                     } else {
                         self.regionDelegate?.didExitPOIRegion(POIregion: newRegionLog)
                     }
+                    if(WoosLog.isValidLevel(level: .info)){
+                        if #available(iOS 14.0, *) {
+                            Logger.sdklog.info("\(LogEvent.i.rawValue) Event: You are \(didEnter ? "Inside": "exited") POI Region \(newRegionLog.identifier) of type \(newRegionLog.type)")
+                        } else {
+                            WoosLog.info("Event: You are \(didEnter ? "Inside": "exited") POI Region \(newRegionLog.identifier) of type \(newRegionLog.type)")
+                        }
+                    }
                 }
             }
         } else if (didEnter) {
@@ -775,6 +936,13 @@ public class LocationServiceCoreImpl: NSObject,
                     self.regionDelegate?.didEnterPOIRegion(POIregion: newRegionLog)
                 } else {
                     self.regionDelegate?.didExitPOIRegion(POIregion: newRegionLog)
+                }
+                if(WoosLog.isValidLevel(level: .info)){
+                    if #available(iOS 14.0, *) {
+                        Logger.sdklog.info("\(LogEvent.i.rawValue) Event: You are \(didEnter ? "Inside": "exited") POI Region \(newRegionLog.identifier) of type \(newRegionLog.type)")
+                    } else {
+                        WoosLog.info("Event: You are \(didEnter ? "Inside": "exited") POI Region \(newRegionLog.identifier) of type \(newRegionLog.type)")
+                    }
                 }
             }
         }
@@ -808,6 +976,13 @@ public class LocationServiceCoreImpl: NSObject,
                 classifiedRegion.identifier = classifiedZOI.period ?? ""
                 Regions.add(classifiedRegion: classifiedRegion)
                 self.regionDelegate?.homeZOIEnter(classifiedRegion: classifiedRegion)
+                if(WoosLog.isValidLevel(level: .info)){
+                    if #available(iOS 14.0, *) {
+                        Logger.sdklog.info("\(LogEvent.i.rawValue) Event: You are \(classifiedRegion.didEnter ? "inside": "exited" ) home Region")
+                    } else {
+                        WoosLog.info("Event: You are \(classifiedRegion.didEnter ? "inside": "exited" ) home Region")
+                    }
+                }
                 handleZOIClassifiedEvent(region: classifiedRegion)
             }
         }

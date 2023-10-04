@@ -5,12 +5,31 @@
 //
 
 import Foundation
+import os
 
 // Tracking
 public var trackingEnable = false
 
 // Woosmap SearchAPI Key
-public var WoosmapAPIKey = ""
+private var _WoosmapAPIKey: String = ""
+public var WoosmapAPIKey: String {
+    get{
+        return _WoosmapAPIKey
+    }
+    set {
+        if _WoosmapAPIKey != newValue {
+            if(WoosLog.isValidLevel(level: .info)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.info("\(LogEvent.i.rawValue) Woosmap API: \(newValue, privacy: .private)")
+                } else {
+                    WoosLog.info("Woosmap API: \(newValue)")
+                }
+            }
+        }
+        _WoosmapAPIKey = newValue
+    }
+}
+
 public var searchWoosmapAPI = "https://api.woosmap.com/stores/search/?private_key=\(WoosmapAPIKey)&lat=%@&lng=%@&stores_by_page=5"
 
 // Woosmap Distance provider
@@ -111,5 +130,15 @@ public var userPropertiesFilter : [String] = []
 
 public var poiRadius:Any = ""
 
+/// Enum which maps an appropiate symbol which added as prefix for each log message
+public enum WosmapLogEvent: Int {
+    case none = 0
+    case error = 1 // error
+    case warn = 2// warn
+    case info = 3// info
+    case debug = 4 // debug
+    case trace = 5 // trace
+}
 
 
+internal var logLevelSDK:WosmapLogEvent = WosmapLogEvent.info
