@@ -32,7 +32,9 @@ public class DataCleaner {
                     let _ = try WoosmapDataManager.connect.deleteAll(entityClass: VisitDB.self,predicate: predicate)
                     let _ = try WoosmapDataManager.connect.deleteAll(entityClass: DistanceDB.self,predicate: predicate)
                     let _ = try WoosmapDataManager.connect.deleteAll(entityClass: RegionDB.self,predicate: predicate)
-                    
+                    let _ = try WoosmapDataManager.connect.deleteAll(entityClass: IndoorVenueDB.self,predicate: predicate)
+                    let _ = try WoosmapDataManager.connect.deleteAll(entityClass: IndoorBeaconDB.self,predicate: predicate)
+                    let _ = try WoosmapDataManager.connect.deleteAll(entityClass: VenueBeaconDB.self,predicate: predicate)
                 } catch {
                 }
                 UserDefaults.standard.set(Date(), forKey: "lastDateUpdate")
