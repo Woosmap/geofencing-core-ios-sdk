@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="21754" systemVersion="22F82" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="22222" systemVersion="23A344" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
     <entity name="DistanceDB" representedClassName=".DistanceDB" syncable="YES" codeGenerationType="class">
         <attribute name="date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="destinationLatitude" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
@@ -24,7 +24,6 @@
     <entity name="IndoorBeaconDB" representedClassName=".IndoorBeaconDB" syncable="YES" codeGenerationType="class">
         <attribute name="beaconID" attributeType="String" defaultValueString=""/>
         <attribute name="date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
-        <attribute name="distance" attributeType="Double" defaultValueString="-1" usesScalarValueType="YES"/>
         <attribute name="identifier" attributeType="String" defaultValueString=""/>
         <attribute name="latitude" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="longitude" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
@@ -125,6 +124,18 @@
         <attribute name="longitude" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="radius" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="type" attributeType="String" defaultValueString="isochrone"/>
+    </entity>
+    <entity name="VenueBeaconDB" representedClassName=".VenueBeaconDB" syncable="YES" codeGenerationType="class">
+        <attribute name="beaconID" attributeType="String" defaultValueString=""/>
+        <attribute name="date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="distance" attributeType="Double" defaultValueString="-1" usesScalarValueType="YES"/>
+        <attribute name="identifier" attributeType="String" defaultValueString=""/>
+        <attribute name="latitude" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="longitude" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="major" attributeType="String" defaultValueString=""/>
+        <attribute name="minor" attributeType="String" defaultValueString=""/>
+        <attribute name="properties" optional="YES" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromDataTransformer" customClassName="[String:String]"/>
+        <attribute name="venue_id" optional="YES" attributeType="String" defaultValueString="-"/>
     </entity>
     <entity name="VisitDB" representedClassName=".VisitDB" syncable="YES" codeGenerationType="class">
         <attribute name="accuracy" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
