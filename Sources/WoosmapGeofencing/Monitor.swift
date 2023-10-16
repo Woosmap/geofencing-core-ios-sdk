@@ -11,7 +11,19 @@ public protocol LocationServiceDelegate: AnyObject {
 /// Search Service callback
 public protocol SearchAPIDelegate: AnyObject {
     func searchAPIResponse(poi: POI)
+    @available(*, deprecated, renamed: "searchAPIError(error:)")
     func serachAPIError(error: String)
+    func searchAPIError(error: String)
+}
+public extension SearchAPIDelegate{
+    //Mark as optional
+    func serachAPIError(error: String) {
+        
+    }
+    //Mark as optional
+    func searchAPIError(error: String){
+        
+    }
 }
 
 /// Distance API Callback

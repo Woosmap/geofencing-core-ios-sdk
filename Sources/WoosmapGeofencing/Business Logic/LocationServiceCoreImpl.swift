@@ -623,6 +623,7 @@ public class LocationServiceCoreImpl: NSObject,
                         }
                     }
                     delegate.serachAPIError(error: "Error Search API " + String(response.statusCode))
+                    delegate.searchAPIError(error: "Error Search API " + String(response.statusCode))
                     return
                 }
                 if let error = error {
