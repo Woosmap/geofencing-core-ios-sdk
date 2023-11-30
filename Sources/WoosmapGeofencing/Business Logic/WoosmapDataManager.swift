@@ -20,16 +20,24 @@ internal class WoosmapDataManager:NSObject {
         let modelURL = messageKitBundle!.url(forResource: self.model, withExtension: "momd")!
         let managedObjectModel =  NSManagedObjectModel(contentsOf: modelURL)
         let container = NSPersistentContainer(name: self.model, managedObjectModel: managedObjectModel!)
+        /*add necessary support for migration*/
+        let description = NSPersistentStoreDescription()
+        description.shouldMigrateStoreAutomatically = true
+        description.shouldInferMappingModelAutomatically = true
+        container.persistentStoreDescriptions =  [description]
+        /*add necessary support for migration*/
+        
         container.loadPersistentStores { (storeDescription, error) in
             if let err = error{
                 if(WoosLog.isValidLevel(level: .error)){
                     if #available(iOS 14.0, *) {
-                        Logger.sdklog.error("\(LogEvent.s.rawValue) \(#function) Loading of store failed:\(err)")
+                        Logger.sdklog.error("\(LogEvent.s.rawValue) \(#function) Loading of store failed:\(err.localizedDescription)")
+                        Logger.sdklog.error("\(LogEvent.s.rawValue) \(#function) Loading DB:\(modelURL.absoluteString)")
                     } else {
-                        WoosLog.critical("\(#function) Loading of store failed:\(err)")
+                        WoosLog.critical("\(#function) Loading of store failed:\(err.localizedDescription)")
                     }
                 }
-                fatalError("❌ Loading of store failed:\(err)")
+                //fatalError("❌ Loading of store failed:\(err)")
             }
         }
         return container
@@ -100,12 +108,13 @@ internal class WoosmapDataManager:NSObject {
     
     func save<T: NSManagedObject>(entity:T) throws -> Bool{
         do {
+            
             try   entity.managedObjectContext?.save()
             return true
         } catch let error {
             if(WoosLog.isValidLevel(level: .error)){
                 if #available(iOS 14.0, *) {
-                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) Failed to create/update record: \(error.localizedDescription)")
+                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) Failed to create/update record: \(entity.entity.name ?? "") \(error.localizedDescription)")
                 } else {
                     WoosLog.error("\(#function) Failed to create/update record: \(error.localizedDescription)")
                 }
