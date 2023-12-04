@@ -20,10 +20,14 @@ internal class WoosmapDataManager:NSObject {
         let modelURL = messageKitBundle!.url(forResource: self.model, withExtension: "momd")!
         let managedObjectModel =  NSManagedObjectModel(contentsOf: modelURL)
         let container = NSPersistentContainer(name: self.model, managedObjectModel: managedObjectModel!)
+        
         /*add necessary support for migration*/
-        let description = NSPersistentStoreDescription()
+        guard let description = container.persistentStoreDescriptions.first else {
+                    fatalError("Could not retrieve a persistent store description.")
+                }
         description.shouldMigrateStoreAutomatically = true
         description.shouldInferMappingModelAutomatically = true
+        description.setOption(FileProtectionType.complete as NSObject, forKey: NSPersistentStoreFileProtectionKey)
         container.persistentStoreDescriptions =  [description]
         /*add necessary support for migration*/
         
@@ -37,7 +41,7 @@ internal class WoosmapDataManager:NSObject {
                         WoosLog.critical("\(#function) Loading of store failed:\(err.localizedDescription)")
                     }
                 }
-                //fatalError("❌ Loading of store failed:\(err)")
+                fatalError("❌ Loading of store failed:\(err)")
             }
         }
         return container
