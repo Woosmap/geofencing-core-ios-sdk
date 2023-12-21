@@ -17,34 +17,42 @@ internal class WoosmapDataManager:NSObject {
         if messageKitBundle == nil{
             messageKitBundle = Bundle.main
         }
-        let modelURL = messageKitBundle!.url(forResource: self.model, withExtension: "momd")!
-        let managedObjectModel =  NSManagedObjectModel(contentsOf: modelURL)
-        let container = NSPersistentContainer(name: self.model, managedObjectModel: managedObjectModel!)
-        
-        /*add necessary support for migration*/
-        guard let description = container.persistentStoreDescriptions.first else {
-                    fatalError("Could not retrieve a persistent store description.")
-                }
-        description.shouldMigrateStoreAutomatically = true
-        description.shouldInferMappingModelAutomatically = true
-        description.setOption(FileProtectionType.complete as NSObject, forKey: NSPersistentStoreFileProtectionKey)
-        container.persistentStoreDescriptions =  [description]
-        /*add necessary support for migration*/
-        
-        container.loadPersistentStores { (storeDescription, error) in
-            if let err = error{
-                if(WoosLog.isValidLevel(level: .error)){
-                    if #available(iOS 14.0, *) {
-                        Logger.sdklog.error("\(LogEvent.s.rawValue) \(#function) Loading of store failed:\(err.localizedDescription)")
-                        Logger.sdklog.error("\(LogEvent.s.rawValue) \(#function) Loading DB:\(modelURL.absoluteString)")
-                    } else {
-                        WoosLog.critical("\(#function) Loading of store failed:\(err.localizedDescription)")
+        if let modelURL = messageKitBundle!.url(forResource: self.model, withExtension: "momd"){
+            let managedObjectModel =  NSManagedObjectModel(contentsOf: modelURL)
+            let container = NSPersistentContainer(name: self.model, managedObjectModel: managedObjectModel!)
+            /*add necessary support for migration*/
+            if let description = container.persistentStoreDescriptions.first{
+                description.shouldMigrateStoreAutomatically = true
+                description.shouldInferMappingModelAutomatically = true
+                description.setOption(FileProtectionType.complete as NSObject, forKey: NSPersistentStoreFileProtectionKey)
+                container.persistentStoreDescriptions =  [description]
+            }
+            /*add necessary support for migration*/
+            
+            container.loadPersistentStores { (storeDescription, error) in
+                if let err = error{
+                    if(WoosLog.isValidLevel(level: .error)){
+                        if #available(iOS 14.0, *) {
+                            Logger.sdklog.error("\(LogEvent.s.rawValue) \(#function) Loading of store failed:\(err.localizedDescription)")
+                        } else {
+                            WoosLog.critical("\(#function) Loading of store failed:\(err.localizedDescription)")
+                        }
                     }
                 }
-                fatalError("❌ Loading of store failed:\(err)")
             }
+            return container
+            
         }
-        return container
+        else{
+            if(WoosLog.isValidLevel(level: .error)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.error("\(LogEvent.s.rawValue) \(#function) Loading of store: database missing")
+                } else {
+                    WoosLog.critical("\(#function) Loading of store: database missing")
+                }
+            }
+            return NSPersistentContainer(name: self.model)
+        }
     }()
     
 
