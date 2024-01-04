@@ -78,6 +78,7 @@ internal class WoosmapDataManager:NSObject {
                     context.delete(managedObjectData)
                 }
             }
+            try context.save()
             return true
         } catch let error as NSError {
             if(WoosLog.isValidLevel(level: .error)){
