@@ -219,7 +219,7 @@ public class LocationServiceCoreImpl: NSObject,
         updateVisit(visit: visit)
         self.startUpdatingLocation()
     }
-    
+    private var lastfatchLocation: CLLocation?
     /// Callback when new location receive form device
     /// - Parameters:
     ///   - manager: location service
@@ -228,6 +228,17 @@ public class LocationServiceCoreImpl: NSObject,
         
         guard locations.last != nil else {
             return
+        }
+        if let history = lastfatchLocation{
+            let distanceupdated = history.distance(from: locations.last!) // meter
+            let timeskipped = locations.last!.timestamp.seconds(from: history.timestamp) //Seconds
+            if(distanceupdated < 5 &&  timeskipped < 5){ //Small changes
+                //debugPrint("Skipped Locations \(timeskipped) seconds")
+                return
+            }
+        }
+        else{
+            lastfatchLocation = locations.last
         }
         
         self.stopUpdatingLocation()
