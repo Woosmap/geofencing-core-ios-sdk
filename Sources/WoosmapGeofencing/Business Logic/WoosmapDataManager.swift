@@ -70,7 +70,7 @@ internal class WoosmapDataManager:NSObject {
         let fetchRequest: NSFetchRequest<NSFetchRequestResult> = NSFetchRequest(entityName: entityName)
         fetchRequest.returnsObjectsAsFaults = false
         fetchRequest.predicate = predicate
-        let context = woosmapDB.viewContext
+        let context = woosmapDB.newBackgroundContext()
         do {
             let results = try context.fetch(fetchRequest)
             for managedObject in results {
@@ -101,7 +101,7 @@ internal class WoosmapDataManager:NSObject {
             let sorter = NSSortDescriptor(key:sortBy , ascending:isAscending)
             request.sortDescriptors = [sorter]
         }
-        let context = woosmapDB.viewContext
+        let context = woosmapDB.newBackgroundContext()
         do{
             let fetchedResult = try context.fetch(request)
             return fetchedResult as? [T] ?? []
