@@ -24,7 +24,7 @@ internal class WoosmapDataManager:NSObject {
             if let description = container.persistentStoreDescriptions.first{
                 description.shouldMigrateStoreAutomatically = true
                 description.shouldInferMappingModelAutomatically = true
-                description.setOption(FileProtectionType.complete as NSObject, forKey: NSPersistentStoreFileProtectionKey)
+                description.setOption(FileProtectionType.none as NSObject, forKey: NSPersistentStoreFileProtectionKey)
                 container.persistentStoreDescriptions =  [description]
             }
             /*add necessary support for migration*/
