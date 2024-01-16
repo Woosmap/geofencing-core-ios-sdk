@@ -181,7 +181,12 @@ public class POIs {
                 if let features = value["features"] as? [[String: Any]] {
                     for feature in features {
                         let poi = POIDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
-                        poi.jsonData = searchAPIResponse
+                        //Not storing all api response as json data
+                        let singelPoi: [String: Any] = ["type": "FeatureCollection","features":[feature]]
+                        let singleData = try? JSONSerialization.data(withJSONObject: singelPoi)
+                        poi.jsonData =  singleData
+                        //Not storing all api response as json data
+                        //poi.jsonData =  searchAPIResponse
                         poi.locationId = locationId
                         poi.date = Date()
                         

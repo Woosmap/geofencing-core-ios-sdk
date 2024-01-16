@@ -106,7 +106,7 @@ internal class WoosmapDataManager:NSObject {
         do{
             let fetchedResult = try context.fetch(request)
             return fetchedResult as? [T] ?? []
-        }catch let fetchErr {
+        }catch let fetchErr as NSError {
             if(WoosLog.isValidLevel(level: .error)){
                 if #available(iOS 14.0, *) {
                     Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) Failed to fetch \(entityName): \(fetchErr)")
@@ -124,7 +124,7 @@ internal class WoosmapDataManager:NSObject {
             
             try   entity.managedObjectContext?.save()
             return true
-        } catch let error {
+        } catch let error as NSError  {
             if(WoosLog.isValidLevel(level: .error)){
                 if #available(iOS 14.0, *) {
                     Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) Failed to create/update record: \(entity.entity.name ?? "") \(error.localizedDescription)")
