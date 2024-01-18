@@ -241,16 +241,27 @@ public class POIs {
                             if let tags = properties["tags"] as? [String] {
                                 poi.tags = tags.joined(separator:" - ")
                             }
+                            else  if let tags = properties["tags"] as? String {
+                                poi.tags = tags
+                            }
                             if let types = properties["types"] as? [String] {
                                 poi.types = types.joined(separator:" - ")
+                            }
+                            else if let types = properties["types"] as? String {
+                                poi.types = types
                             }
                             
                         }
                         
                         if let geometry = feature["geometry"] as? [String: Any] {
-                            let coord:Array<Double> = geometry["coordinates"] as! Array<Double>
-                            poi.latitude = coord[1]
-                            poi.longitude = coord[0]
+                            if let coord:Array<Double> = geometry["coordinates"] as? Array<Double>{
+                                poi.latitude = coord[1]
+                                poi.longitude = coord[0]
+                            }
+                            else if let coord:Array<Int32> = geometry["coordinates"] as? Array<Int32>{
+                                poi.latitude = Double(coord[1])
+                                poi.longitude = Double(coord[0])
+                            }
                         }
                         
                         
