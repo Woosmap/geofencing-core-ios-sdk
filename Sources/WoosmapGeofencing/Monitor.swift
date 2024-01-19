@@ -6,12 +6,12 @@ import UserNotifications
 public protocol LocationServiceDelegate: AnyObject {
     func tracingLocation(location: Location)
     func tracingLocationDidFailWithError(error: Error)
-    func errorOccured(err: Error)
+    func sdkErrorOccured(err: Error)
 }
 
 public extension LocationServiceDelegate{
     //Mark as optional
-    func errorOccured(err: Error) {
+    func sdkErrorOccured(err: Error) {
         
     }
 }
