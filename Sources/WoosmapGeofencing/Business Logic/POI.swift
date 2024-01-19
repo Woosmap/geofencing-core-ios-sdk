@@ -116,7 +116,10 @@ public class POI {
 
     }
     
-    fileprivate func dbEntity()-> POIDB{
+    fileprivate func dbEntity() throws -> POIDB{
+        if(WoosmapDataManager.connect.isDBMissing == true){
+            throw WoosmapGeofenceError.dbMissing
+        }
         let newRec:POIDB = POIDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
         newRec.jsonData = self.jsonData
         newRec.city = self.city
@@ -292,7 +295,7 @@ public class POIs {
     /// - Parameter poi: POI List
     public class func addTest(poi: POI) {
         do {
-            let newRec:POIDB = poi.dbEntity()
+            let newRec:POIDB = try poi.dbEntity()
             let _ = try WoosmapDataManager.connect.save(entity: newRec)
             
         } catch {

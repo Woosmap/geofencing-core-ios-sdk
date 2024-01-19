@@ -44,7 +44,10 @@ public class Location  {
         self.longitude = locationDB.longitude
     }
     
-    fileprivate func dbEntity() -> LocationDB {
+    fileprivate func dbEntity() throws -> LocationDB {
+        if(WoosmapDataManager.connect.isDBMissing == true){
+            throw WoosmapGeofenceError.dbMissing
+        }
         let newRec:LocationDB = LocationDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
         newRec.date = self.date
         newRec.latitude = self.latitude
@@ -70,7 +73,7 @@ public class Locations {
             
             let entry = Location(locationId: locationId, latitude: location.coordinate.latitude, longitude: location.coordinate.longitude, dateCaptured: Date(), descriptionToSave: "description")
             //Save in Core DB
-            let newRec:LocationDB = entry.dbEntity()
+            let newRec:LocationDB = try entry.dbEntity()
             let _ = try WoosmapDataManager.connect.save(entity: newRec)
             return Location(locationDB: newRec)
         } catch {
@@ -104,7 +107,7 @@ public class Locations {
         let locationModel = Location(locationId: locationId, latitude: location.latitude, longitude: location.longitude, dateCaptured: date, descriptionToSave: description)
         do {
             //Save in Core DB
-            let newRec:LocationDB = locationModel.dbEntity()
+            let newRec:LocationDB = try locationModel.dbEntity()
             let _ = try WoosmapDataManager.connect.save(entity: newRec)
         } catch {
             if(WoosLog.isValidLevel(level: .error)){

@@ -69,7 +69,11 @@ public class Distance {
         self.locationId = distanceDB.locationId
     }
     
-    fileprivate func dbEntity() -> DistanceDB {
+    fileprivate func dbEntity() throws-> DistanceDB {
+        if(WoosmapDataManager.connect.isDBMissing == true){
+            throw WoosmapGeofenceError.dbMissing
+        }
+        
         let newRec:DistanceDB = DistanceDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
         newRec.date = self.date
         newRec.originLatitude = self.originLatitude

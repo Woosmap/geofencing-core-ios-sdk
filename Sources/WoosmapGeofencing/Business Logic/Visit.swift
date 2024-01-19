@@ -57,7 +57,11 @@ public class Visit {
         self.date = visitDB.date
         self.accuracy = visitDB.accuracy
     }
-    fileprivate func dbEntity()-> VisitDB{
+    fileprivate func dbEntity() throws -> VisitDB{
+        if(WoosmapDataManager.connect.isDBMissing == true){
+            throw WoosmapGeofenceError.dbMissing
+        }
+        
         let newRec:VisitDB = VisitDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
         newRec.visitId = self.visitId
         newRec.arrivalDate = self.arrivalDate
@@ -84,7 +88,7 @@ public class Visits {
             let arrivalDate = calendar.component(.year, from: visit.arrivalDate) != 4001 ? visit.arrivalDate : nil
             if arrivalDate != nil && departureDate != nil {
                 let newVisit = Visit(visitId: UUID().uuidString, arrivalDate: arrivalDate, departureDate: departureDate, latitude: visit.coordinate.latitude, longitude: visit.coordinate.longitude, dateCaptured: Date(), accuracy: visit.horizontalAccuracy)
-                let entry = newVisit.dbEntity()
+                let entry = try newVisit.dbEntity()
                 let _ = try WoosmapDataManager.connect.save(entity: entry)
                 let newRec = Visit(visitDB: entry)
                 if creationOfZOIEnable {
@@ -108,7 +112,7 @@ public class Visits {
     /// - Parameter visit: Visit
     public class func addTest(visit: Visit) {
         do {
-            let entry = visit.dbEntity()
+            let entry = try visit.dbEntity()
             let _ = try WoosmapDataManager.connect.save(entity: entry)
         } catch {
             if(WoosLog.isValidLevel(level: .error)){

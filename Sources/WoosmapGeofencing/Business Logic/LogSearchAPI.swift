@@ -60,6 +60,9 @@ public class LogSearchAPIs {
     /// - Parameter log: Log
     public class func add(log: LogSearchAPI) {
         do {
+            if(WoosmapDataManager.connect.isDBMissing == true){
+                throw WoosmapGeofenceError.dbMissing
+            }
             //Save in Core DB
             let newRec:LogSearchAPIDB = LogSearchAPIDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
             newRec.date = log.date

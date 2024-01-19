@@ -12,6 +12,12 @@ internal class WoosmapDataManager:NSObject {
     let model: String       = "Woosmap"              //Model name
     var module: String      =  "WoosmapGeofencing"
     
+
+    private var _isDBMissing: Bool = false
+    public var isDBMissing: Bool {
+        get { return _isDBMissing }
+    }
+    
     lazy var woosmapDB: NSPersistentContainer = {
         var messageKitBundle = Bundle(identifier: self.identifier)
         if messageKitBundle == nil{
@@ -31,6 +37,7 @@ internal class WoosmapDataManager:NSObject {
             
             container.loadPersistentStores { (storeDescription, error) in
                 if let err = error{
+                    NotificationCenter.default.post(name: .woosmapGeofenceError, object: self, userInfo: ["error": err])
                     if(WoosLog.isValidLevel(level: .error)){
                         if #available(iOS 14.0, *) {
                             Logger.sdklog.error("\(LogEvent.s.rawValue) \(#function) Loading of store failed:\(err.localizedDescription)")
@@ -38,12 +45,15 @@ internal class WoosmapDataManager:NSObject {
                             WoosLog.critical("\(#function) Loading of store failed:\(err.localizedDescription)")
                         }
                     }
+                    self._isDBMissing = true
                 }
             }
             return container
             
         }
         else{
+            let error = WoosmapGeofenceError.dbMissing
+            NotificationCenter.default.post(name: .woosmapGeofenceError, object: self, userInfo: ["error": error])
             if(WoosLog.isValidLevel(level: .error)){
                 if #available(iOS 14.0, *) {
                     Logger.sdklog.error("\(LogEvent.s.rawValue) \(#function) Loading of store: database missing")
@@ -51,6 +61,7 @@ internal class WoosmapDataManager:NSObject {
                     WoosLog.critical("\(#function) Loading of store: database missing")
                 }
             }
+            _isDBMissing = true
             return NSPersistentContainer(name: self.model)
         }
     }()
@@ -65,12 +76,14 @@ internal class WoosmapDataManager:NSObject {
     }
     
     func deleteAll<T:NSManagedObject>(entityClass:T.Type, predicate:NSPredicate? = nil) throws -> Bool{
-        
         let entityName = NSStringFromClass(entityClass).replacingOccurrences(of: "\(module).", with: "")
         let fetchRequest: NSFetchRequest<NSFetchRequestResult> = NSFetchRequest(entityName: entityName)
         fetchRequest.returnsObjectsAsFaults = false
         fetchRequest.predicate = predicate
         let context = woosmapDB.newBackgroundContext()
+        if isDBMissing == true{
+            return false
+        }
         do {
             let results = try context.fetch(fetchRequest)
             for managedObject in results {
@@ -81,6 +94,7 @@ internal class WoosmapDataManager:NSObject {
             try context.save()
             return true
         } catch let error as NSError {
+            NotificationCenter.default.post(name: .woosmapGeofenceError, object: self, userInfo: ["error": error])
             if(WoosLog.isValidLevel(level: .error)){
                 if #available(iOS 14.0, *) {
                     Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) Deleted all my data in \(entityName) error : \(error) \(error.userInfo)")
@@ -103,10 +117,14 @@ internal class WoosmapDataManager:NSObject {
             request.sortDescriptors = [sorter]
         }
         let context = woosmapDB.newBackgroundContext()
+        if( isDBMissing == true){
+            return []
+        }
         do{
             let fetchedResult = try context.fetch(request)
             return fetchedResult as? [T] ?? []
         }catch let fetchErr as NSError {
+            NotificationCenter.default.post(name: .woosmapGeofenceError, object: self, userInfo: ["error": fetchErr])
             if(WoosLog.isValidLevel(level: .error)){
                 if #available(iOS 14.0, *) {
                     Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) Failed to fetch \(entityName): \(fetchErr)")
@@ -121,10 +139,10 @@ internal class WoosmapDataManager:NSObject {
     
     func save<T: NSManagedObject>(entity:T) throws -> Bool{
         do {
-            
             try   entity.managedObjectContext?.save()
             return true
         } catch let error as NSError  {
+            NotificationCenter.default.post(name: .woosmapGeofenceError, object: self, userInfo: ["error": error])
             if(WoosLog.isValidLevel(level: .error)){
                 if #available(iOS 14.0, *) {
                     Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) Failed to create/update record: \(entity.entity.name ?? "") \(error.localizedDescription)")
@@ -133,6 +151,52 @@ internal class WoosmapDataManager:NSObject {
                 }
             }
             throw error
+        }
+        catch let error{
+            NotificationCenter.default.post(name: .woosmapGeofenceError, object: self, userInfo: ["error": error])
+            if(WoosLog.isValidLevel(level: .error)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) Failed to create/update record: \(entity.entity.name ?? "") \(error.localizedDescription)")
+                } else {
+                    WoosLog.error("\(#function) Failed to create/update record: \(error.localizedDescription)")
+                }
+            }
+            throw error
+        }
+    }
+}
+
+
+enum WoosmapGeofenceError: Error {
+    // Throw when an invalid password is entered
+    case dbMissing
+
+    // Throw in all other cases
+    case unexpected(code: Int)
+}
+extension WoosmapGeofenceError: CustomStringConvertible {
+    public var description: String {
+        switch self {
+        case .dbMissing:
+            return "Database is missing"
+        case .unexpected(_):
+            return "An unexpected error occurred."
+        }
+    }
+}
+extension WoosmapGeofenceError: LocalizedError {
+    public var errorDescription: String? {
+        switch self {
+        case .dbMissing:
+            return NSLocalizedString(
+                "Database is missing",
+                comment: "Woosmap Geofence Error"
+            )
+        case .unexpected(_):
+            return NSLocalizedString(
+                "An unexpected error occurred.",
+                comment: "Unexpected Error"
+            )
         }
     }
 }

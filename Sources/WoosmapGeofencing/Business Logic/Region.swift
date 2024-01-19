@@ -83,7 +83,10 @@ public class Region {
         self.spentTime = regionDB.spentTime
     }
     
-    fileprivate func dbEntity() -> RegionDB {
+    fileprivate func dbEntity() throws -> RegionDB {
+        if(WoosmapDataManager.connect.isDBMissing == true){
+            throw WoosmapGeofenceError.dbMissing
+        }
         let newRec:RegionDB = RegionDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
         newRec.date = self.date
         newRec.didEnter = self.didEnter
@@ -123,7 +126,10 @@ public class DurationLog {
         self.exitTime = durationLogDB.exitTime
     }
     
-    fileprivate func dbEntity() -> DurationLogDB {
+    fileprivate func dbEntity() throws -> DurationLogDB {
+        if(WoosmapDataManager.connect.isDBMissing == true){
+            throw WoosmapGeofenceError.dbMissing
+        }
         let newRec:DurationLogDB = DurationLogDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
         newRec.identifier = self.identifier
         newRec.entryTime = self.entryTime

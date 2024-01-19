@@ -83,7 +83,11 @@ public class ZOI {
         self.zoiId =  zoiDB.zoiId
     }
     
-    fileprivate func dbEntity()-> ZOIDB{
+    fileprivate func dbEntity() throws-> ZOIDB{
+        if(WoosmapDataManager.connect.isDBMissing == true){
+            throw WoosmapGeofenceError.dbMissing
+        }
+        
         let newRec:ZOIDB = ZOIDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
         newRec.accumulator = self.accumulator
         newRec.age = self.age
@@ -220,7 +224,7 @@ public class ZOIs {
         do {
             let _ = try WoosmapDataManager.connect.deleteAll(entityClass: ZOIDB.self)
             try zoiArray.forEach { row in
-                let newRec:ZOIDB = row.dbEntity()
+                let newRec:ZOIDB = try row.dbEntity()
                 let _ = try WoosmapDataManager.connect.save(entity: newRec)
             }
             

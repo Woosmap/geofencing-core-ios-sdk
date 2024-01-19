@@ -6,6 +6,18 @@ import UserNotifications
 public protocol LocationServiceDelegate: AnyObject {
     func tracingLocation(location: Location)
     func tracingLocationDidFailWithError(error: Error)
+    func errorOccured(err: Error)
+}
+
+public extension LocationServiceDelegate{
+    //Mark as optional
+    func errorOccured(err: Error) {
+        
+    }
+}
+
+internal extension Notification.Name {
+    static let woosmapGeofenceError = Notification.Name("woosmapGeofenceError")
 }
 
 /// Search Service callback
