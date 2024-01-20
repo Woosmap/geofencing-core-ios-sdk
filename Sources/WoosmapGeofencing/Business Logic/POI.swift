@@ -261,9 +261,24 @@ public class POIs {
                                 poi.latitude = coord[1]
                                 poi.longitude = coord[0]
                             }
-                            else if let coord:Array<Int32> = geometry["coordinates"] as? Array<Int32>{
+                            else if let coord:Array<Int64> = geometry["coordinates"] as? Array<Int64>{
                                 poi.latitude = Double(coord[1])
                                 poi.longitude = Double(coord[0])
+                            }
+                            else if let coord:Array<Any> = geometry["coordinates"] as? Array<Any>{
+                                if let lat = coord[1] as? Double{
+                                    poi.latitude = lat
+                                }
+                                else if let lat = coord[1] as? Int64{
+                                    poi.latitude = Double(lat)
+                                }
+                                
+                                if let lng = coord[0] as? Double{
+                                    poi.longitude = lng
+                                }
+                                else if let lng = coord[0] as? Int64{
+                                    poi.longitude = Double(lng)
+                                }
                             }
                         }
                         
