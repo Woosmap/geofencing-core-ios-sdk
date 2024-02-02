@@ -779,7 +779,7 @@ public class LocationServiceCoreImpl: NSObject,
         }
         let coordinateDestinations = coordinatesDestList.joined(separator: "|")
         
-        var storeAPIUrl:String?
+       
         var url = URLComponents(string: distanceWoosmapAPI)!
         var queryItem:[URLQueryItem] = [
             URLQueryItem(name: "mode", value: distanceMode.rawValue),
@@ -795,14 +795,13 @@ public class LocationServiceCoreImpl: NSObject,
             let method: String = distanceMethod.rawValue
             queryItem.append(URLQueryItem(name: "method", value: method))
             queryItem.append(URLQueryItem(name: "departure_time", value: "now"))
-            
+    
         }
         url.queryItems = queryItem
         url.percentEncodedQuery = url.percentEncodedQuery?.replacingOccurrences(of: "+", with: "%2B")
-        storeAPIUrl = url.string
-        if let url = storeAPIUrl{
+        if let url = url.url{
             // Call API Distance
-            woosApiCall(with: URL(string:url)!) {(data, response, error) in
+            woosApiCall(with: url) {(data, response, error) in
                 DispatchQueue.main.async {
                     if let response = response as? HTTPURLResponse {
                         if response.statusCode != 200 {
