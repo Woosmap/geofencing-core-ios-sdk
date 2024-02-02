@@ -118,53 +118,57 @@ public class Distances {
         do {
             var distanceArray: [Distance] = []
             let jsonStructure = try JSONDecoder().decode(DistanceAPIData.self, from: APIResponse)
-        
-            if jsonStructure.status == "OK" {
-                for row in jsonStructure.rows! {
-                    var indexElement = 0
-                    for element in row.elements! {
-                        let distance = Distance()
-                        distance.units = distanceUnits.rawValue
-                        distance.date = Date()
-                        distance.routing = distanceMethod.rawValue
-                        distance.mode = distanceMode.rawValue
-                        distance.originLatitude = origin.coordinate.latitude
-                        distance.originLongitude = origin.coordinate.longitude
-                        let dest = destination[indexElement]
-                        distance.destinationLatitude = dest.0
-                        distance.destinationLongitude = dest.1
-                        let distanceValue = element.distance?.value
-                        let distanceText = element.distance?.text
-                        let durationValue = element.duration?.value ?? 0
-                        let durationText = element.duration?.text ?? ""
-                        distance.distance = Int(distanceValue ?? 0)
-                        distance.distanceText = distanceText
-                        distance.duration = Int(durationValue)
-                        distance.durationText = durationText
-                        distance.status = element.status
-                        distance.locationId = locationId
-                        distanceArray.append(distance)
-                        indexElement+=1
+            if let status = jsonStructure.status{
+                if status == "OK" {
+                    if let rows = jsonStructure.rows{
+                        for row in rows {
+                            var indexElement = 0
+                            for element in row.elements! {
+                                let distance = Distance()
+                                distance.units = distanceUnits.rawValue
+                                distance.date = Date()
+                                distance.routing = distanceMethod.rawValue
+                                distance.mode = distanceMode.rawValue
+                                distance.originLatitude = origin.coordinate.latitude
+                                distance.originLongitude = origin.coordinate.longitude
+                                let dest = destination[indexElement]
+                                distance.destinationLatitude = dest.0
+                                distance.destinationLongitude = dest.1
+                                let distanceValue = element.distance?.value
+                                let distanceText = element.distance?.text
+                                let durationValue = element.duration?.value ?? 0
+                                let durationText = element.duration?.text ?? ""
+                                distance.distance = Int(distanceValue ?? 0)
+                                distance.distanceText = distanceText
+                                distance.duration = Int(durationValue)
+                                distance.durationText = durationText
+                                distance.status = element.status
+                                distance.locationId = locationId
+                                distanceArray.append(distance)
+                                indexElement+=1
+                            }
+                        }
                     }
-                }
-                
-                if(WoosLog.isValidLevel(level: .trace)){
-                    let apitext = String(decoding: APIResponse, as: UTF8.self)
-                    if #available(iOS 14.0, *) {
-                        Logger.sdklog.trace("\(LogEvent.v.rawValue) \(#function) Distance API response \(apitext)")
-                    } else {
-                        WoosLog.trace("\(#function) Distance API response \(jsonStructure.rows?.count ?? 0)")
+                    
+                    if(WoosLog.isValidLevel(level: .trace)){
+                        let apitext = String(decoding: APIResponse, as: UTF8.self)
+                        if #available(iOS 14.0, *) {
+                            Logger.sdklog.trace("\(LogEvent.v.rawValue) \(#function) Distance API response \(apitext)")
+                        } else {
+                            WoosLog.trace("\(#function) Distance API response \(jsonStructure.rows?.count ?? 0)")
+                        }
                     }
-                }
-            } else {
-                if(WoosLog.isValidLevel(level: .warn)){
-                    if #available(iOS 14.0, *) {
-                        Logger.sdklog.warning("\(LogEvent.w.rawValue) \(#function) \(jsonStructure.status ?? "") distance between \(origin.coordinate.latitude),\(origin.coordinate.longitude) and \(destination)")
-                    } else {
-                        WoosLog.warning("\(#function) error: \(jsonStructure.status ?? "") distance between  \(origin.coordinate.latitude),\(origin.coordinate.longitude) and \(destination)")
+                } else {
+                    if(WoosLog.isValidLevel(level: .warn)){
+                        if #available(iOS 14.0, *) {
+                            Logger.sdklog.warning("\(LogEvent.w.rawValue) \(#function) \(jsonStructure.status ?? "") distance between \(origin.coordinate.latitude),\(origin.coordinate.longitude) and \(destination)")
+                        } else {
+                            WoosLog.warning("\(#function) error: \(jsonStructure.status ?? "") distance between  \(origin.coordinate.latitude),\(origin.coordinate.longitude) and \(destination)")
+                        }
                     }
                 }
             }
+            
             try distanceArray.forEach { row in
                 let _ = try WoosmapDataManager.connect.save(entity: row.dbEntity())
             }
