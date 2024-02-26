@@ -237,10 +237,7 @@ public class LocationServiceCoreImpl: NSObject,
                 return
             }
         }
-        else{
-            lastfatchLocation = locations.last
-        }
-        
+        lastfatchLocation = locations.last
         self.stopUpdatingLocation()
         updateLocation(locations: locations)
         self.updateRegionMonitoring()
