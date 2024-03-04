@@ -14,5 +14,5 @@ Pod::Spec.new do |s|
   s.pod_target_xcconfig = { 'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'arm64' }
   s.user_target_xcconfig = { 'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'arm64' }
   s.source_files = 'Sources/WoosmapGeofencing/*.swift', 'Sources/WoosmapGeofencing/Business Logic/*.swift',"Sources/WoosmapGeofencing/Surge/**/*.swift"
-  s.resources = 'Sources/WoosmapGeofencing/Business Logic/Woosmap.xcdatamodeld'
+  s.resources = 'Sources/WoosmapGeofencing/Business Logic/Woosmap.xcdatamodeld','Sources/WoosmapGeofencing/*.{xcprivacy}'
 end
