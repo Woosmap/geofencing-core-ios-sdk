@@ -98,6 +98,7 @@
 		5F468DF62A2499DF006F6D94 /* Random.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Random.swift; sourceTree = "<group>"; };
 		5F468DF82A2499DF006F6D94 /* Logarithm.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Logarithm.swift; sourceTree = "<group>"; };
 		5F5CD5E928A6302C0074D7DD /* DurationLogTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DurationLogTest.swift; sourceTree = "<group>"; };
+		5F6FD2852B95B980009E6A49 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		5F84A8132AB425A2002B1735 /* WoosLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WoosLogger.swift; sourceTree = "<group>"; };
 		5FB3E7A22872F2BE0035653E /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
 		5FB3E7A42872F3170035653E /* LocationServiceCoreImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationServiceCoreImpl.swift; sourceTree = "<group>"; };
@@ -247,6 +248,7 @@
 		A216FB9F23E9CEA70003AAC8 = {
 			isa = PBXGroup;
 			children = (
+				5F6FD2852B95B980009E6A49 /* PrivacyInfo.xcprivacy */,
 				A216FBAB23E9CEA70003AAC8 /* WoosmapGeofencing */,
 				A2C57C4924D95F7A00E5A080 /* WoosmapGeofencingTests */,
 				A216FBAA23E9CEA70003AAC8 /* Products */,
