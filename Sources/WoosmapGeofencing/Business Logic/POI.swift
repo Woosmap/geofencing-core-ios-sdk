@@ -431,7 +431,7 @@ public class POIs {
     ///   - duration: duration
     ///   - locationId: Location
     /// - Returns: Updated POI information
-    public class func updatePOIWithDistance(distance: Double, duration: String, locationId: String) -> POI {
+    internal class func updatePOIWithDistance(distance: Double, duration: String, locationId: String) -> POI {
         do {
 
             if let poiToUpdate = POIs._getPOIModelbyLocationID(locationId: locationId) {
@@ -466,5 +466,29 @@ public class POIs {
                 }
             }
         }
+    }
+    
+    internal class func invalidateCache(_ item:POI) -> POI{
+        do {
+            if let storeid = item.idstore{
+                let predicate = NSPredicate(format: "idstore == %@", storeid)
+                let fetchedResults = try WoosmapDataManager.connect.retrieve(entityClass: POIDB.self, predicate: predicate)
+                if let aPOI = fetchedResults.last {
+                    aPOI.date = Date.distantPast
+                    _ = try WoosmapDataManager.connect.save(entity: aPOI)
+                    return POI(poiDB: aPOI)
+                }
+            }
+            
+        } catch {
+            if(WoosLog.isValidLevel(level: .error)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.error("\(LogEvent.e.rawValue) \(#function) error: \(error)")
+                } else {
+                    WoosLog.error("\(#function) error: \(error)")
+                }
+            }
+        }
+        return POI()
     }
 }

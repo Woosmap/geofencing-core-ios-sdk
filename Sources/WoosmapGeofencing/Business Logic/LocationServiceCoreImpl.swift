@@ -530,6 +530,7 @@ public class LocationServiceCoreImpl: NSObject,
         if lastPOI != nil && !location.locationId!.isEmpty && lastSearchLocation.locationId != "" {
             if(searchAPILastRequestTimeStamp > lastPOI!.date!.timeIntervalSince1970) {
                 if ((searchAPILastRequestTimeStamp - lastPOI!.date!.timeIntervalSince1970) > Double(searchAPIRefreshDelayDay*3600*24)) {
+                    POIs.deleteAll()
                     sendSearchAPIRequest(location: location)
 #if DEBUG
                     logAPI.sendSearchAPIRequest = true
@@ -1043,7 +1044,7 @@ public class LocationServiceCoreImpl: NSObject,
         url.addValue(bundle.infoDictionary?["CFBundleShortVersionString"] as? String ?? "3.0.0", forHTTPHeaderField: "X-AK-SDK-Version")
         url.addValue(Bundle.main.bundleIdentifier ?? "unknown", forHTTPHeaderField: "X-iOS-Identifier")
         url.addValue(WoosmapAPIKey, forHTTPHeaderField: "X-Api-Key")
-        
+        url.timeoutInterval = 10
         // Call Get API
         let task = URLSession.shared.dataTask(with: url) { data, response, error in
             DispatchQueue.main.async {
