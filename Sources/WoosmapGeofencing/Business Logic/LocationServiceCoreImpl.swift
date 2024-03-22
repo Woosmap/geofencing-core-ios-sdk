@@ -202,11 +202,11 @@ public class LocationServiceCoreImpl: NSObject,
     
     /// Update region monitoring
     func updateRegionMonitoring () {
-        if self.currentLocation != nil {
+        if let deviceLocation = self.currentLocation {
             self.stopUpdatingLocation()
             self.stopMonitoringCurrentRegions()
             if(!modeHighfrequencyLocation) {
-                self.startMonitoringCurrentRegions(regions: RegionsGenerator().generateRegionsFrom(location: self.currentLocation!))
+                self.startMonitoringCurrentRegions(regions: RegionsGenerator().generateRegionsFrom(location: deviceLocation))
             }
         }
     }
@@ -452,10 +452,7 @@ public class LocationServiceCoreImpl: NSObject,
         
         let location = locations.last!
         
-        if self.currentLocation != nil {
-            
-            let theLastLocation = self.currentLocation!
-            
+        if let theLastLocation = self.currentLocation {
             let timeEllapsed = abs(locations.last!.timestamp.seconds(from: theLastLocation.timestamp))
             
             if theLastLocation.distance(from: location) < currentLocationDistanceFilter && timeEllapsed < currentLocationTimeFilter {
@@ -508,6 +505,7 @@ public class LocationServiceCoreImpl: NSObject,
         if(WoosmapAPIKey.isEmpty) {
             return
         }
+        guard let deviceLocation = currentLocation else {return}
         
         let POIClassified = POIs.getAll().sorted(by: { $0.distance > $1.distance })
         let lastPOI = POIClassified.first
@@ -538,12 +536,11 @@ public class LocationServiceCoreImpl: NSObject,
                     return
                 }
             }
-            
-            let timeEllapsed = abs(currentLocation!.timestamp.seconds(from: lastPOI!.date!))
+            let timeEllapsed = abs(deviceLocation.timestamp.seconds(from: lastPOI!.date!))
             
             if (timeEllapsed < searchAPIRefreshDelayDay*3600*24) {
                 let distanceLimit = lastPOI!.distance - lastPOI!.radius
-                let distanceTraveled =  CLLocation(latitude: lastSearchLocation.latitude, longitude: lastSearchLocation.longitude).distance(from: currentLocation!)
+                let distanceTraveled =  CLLocation(latitude: lastSearchLocation.latitude, longitude: lastSearchLocation.longitude).distance(from: deviceLocation)
                 
                 if(WoosLog.isValidLevel(level: .trace)){
                     if #available(iOS 14.0, *) {
