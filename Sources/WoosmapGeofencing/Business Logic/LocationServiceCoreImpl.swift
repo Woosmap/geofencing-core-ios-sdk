@@ -6,6 +6,7 @@
 import Foundation
 import CoreLocation
 import os
+import UIKit
 /// Location service implementation
 public class LocationServiceCoreImpl: NSObject,
                                     LocationService,
@@ -234,6 +235,7 @@ public class LocationServiceCoreImpl: NSObject,
             let timeskipped = locations.last!.timestamp.seconds(from: history.timestamp) //Seconds
             if(distanceupdated < 5 &&  timeskipped < 5){ //Small changes
                 //debugPrint("Skipped Locations \(timeskipped) seconds")
+                self.stopUpdatingLocation()
                 return
             }
         }
@@ -1041,9 +1043,16 @@ public class LocationServiceCoreImpl: NSObject,
         url.addValue(bundle.infoDictionary?["CFBundleShortVersionString"] as? String ?? "3.0.0", forHTTPHeaderField: "X-AK-SDK-Version")
         url.addValue(Bundle.main.bundleIdentifier ?? "unknown", forHTTPHeaderField: "X-iOS-Identifier")
         url.addValue(WoosmapAPIKey, forHTTPHeaderField: "X-Api-Key")
-        url.timeoutInterval = 10
+        
         // Call Get API
-        let task = URLSession.shared.dataTask(with: url) { data, response, error in
+        let apiConfigtation = URLSession.shared.configuration
+        if(UIApplication.shared.applicationState == .background){ // Add time out intervel low in case of SDK call from background thread
+            url.timeoutInterval = 6
+            apiConfigtation.timeoutIntervalForRequest = 6
+        }
+        
+        let apiURLSession = URLSession(configuration: apiConfigtation)
+        let task = apiURLSession.dataTask(with: url) { data, response, error in
             DispatchQueue.main.async {
                 completionHandler(data, response, error)
             }
