@@ -418,6 +418,9 @@ public class LocationServiceCoreImpl: NSObject,
     ///   - manager: Location service
     ///   - region: Regon info
     public func locationManager(_ manager: CLLocationManager, didStartMonitoringFor region: CLRegion) {
+        if(UIApplication.shared.applicationState == .background){
+            return
+        }
         guard let monitoredRegions = locationManager?.monitoredRegions else { return }
         self.regionDelegate?.updateRegions(regions: monitoredRegions)
     }
