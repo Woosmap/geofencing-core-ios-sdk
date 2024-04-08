@@ -6,6 +6,7 @@
 import Foundation
 import CoreLocation
 import os
+import UIKit
 /// Location object
 public class Location  {
     /// Date
@@ -71,7 +72,7 @@ public class Locations {
             // create Location ID
             let locationId = UUID().uuidString
             
-            let entry = Location(locationId: locationId, latitude: location.coordinate.latitude, longitude: location.coordinate.longitude, dateCaptured: Date(), descriptionToSave: "description")
+            let entry = Location(locationId: locationId, latitude: location.coordinate.latitude, longitude: location.coordinate.longitude, dateCaptured: Date(), descriptionToSave: "Status \(UIApplication.shared.applicationState.rawValue)")
             //Save in Core DB
             let newRec:LocationDB = try entry.dbEntity()
             let _ = try WoosmapDataManager.connect.save(entity: newRec)

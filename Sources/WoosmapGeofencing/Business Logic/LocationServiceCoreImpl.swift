@@ -230,6 +230,16 @@ public class LocationServiceCoreImpl: NSObject,
         guard locations.last != nil else {
             return
         }
+        if(UIApplication.shared.applicationState == .background){
+            guard ProcessInfo.processInfo.isLowPowerModeEnabled == false else { return } //When a user has enabled low-power mode you probably want to avoid doing API call to save CPU usage
+            UIDevice.current.isBatteryMonitoringEnabled = true
+            var  batteryLevel = UIDevice.current.batteryLevel
+            batteryLevel =  batteryLevel == -1 ? 1.0:batteryLevel
+            if(batteryLevel <= 0.1 && UIDevice.current.batteryState != UIDevice.BatteryState.charging)
+            {
+                return //less then 10% battery remain on device ignore background processing
+            }
+        }
         if let history = lastfatchLocation{
             let distanceupdated = history.distance(from: locations.last!) // meter
             let timeskipped = locations.last!.timestamp.seconds(from: history.timestamp) //Seconds
