@@ -87,6 +87,9 @@ public class LocationServiceCoreImpl: NSObject,
         myLocationManager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
         myLocationManager.distanceFilter = 10
         myLocationManager.pausesLocationUpdatesAutomatically = true
+        if let manager = myLocationManager as? CLLocationManager{
+            manager.showsBackgroundLocationIndicator = true
+        }
         myLocationManager.delegate = self
         if visitEnable {
             myLocationManager.startMonitoringVisits()
@@ -227,7 +230,7 @@ public class LocationServiceCoreImpl: NSObject,
     ///   - locations: Updated locations
     public func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         
-        guard locations.last != nil else {
+        guard let newLocation = locations.last else {
             return
         }
         if(UIApplication.shared.applicationState == .background){
@@ -239,17 +242,21 @@ public class LocationServiceCoreImpl: NSObject,
             {
                 return //less then 10% battery remain on device ignore background processing
             }
+//            if(newLocation.speed > 300){ //lock spped to 300 m/s
+//                return
+//            }
+            
         }
         if let history = lastfatchLocation{
-            let distanceupdated = history.distance(from: locations.last!) // meter
-            let timeskipped = locations.last!.timestamp.seconds(from: history.timestamp) //Seconds
+            let distanceupdated = history.distance(from: newLocation) // meter
+            let timeskipped = newLocation.timestamp.seconds(from: history.timestamp) //Seconds
             if(distanceupdated < 5 &&  timeskipped < 5){ //Small changes
                 //debugPrint("Skipped Locations \(timeskipped) seconds")
                 self.stopUpdatingLocation()
                 return
             }
         }
-        lastfatchLocation = locations.last
+        lastfatchLocation = newLocation
         self.stopUpdatingLocation()
         updateLocation(locations: locations)
         self.updateRegionMonitoring()
@@ -1058,7 +1065,7 @@ public class LocationServiceCoreImpl: NSObject,
         url.addValue(WoosmapAPIKey, forHTTPHeaderField: "X-Api-Key")
         
         // Call Get API
-        let apiConfigtation = URLSession.shared.configuration
+        let apiConfigtation: URLSessionConfiguration =  URLSessionConfiguration.default// URLSession.shared.configuration
         if(UIApplication.shared.applicationState == .background){ // Add time out intervel low in case of SDK call from background thread
             url.timeoutInterval = 6
             apiConfigtation.timeoutIntervalForRequest = 6
