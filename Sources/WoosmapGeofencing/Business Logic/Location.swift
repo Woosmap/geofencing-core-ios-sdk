@@ -71,8 +71,9 @@ public class Locations {
             let location = locations.last!
             // create Location ID
             let locationId = UUID().uuidString
-            
-            let entry = Location(locationId: locationId, latitude: location.coordinate.latitude, longitude: location.coordinate.longitude, dateCaptured: Date(), descriptionToSave: "Status \(UIApplication.shared.applicationState.rawValue)")
+             let details = "Status \(UIApplication.shared.applicationState.rawValue), accuracy=\(location.horizontalAccuracy), Speed=\(location.speed)"
+            debugPrint(details)
+            let entry = Location(locationId: locationId, latitude: location.coordinate.latitude, longitude: location.coordinate.longitude, dateCaptured: Date(), descriptionToSave:details )
             //Save in Core DB
             let newRec:LocationDB = try entry.dbEntity()
             let _ = try WoosmapDataManager.connect.save(entity: newRec)

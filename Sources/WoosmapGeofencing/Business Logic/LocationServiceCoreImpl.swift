@@ -125,9 +125,11 @@ public class LocationServiceCoreImpl: NSObject,
     /// Start Locaton service to receive new location update
     public func startUpdatingLocation() {
         self.requestAuthorization()
-        self.locationManager?.startUpdatingLocation()
-        if visitEnable {
-            self.locationManager?.startMonitoringVisits()
+        DispatchQueue.global().async {
+            self.locationManager?.startUpdatingLocation()
+            if visitEnable {
+                self.locationManager?.startMonitoringVisits()
+            }
         }
         if(WoosLog.isValidLevel(level: .trace)){
             if #available(iOS 14.0, *) {
@@ -141,7 +143,9 @@ public class LocationServiceCoreImpl: NSObject,
     /// Stop Locaton service to receive pause location update
     public func stopUpdatingLocation() {
         if (!modeHighfrequencyLocation) {
-            self.locationManager?.stopUpdatingLocation()
+            DispatchQueue.global().async {
+                self.locationManager?.stopUpdatingLocation()
+            }
             if(WoosLog.isValidLevel(level: .trace)){
                 if #available(iOS 14.0, *) {
                     Logger.sdklog.trace("\(LogEvent.v.rawValue) trace: Stoped Location service")
@@ -233,6 +237,10 @@ public class LocationServiceCoreImpl: NSObject,
         guard let newLocation = locations.last else {
             return
         }
+        if(newLocation.horizontalAccuracy > 100 ||  newLocation.horizontalAccuracy < -1){
+            return //Less accurate data
+        }
+        //Do not consume batter if app is in background
         if(UIApplication.shared.applicationState == .background){
             guard ProcessInfo.processInfo.isLowPowerModeEnabled == false else { return } //When a user has enabled low-power mode you probably want to avoid doing API call to save CPU usage
             UIDevice.current.isBatteryMonitoringEnabled = true
@@ -242,24 +250,23 @@ public class LocationServiceCoreImpl: NSObject,
             {
                 return //less then 10% battery remain on device ignore background processing
             }
-//            if(newLocation.speed > 300){ //lock spped to 300 m/s
-//                return
-//            }
-            
         }
+        
         if let history = lastfatchLocation{
             let distanceupdated = history.distance(from: newLocation) // meter
             let timeskipped = newLocation.timestamp.seconds(from: history.timestamp) //Seconds
             if(distanceupdated < 5 &&  timeskipped < 5){ //Small changes
-                //debugPrint("Skipped Locations \(timeskipped) seconds")
                 self.stopUpdatingLocation()
                 return
             }
         }
+        
         lastfatchLocation = newLocation
         self.stopUpdatingLocation()
         updateLocation(locations: locations)
-        self.updateRegionMonitoring()
+        DispatchQueue.global().async {
+            self.updateRegionMonitoring()
+        }
     }
     
     
