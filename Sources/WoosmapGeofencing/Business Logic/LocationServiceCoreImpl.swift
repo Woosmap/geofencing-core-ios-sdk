@@ -557,7 +557,7 @@ public class LocationServiceCoreImpl: NSObject,
         if lastPOI != nil && !location.locationId!.isEmpty && lastSearchLocation.locationId != "" {
             if(searchAPILastRequestTimeStamp > lastPOI!.date!.timeIntervalSince1970) {
                 if ((searchAPILastRequestTimeStamp - lastPOI!.date!.timeIntervalSince1970) > Double(searchAPIRefreshDelayDay*3600*24)) {
-                    POIs.deleteAll()
+    
                     sendSearchAPIRequest(location: location)
 #if DEBUG
                     logAPI.sendSearchAPIRequest = true
@@ -584,21 +584,19 @@ public class LocationServiceCoreImpl: NSObject,
 #endif
                 
                 if (distanceTraveled > distanceLimit) && (distanceTraveled > searchAPIDistanceFilter) && (timeEllapsed > searchAPITimeFilter) {
-                    POIs.deleteAll()
+
                     sendSearchAPIRequest(location: location)
 #if DEBUG
                     logAPI.sendSearchAPIRequest = true
 #endif
                 }
             } else {
-                POIs.deleteAll()
                 sendSearchAPIRequest(location: location)
 #if DEBUG
                 logAPI.sendSearchAPIRequest = true
 #endif
             }
         } else {
-            POIs.deleteAll()
             sendSearchAPIRequest(location: location)
 #if DEBUG
             logAPI.sendSearchAPIRequest = true
@@ -670,6 +668,7 @@ public class LocationServiceCoreImpl: NSObject,
                         }
                     }
                 } else {
+                    POIs.deleteAll()
                     let pois:[POI] = POIs.addFromResponseJson(searchAPIResponse: data!, locationId: locationId)
                     if(WoosLog.isValidLevel(level: .trace)){
                         if #available(iOS 14.0, *) {
