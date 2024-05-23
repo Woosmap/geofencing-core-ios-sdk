@@ -128,7 +128,7 @@ public var searchAPIParameters : [String: String] = [:]
 // filter for user_properties data
 public var userPropertiesFilter : [String] = []
 
-public var poiRadius:Any = ""
+public var poiRadius:Any = "radius"
 
 /// Enum which maps an appropiate symbol which added as prefix for each log message
 public enum WosmapLogEvent: Int {
