@@ -95,12 +95,11 @@ public protocol LocationService: NSObject {
                            locationId: String)
     
     func tracingLocationDidFailWithError(error: Error)
-    
     func addRegion(identifier: String, center: CLLocationCoordinate2D, radius: CLLocationDistance) -> (isCreate: Bool, identifier: String)
     
-    func removeRegion(identifier: String)
-    
     func addRegion(identifier: String, center: CLLocationCoordinate2D, radius: Int, type: String) -> (isCreate: Bool, identifier: String)
+    
+    func removeRegion(identifier: String)
     
     // func addRegionIsochrone(identifier: String, center: CLLocationCoordinate2D, radius: Int) -> Bool
     

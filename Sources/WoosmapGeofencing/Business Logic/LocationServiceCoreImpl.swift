@@ -328,7 +328,7 @@ public class LocationServiceCoreImpl: NSObject,
     ///   - center: center point
     ///   - radius: area
     /// - Returns: status
-    open func addRegion(identifier: String, center: CLLocationCoordinate2D, radius: CLLocationDistance) -> (isCreate: Bool, identifier: String) {
+    public func addRegion(identifier: String, center: CLLocationCoordinate2D, radius: CLLocationDistance) -> (isCreate: Bool, identifier: String) {
         guard let monitoredRegions = locationManager?.monitoredRegions else { return (false, "") }
         
         var nbrCustomGeofence = 0
@@ -366,7 +366,7 @@ public class LocationServiceCoreImpl: NSObject,
     ///   - radius: area
     ///   - type: "Curcle"
     /// - Returns: status
-    open func addRegion(identifier: String, center: CLLocationCoordinate2D, radius: Int, type: String) -> (isCreate: Bool, identifier: String){
+    public func addRegion(identifier: String, center: CLLocationCoordinate2D, radius: Int, type: String) -> (isCreate: Bool, identifier: String){
         if(type == "circle"){
             let (regionIsCreated, identifier) = addRegion(identifier: identifier, center: center, radius: Double(radius))
             return (regionIsCreated, identifier)
@@ -414,7 +414,7 @@ public class LocationServiceCoreImpl: NSObject,
     
     /// Check user is in region
     /// - Parameter region: region info
-    open func checkIfUserIsInRegion(region: CLCircularRegion) {
+    public func checkIfUserIsInRegion(region: CLCircularRegion) {
         guard let location = currentLocation else { return }
         if(region.contains(location.coordinate)) {
             let regionEnter = Regions.add(POIregion: region,
@@ -474,7 +474,7 @@ public class LocationServiceCoreImpl: NSObject,
     
     /// Update Location detail
     /// - Parameter locations: Location info
-    open func updateLocation(locations: [CLLocation]) {
+    public func updateLocation(locations: [CLLocation]) {
         guard let delegate = self.locationServiceDelegate else {
             return
         }
@@ -517,7 +517,7 @@ public class LocationServiceCoreImpl: NSObject,
         checkIfPositionIsInsideGeofencingRegions(location: location)
     }
     
-    open func searchAPIRequest(location: Location) {
+    public func searchAPIRequest(location: Location) {
         
 #if DEBUG
         let logAPI = LogSearchAPI()
@@ -719,7 +719,7 @@ public class LocationServiceCoreImpl: NSObject,
     
     /// Remove old poi for given region
     /// - Parameter newPOIS: poi info
-    open func removeOldPOIRegions(newPOIS: [POI]) {
+    public func removeOldPOIRegions(newPOIS: [POI]) {
         guard let monitoredRegions = locationManager?.monitoredRegions else { return }
         for region in monitoredRegions {
             var exist = false
@@ -936,7 +936,7 @@ public class LocationServiceCoreImpl: NSObject,
     ///   - region: region info
     ///   - didEnter: Event
     ///   - fromPositionDetection: User Locaton
-    open func addRegionLogTransition(region: CLRegion, didEnter: Bool, fromPositionDetection: Bool) {
+    public func addRegionLogTransition(region: CLRegion, didEnter: Bool, fromPositionDetection: Bool) {
         if let regionLog = Regions.getRegionFromId(id: region.identifier) {
             if (regionLog.date.timeIntervalSinceNow > -5) {
                 return
@@ -1092,22 +1092,22 @@ public class LocationServiceCoreImpl: NSObject,
     /// - Parameters:
     ///   - addCustomGeofence:-
     ///   - locationId: -
-    open func handleRefreshSystemGeofence(addCustomGeofence: Bool = false, locationId: String) {
+    public func handleRefreshSystemGeofence(addCustomGeofence: Bool = false, locationId: String) {
     }
     
     /// handle Visit Event
     /// - Parameter visit: -
-    open func handleVisitEvent(visit: Visit) {
+    public func handleVisitEvent(visit: Visit) {
     }
     
     /// Handle POI Event
     /// - Parameter poi: -
-    open func handlePOIEvent(poi: POI) {
+    public func handlePOIEvent(poi: POI) {
     }
     
     /// handle ZOI Classified Event
     /// - Parameter region: -
-    open func handleZOIClassifiedEvent(region: Region) {
+    public func handleZOIClassifiedEvent(region: Region) {
     }
 }
 
