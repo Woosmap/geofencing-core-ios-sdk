@@ -21,6 +21,8 @@ public class LastSearhLocation {
 }
 internal protocol LocationServiceInternal {
     
+    var monitor: RegionMonitoring? { get set }
+    
     func requestAuthorization()
     
     func setRegionDelegate(delegate: RegionsServiceDelegate)

@@ -59,24 +59,26 @@ public protocol VisitServiceDelegate: AnyObject {
 }
 
 /// Location manage protocal extend  LocationManagerProtocol
-public protocol LocationManagerProtocol {
-    var desiredAccuracy: CLLocationAccuracy { get set }
-    var allowsBackgroundLocationUpdates: Bool { get set }
-    var distanceFilter: CLLocationDistance { get set }
-    var pausesLocationUpdatesAutomatically: Bool { get set }
-    var delegate: CLLocationManagerDelegate? { get set }
-    var monitoredRegions: Set<CLRegion> { get }
-    func requestAlwaysAuthorization()
-    func startUpdatingLocation()
-    func stopUpdatingLocation()
-    func startMonitoringSignificantLocationChanges()
-    func stopMonitoringSignificantLocationChanges()
-    func stopMonitoring(for: CLRegion)
-    func startMonitoring(for: CLRegion)
-    func startMonitoringVisits()
+
+public class LocationManagerProtocol: CLLocationManager {
+//    var desiredAccuracy: CLLocationAccuracy { get set }
+//    var allowsBackgroundLocationUpdates: Bool { get set }
+//    var distanceFilter: CLLocationDistance { get set }
+//    var pausesLocationUpdatesAutomatically: Bool { get set }
+//    var delegate: CLLocationManagerDelegate? { get set }
+//    var monitoredRegions: Set<CLRegion> { get }
+//    func requestAlwaysAuthorization()
+//    func startUpdatingLocation()
+//    func stopUpdatingLocation()
+//    func startMonitoringSignificantLocationChanges()
+//    func stopMonitoringSignificantLocationChanges()
+//    func stopMonitoring(for region: CLRegion)
+//    func startMonitoring(for region: CLRegion)
+//    func startMonitoringVisits()
+
 }
 
-extension CLLocationManager: LocationManagerProtocol {}
+//extension CLLocationManager: LocationManagerProtocol {}
 
 public extension Date {
     /// Returns the amount of seconds from another date

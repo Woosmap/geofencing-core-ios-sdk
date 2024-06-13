@@ -13,8 +13,12 @@ public class LocationServiceCoreImpl: NSObject,
                                     LocationServiceInternal,
                                       CLLocationManagerDelegate  {
     
+
     /// Location Manager
     public var locationManager: LocationManagerProtocol?
+    
+    /// Region monitor use iOS 17 and above
+    internal var monitor:RegionMonitoring?
     
     /// Current Location
     public var currentLocation: CLLocation?
@@ -57,7 +61,7 @@ public class LocationServiceCoreImpl: NSObject,
     
     /// Interrnal location manager
     public func initLocationManager() {
-        guard var myLocationManager = self.locationManager else {
+        guard let myLocationManager = self.locationManager else {
             return
         }
         if let backgroundMode:[String] = Bundle.main.infoDictionary?["UIBackgroundModes"] as? [String]{
@@ -87,12 +91,31 @@ public class LocationServiceCoreImpl: NSObject,
         myLocationManager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
         myLocationManager.distanceFilter = 10
         myLocationManager.pausesLocationUpdatesAutomatically = true
-        if let manager = myLocationManager as? CLLocationManager{
-            manager.showsBackgroundLocationIndicator = true
-        }
+        myLocationManager.showsBackgroundLocationIndicator = true
         myLocationManager.delegate = self
         if visitEnable {
             myLocationManager.startMonitoringVisits()
+        }
+        if #available(iOS 17, *) {
+            monitor = RegionMonitoringImpl(self)
+            //Process old data
+            let lastMonitoring = myLocationManager.monitoredRegions
+            lastMonitoring.forEach { region in
+                if(region.identifier == region.RegionIdentifier){
+                    let regionType = getRegionType(identifier: region.identifier)
+                    if(regionType == .poi){
+                        myLocationManager.stopMonitoring(for: region)
+                        if let circleRegion = region as? CLCircularRegion{
+                            Task{
+                                await monitor?.addRegion(circleRegion.center, circleRegion.radius, forID: circleRegion.identifier)
+                            }
+                        }
+                        else if let beaconRegion = region as? CLBeaconRegion{
+                            monitor?.addBeaconRegion(beaconRegion.uuid, beaconRegion.major?.uint16Value, beaconRegion.minor?.uint16Value, forID: beaconRegion.identifier)
+                        }
+                    }
+                }
+            }
         }
     }
     
@@ -184,11 +207,18 @@ public class LocationServiceCoreImpl: NSObject,
     /// Stop mnitoring region
     public func stopMonitoringCurrentRegions() {
         guard let monitoredRegions = locationManager?.monitoredRegions else { return }
-        for region in monitoredRegions {
-            if getRegionType(identifier: region.identifier) == RegionType.position {
-                self.locationManager?.stopMonitoring(for: region)
+        Task{
+            for region in monitoredRegions {
+                if getRegionType(identifier: region.identifier) == RegionType.position {
+                    if #available(iOS 17.0, *) {
+                           await monitor?.removeRegion(region.RegionIdentifier)
+                    } else {
+                        self.locationManager?.stopMonitoring(for: region)
+                    }
+                }
             }
         }
+        
         if(WoosLog.isValidLevel(level: .trace)){
             if #available(iOS 14.0, *) {
                 Logger.sdklog.trace("\(LogEvent.v.rawValue) trace: Stopped Monitoring Region")
@@ -201,20 +231,48 @@ public class LocationServiceCoreImpl: NSObject,
     /// Start monitoring region
     func startMonitoringCurrentRegions(regions: Set<CLRegion>) {
         self.requestAuthorization()
-        for region in regions {
-            self.locationManager?.startMonitoring(for: region)
+        if #available(iOS 17.0, *) {
+            Task {
+                //remove old positioning region
+                let regionList = await monitor?.list() ?? [:]
+                for (regionKey, _ ) in  regionList{
+                    let regiontype = getRegionType(identifier: regionKey)
+                    if(regiontype == .position){
+                        await monitor?.removeRegion(regionKey)
+                    }
+                }
+                //remove old positioning region
+                //let timeStamp = Date().timeIntervalSince1970
+                for region in regions {
+                    if let circleR = region as? CLCircularRegion{
+                        await monitor?.addRegion(circleR.center,circleR.radius,forID: "\(circleR.identifier)")
+                    }
+                }
+                guard let monitoredRegions = locationManager?.monitoredRegions else { return }
+                self.regionDelegate?.updateRegions(regions: monitoredRegions)
+            }
+            
         }
-        guard let monitoredRegions = locationManager?.monitoredRegions else { return }
-        self.regionDelegate?.updateRegions(regions: monitoredRegions)
+        else{
+            self.stopMonitoringCurrentRegions()
+            for region in regions {
+                self.locationManager?.startMonitoring(for: region)
+            }
+            guard let monitoredRegions = locationManager?.monitoredRegions else { return }
+            self.regionDelegate?.updateRegions(regions: monitoredRegions)
+        }
+        
     }
     
     /// Update region monitoring
     func updateRegionMonitoring () {
         if let deviceLocation = self.currentLocation {
             self.stopUpdatingLocation()
-            self.stopMonitoringCurrentRegions()
             if(!modeHighfrequencyLocation) {
                 self.startMonitoringCurrentRegions(regions: RegionsGenerator().generateRegionsFrom(location: deviceLocation))
+            }
+            else{
+                self.stopMonitoringCurrentRegions()
             }
         }
     }
@@ -297,14 +355,20 @@ public class LocationServiceCoreImpl: NSObject,
     ///   - manager: location service
     ///   - region: region info
     public func locationManager(_ manager: CLLocationManager, didExitRegion region: CLRegion) {
-        if (modeHighfrequencyLocation) {
+        if #available(iOS 17.0, *) {
+            //It handle by region monitoring event
+        }
+        else{
+            if (modeHighfrequencyLocation) {
+                self.handleRegionChange()
+                return
+            }
+            if  (getRegionType(identifier: region.identifier) == RegionType.custom) || (getRegionType(identifier: region.identifier) == RegionType.poi) {
+                addRegionLogTransition(region: region, didEnter: false,fromPositionDetection: false)
+            }
             self.handleRegionChange()
-            return
         }
-        if  (getRegionType(identifier: region.identifier) == RegionType.custom) || (getRegionType(identifier: region.identifier) == RegionType.poi) {
-            addRegionLogTransition(region: region, didEnter: false,fromPositionDetection: false)
-        }
-        self.handleRegionChange()
+        
     }
     
     /// Fires when User entered region that monitor by app
@@ -312,14 +376,19 @@ public class LocationServiceCoreImpl: NSObject,
     ///   - manager: location service
     ///   - region: region info
     public func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
-        if (modeHighfrequencyLocation) {
+        if #available(iOS 17.0, *) {
+            //It handle by region monitoring event
+        }
+        else{
+            if (modeHighfrequencyLocation) {
+                self.handleRegionChange()
+                return
+            }
+            if  (getRegionType(identifier: region.identifier) == RegionType.custom) || (getRegionType(identifier: region.identifier) == RegionType.poi) {
+                addRegionLogTransition(region: region, didEnter: true, fromPositionDetection: false)
+            }
             self.handleRegionChange()
-            return
         }
-        if  (getRegionType(identifier: region.identifier) == RegionType.custom) || (getRegionType(identifier: region.identifier) == RegionType.poi) {
-            addRegionLogTransition(region: region, didEnter: true, fromPositionDetection: false)
-        }
-        self.handleRegionChange()
     }
     
     /// Created new circular region
@@ -341,7 +410,17 @@ public class LocationServiceCoreImpl: NSObject,
             return (false, "number of custom geofence can be more than 3")
         }
         let id = RegionType.custom.rawValue + "<id>" + identifier
-        self.locationManager?.startMonitoring(for: CLCircularRegion(center: center, radius: radius, identifier: id ))
+        
+        let customRegion = CLCircularRegion(center: center, radius: radius, identifier: id )
+        
+        if #available(iOS 17.0, *) {
+            Task{
+                await monitor?.addRegion(customRegion.center, customRegion.radius, forID: customRegion.identifier)
+            }
+        }else{
+            self.locationManager?.startMonitoring(for: customRegion)
+        }
+        
         checkIfUserIsInRegion(region: CLCircularRegion(center: center, radius: radius, identifier: id ))
         return (true, RegionType.custom.rawValue + "<id>" + identifier)
     }
@@ -352,9 +431,18 @@ public class LocationServiceCoreImpl: NSObject,
     public func removeRegion(identifier: String) {
         guard let monitoredRegions = locationManager?.monitoredRegions else { return }
         for region in monitoredRegions {
-            if (region.identifier == identifier) {
-                self.locationManager?.stopMonitoring(for: region)
-                self.handleRegionChange()
+            //TODO: Please Check implementation
+            if (region.RegionIdentifier == identifier) {
+                if #available(iOS 17.0, *) {
+                    Task{
+                       await monitor?.removeRegion(region.RegionIdentifier)
+                       self.handleRegionChange()
+                    }
+                } else {
+                    self.locationManager?.stopMonitoring(for: region)
+                    self.handleRegionChange()
+                }
+                
             }
         }
     }
@@ -384,8 +472,16 @@ public class LocationServiceCoreImpl: NSObject,
                 let latRegion = circularRegion.center.latitude
                 let lngRegion = circularRegion.center.longitude
                 if center.latitude == latRegion && center.longitude == lngRegion {
-                    self.locationManager?.stopMonitoring(for: region)
-                    self.handleRegionChange()
+                    if #available(iOS 17.0, *) {
+                        Task{
+                           await monitor?.removeRegion(region.RegionIdentifier)
+                           self.handleRegionChange()
+                        }
+                    } else {
+                        self.locationManager?.stopMonitoring(for: region)
+                        self.handleRegionChange()
+                    }
+                    
                 }
             }
         }
@@ -394,21 +490,43 @@ public class LocationServiceCoreImpl: NSObject,
     /// Remove circular region form monitoring
     /// - Parameter type: Type
     public func removeRegions(type: RegionType) {
-        guard let monitoredRegions = locationManager?.monitoredRegions else { return }
-        if RegionType.none == type {
-            for region in monitoredRegions {
-                if !region.identifier.contains(RegionType.position.rawValue) {
-                    self.locationManager?.stopMonitoring(for: region)
+        if #available(iOS 17.0, *) {
+            Task{
+                let regionList = await monitor?.list() ?? [:]
+                if RegionType.none == type {
+                    for (regionkey,_) in regionList{
+                        if !regionkey.contains(RegionType.position.rawValue) {
+                            await monitor?.removeRegion(regionkey)
+                        }
+                    }
+                }
+                else {
+                    for (regionkey,_) in regionList{
+                        if regionkey.contains(type.rawValue) {
+                            await monitor?.removeRegion(regionkey)
+                        }
+                    }
                 }
             }
-        } else {
-            for region in monitoredRegions {
-                if region.identifier.contains(type.rawValue) {
-                    self.locationManager?.stopMonitoring(for: region)
-                }
-            }
+            self.handleRegionChange()
         }
-        self.handleRegionChange()
+        else{
+            guard let monitoredRegions = locationManager?.monitoredRegions else { return }
+            if RegionType.none == type {
+                for region in monitoredRegions {
+                    if !region.identifier.contains(RegionType.position.rawValue) {
+                        self.locationManager?.stopMonitoring(for: region)
+                    }
+                }
+            } else {
+                for region in monitoredRegions {
+                    if region.identifier.contains(type.rawValue) {
+                        self.locationManager?.stopMonitoring(for: region)
+                    }
+                }
+            }
+            self.handleRegionChange()
+        }
     }
     
     
@@ -720,18 +838,40 @@ public class LocationServiceCoreImpl: NSObject,
     /// Remove old poi for given region
     /// - Parameter newPOIS: poi info
     public func removeOldPOIRegions(newPOIS: [POI]) {
-        guard let monitoredRegions = locationManager?.monitoredRegions else { return }
-        for region in monitoredRegions {
-            var exist = false
-            for poi in newPOIS {
-                let identifier = "<id>" + (poi.idstore ?? "") + "<id>"
-                if (region.identifier.contains(identifier)) {
-                    exist = true
+        if #available(iOS 17.0, *) {
+            Task {
+                let regionList = await self.monitor?.list() ?? [:]
+                for (regionkey , _) in regionList{
+                    var exist = false
+                    for poi in newPOIS {
+                        let identifier = "<id>" + (poi.idstore ?? "") + "<id>"
+                        if (regionkey.contains(identifier)) {
+                            exist = true
+                        }
+                    }
+                    
+                    if(!exist) {
+                        if regionkey.contains(RegionType.poi.rawValue) {
+                            await self.monitor?.removeRegion(regionkey)
+                        }
+                    }
                 }
             }
-            if(!exist) {
-                if region.identifier.contains(RegionType.poi.rawValue) {
-                    self.locationManager?.stopMonitoring(for: region)
+        }
+        else{
+            guard let monitoredRegions = locationManager?.monitoredRegions else { return }
+            for region in monitoredRegions {
+                var exist = false
+                for poi in newPOIS {
+                    let identifier = "<id>" + (poi.idstore ?? "") + "<id>"
+                    if (region.identifier.contains(identifier)) {
+                        exist = true
+                    }
+                }
+                if(!exist) {
+                    if region.identifier.contains(RegionType.poi.rawValue) {
+                        self.locationManager?.stopMonitoring(for: region)
+                    }
                 }
             }
         }
@@ -891,7 +1031,13 @@ public class LocationServiceCoreImpl: NSObject,
     /// Handle Region Changes
     func handleRegionChange() {
         self.lastRegionUpdate = Date()
-        self.stopMonitoringCurrentRegions()
+    //TODO:Add iOS 17 catch
+        if #available(iOS 17.0, *) {
+            //Do nothing it handle while adding new 
+        }else{
+            self.stopMonitoringCurrentRegions()
+        }
+        
         self.startUpdatingLocation()
         self.startMonitoringSignificantLocationChanges()
     }
@@ -1108,6 +1254,42 @@ public class LocationServiceCoreImpl: NSObject,
     /// handle ZOI Classified Event
     /// - Parameter region: -
     public func handleZOIClassifiedEvent(region: Region) {
+    }
+}
+
+extension LocationServiceCoreImpl : RegionMonitoringDelegate{
+    func regionMonitoring(_ manager: any RegionMonitoring, didExitRegion region: CLRegion) {
+        if (modeHighfrequencyLocation) {
+            self.handleRegionChange()
+            return
+        }
+        if  (getRegionType(identifier: region.identifier) == RegionType.custom) || (getRegionType(identifier: region.identifier) == RegionType.poi) {
+            addRegionLogTransition(region: region, didEnter: false,fromPositionDetection: false)
+        }
+        self.handleRegionChange()
+    }
+    
+    func regionMonitoring(_ manager: any RegionMonitoring, monitoringDidFailFor region: CLRegion?, withError error: any Error) {
+        if region is CLCircularRegion{
+            if(WoosLog.isValidLevel(level: .error)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.error("\(LogEvent.e.rawValue) WoosmapGeofencing Error : can't create geofence \((region?.identifier ?? "")) \(error.localizedDescription)")
+                } else {
+                    WoosLog.error("WoosmapGeofencing Error : can't create geofence \((region?.identifier ?? "")) \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+    
+    func regionMonitoring(_ manager: any RegionMonitoring, didEnterRegion region: CLRegion) {
+        if (modeHighfrequencyLocation) {
+            self.handleRegionChange()
+            return
+        }
+        if  (getRegionType(identifier: region.identifier) == RegionType.custom) || (getRegionType(identifier: region.identifier) == RegionType.poi) {
+            addRegionLogTransition(region: region, didEnter: true, fromPositionDetection: false)
+        }
+        self.handleRegionChange()
     }
 }
 
