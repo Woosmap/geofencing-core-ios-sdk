@@ -1265,8 +1265,23 @@ extension LocationServiceCoreImpl : RegionMonitoringDelegate{
         }
         if  (getRegionType(identifier: region.identifier) == RegionType.custom) || (getRegionType(identifier: region.identifier) == RegionType.poi) {
             addRegionLogTransition(region: region, didEnter: false,fromPositionDetection: false)
+            self.handleRegionChange()
         }
-        self.handleRegionChange()
+        else if (getRegionType(identifier: region.identifier) == RegionType.position){
+            var shoudUpdateRegionChange = false
+            if let lastUpdate = self.lastRegionUpdate{
+                let timeslip =  Date().timeIntervalSince(lastUpdate)
+                if(timeslip > 2){ //more then 2 seconds
+                    shoudUpdateRegionChange = true
+                }
+            }
+            else{
+                shoudUpdateRegionChange = true
+            }
+            if shoudUpdateRegionChange{
+                self.handleRegionChange()
+            }
+        }
     }
     
     func regionMonitoring(_ manager: any RegionMonitoring, monitoringDidFailFor region: CLRegion?, withError error: any Error) {
@@ -1288,8 +1303,23 @@ extension LocationServiceCoreImpl : RegionMonitoringDelegate{
         }
         if  (getRegionType(identifier: region.identifier) == RegionType.custom) || (getRegionType(identifier: region.identifier) == RegionType.poi) {
             addRegionLogTransition(region: region, didEnter: true, fromPositionDetection: false)
+            self.handleRegionChange()
         }
-        self.handleRegionChange()
+        else if (getRegionType(identifier: region.identifier) == RegionType.position){
+            var shoudUpdateRegionChange = false
+            if let lastUpdate = self.lastRegionUpdate{
+                let timeslip =  Date().timeIntervalSince(lastUpdate)
+                if(timeslip > 2){ //more then 2 seconds
+                    shoudUpdateRegionChange = true
+                }
+            }
+            else{
+                shoudUpdateRegionChange = true
+            }
+            if shoudUpdateRegionChange{
+                self.handleRegionChange()
+            }
+        }
     }
 }
 
