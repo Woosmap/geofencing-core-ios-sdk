@@ -1232,6 +1232,34 @@ public class LocationServiceCoreImpl: NSObject,
         task.resume()
     }
     
+    func woosApiAsync(with url: URL) async throws -> Data {
+        let bundle = Bundle(for: LocationServiceCoreImpl.self)
+        var url = URLRequest(url: url)
+        
+        
+        url.addValue("geofence-sdk", forHTTPHeaderField: "X-SDK-Source")
+        url.addValue("iOS", forHTTPHeaderField: "X-AK-SDK-Platform")
+        
+        url.addValue(bundle.infoDictionary?["CFBundleShortVersionString"] as? String ?? "3.0.0", forHTTPHeaderField: "X-AK-SDK-Version")
+        url.addValue(Bundle.main.bundleIdentifier ?? "unknown", forHTTPHeaderField: "X-iOS-Identifier")
+        url.addValue(WoosmapAPIKey, forHTTPHeaderField: "X-Api-Key")
+        
+        // Call Get API
+        let (data, response) =  try await URLSession.shared.data(for: url)
+        if let response = response as? HTTPURLResponse {
+            if(response.statusCode != 200){
+                if(response.statusCode == 403){
+                    throw WoosmapApiError.runtimeErrorUnAuthorize("Api Key is not valid")
+                }
+                else{
+                    throw WoosmapApiError.runtimeError("Api is not working")
+                }
+            }
+        }
+        
+        return data
+    }
+    
     //Empty shell method
     
     /// handle Refresh System Geofence
@@ -1294,3 +1322,7 @@ extension LocationServiceCoreImpl : RegionMonitoringDelegate{
     }
 }
 
+enum WoosmapApiError: Error {
+    case runtimeError(String)
+    case runtimeErrorUnAuthorize(String)
+}

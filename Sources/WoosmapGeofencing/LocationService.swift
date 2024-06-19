@@ -55,6 +55,7 @@ internal protocol LocationServiceInternal {
     
     func removeOldPOIRegions(newPOIS: [POI])
     
+    func woosApiAsync(with url: URL) async throws -> Data
 }
 
 
@@ -133,6 +134,7 @@ public protocol LocationService: NSObject {
     func locationManager(_ manager: CLLocationManager, didStartMonitoringFor region: CLRegion)
     
     func woosApiCall(with url: URL,completionHandler: @escaping @Sendable (Data?, URLResponse?, Error?) -> Void)
+    
 }
 
 public extension LocationService {

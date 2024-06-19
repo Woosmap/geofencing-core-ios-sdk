@@ -52,6 +52,9 @@ protocol RegionMonitoring{
     func addBeaconRegion(_ uuid: UUID, _ major: UInt16?,_ minor: UInt16?, forID id:String)
     
     @available(iOS 17.0, *)
+    func addBeaconRegion(_ uuid: UUID, _ major: UInt16?,_ minor: UInt16?, forID id:String) async
+    
+    @available(iOS 17.0, *)
     func getRegion(_ id:String) async -> CLMonitor.Record?
     
     @available(iOS 17.0, *)
@@ -167,6 +170,18 @@ class RegionMonitoringImpl: NSObject,RegionMonitoring{
             let monitor = await CLMonitor.woosmapMonitor
             await monitor.add(georegion, identifier: id)
         }
+    }
+    
+    func addBeaconRegion(_ uuid: UUID, _ major: UInt16?,_ minor: UInt16?, forID id:String) async{
+        var georegion =  CLMonitor.BeaconIdentityCondition(uuid: uuid)
+        if(major != nil && minor != nil){
+            georegion = CLMonitor.BeaconIdentityCondition(uuid: uuid, major: CLBeaconMajorValue( major ?? 0) , minor: CLBeaconMinorValue(minor ?? 0))
+        }
+        else if(major != nil){
+            georegion = CLMonitor.BeaconIdentityCondition(uuid: uuid, major: CLBeaconMajorValue( major ?? 0))
+        }
+        let monitor = await CLMonitor.woosmapMonitor
+        await monitor.add(georegion, identifier: id)
     }
     
     func removeRegion(_ id:String) async{
