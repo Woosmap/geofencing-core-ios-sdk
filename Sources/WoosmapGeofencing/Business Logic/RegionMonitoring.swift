@@ -42,6 +42,10 @@ extension CLRegion {
 }
 
 protocol RegionMonitoring{
+    
+    @available(iOS 17.0, *)
+    func monitoredRegions() async ->[CLRegion]
+    
     @available(iOS 17.0, *)
     func list() async -> [String: CLCondition]
     
@@ -73,7 +77,6 @@ protocol RegionMonitoringDelegate {
 class RegionMonitoringImpl: NSObject,RegionMonitoring{
     var delegate: RegionMonitoringDelegate?
     var monitor: CLMonitor?
-    
     init(_ event:RegionMonitoringDelegate){
         super.init()
         delegate = event
@@ -262,6 +265,34 @@ class RegionMonitoringImpl: NSObject,RegionMonitoring{
             
         }
         return output
+    }
+    
+    func monitoredRegions() async ->[CLRegion] {
+        let listMonitor =  await self.list()
+        var monitorArea:[CLRegion] = []
+        for (regionKey, region) in   listMonitor{
+            if let circularRegion = region  as? CLMonitor.CircularGeographicCondition{
+                let circularRegion: CLCircularRegion = CLCircularRegion(center: circularRegion.center, radius: circularRegion.radius, identifier: regionKey)
+                monitorArea.append(circularRegion)
+            }
+            else if let beaconRegion = region  as? CLMonitor.BeaconIdentityCondition{
+                var beaconRegion: CLBeaconRegion = CLBeaconRegion(uuid: beaconRegion.uuid, identifier: regionKey)
+                if(beaconRegion.major != nil && beaconRegion.minor != nil){
+                    beaconRegion = CLBeaconRegion(uuid: beaconRegion.uuid,
+                                                  major: CLBeaconMajorValue(beaconRegion.major?.int16Value ?? 0),
+                                                  minor: CLBeaconMinorValue(beaconRegion.minor?.int16Value ?? 0),
+                                                  identifier: regionKey)
+                }
+                else  if(beaconRegion.major != nil){
+                    beaconRegion = CLBeaconRegion(uuid: beaconRegion.uuid,
+                                                  major: CLBeaconMajorValue(beaconRegion.major?.int16Value ?? 0),
+                                                  identifier: regionKey)
+                }
+                monitorArea.append(beaconRegion)
+            }
+        }
+        return monitorArea
+        
     }
 }
 
