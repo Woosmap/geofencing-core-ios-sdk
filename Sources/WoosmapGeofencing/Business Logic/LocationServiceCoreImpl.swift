@@ -273,6 +273,7 @@ public class LocationServiceCoreImpl: NSObject,
         self.startUpdatingLocation()
     }
     private var lastfatchLocation: CLLocation?
+    private var invalidLocationTimer: Timer?
     /// Callback when new location receive form device
     /// - Parameters:
     ///   - manager: location service
@@ -283,6 +284,13 @@ public class LocationServiceCoreImpl: NSObject,
             return
         }
         if(newLocation.horizontalAccuracy > 100 ||  newLocation.horizontalAccuracy < -1){
+            if(invalidLocationTimer == nil){
+                invalidLocationTimer = Timer (timeInterval: 3, repeats: false, block: { Timer in
+                    self.stopUpdatingLocation()
+                    self.invalidLocationTimer?.invalidate()
+                    self.invalidLocationTimer = nil
+                })
+            }
             return //Less accurate data
         }
         //Do not consume batter if app is in background
@@ -293,6 +301,7 @@ public class LocationServiceCoreImpl: NSObject,
             batteryLevel =  batteryLevel == -1 ? 1.0:batteryLevel
             if(batteryLevel <= 0.1 && UIDevice.current.batteryState != UIDevice.BatteryState.charging)
             {
+                self.stopUpdatingLocation()
                 return //less then 10% battery remain on device ignore background processing
             }
         }
