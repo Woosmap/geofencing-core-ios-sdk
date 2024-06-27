@@ -30,6 +30,7 @@
 		5F84A8142AB425A2002B1735 /* WoosLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F84A8132AB425A2002B1735 /* WoosLogger.swift */; };
 		5FB3E7A32872F2BE0035653E /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FB3E7A22872F2BE0035653E /* LocationService.swift */; };
 		5FB3E7A52872F3170035653E /* LocationServiceCoreImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FB3E7A42872F3170035653E /* LocationServiceCoreImpl.swift */; };
+		5FBDC8C92C1B26380027D8A5 /* RegionMonitoring.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FBDC8C82C1B26380027D8A5 /* RegionMonitoring.swift */; };
 		A24796FF2726DF700081AADC /* Distance.swift in Sources */ = {isa = PBXBuildFile; fileRef = A24796FE2726DF700081AADC /* Distance.swift */; };
 		A248052E27DA5E8900E5B7CD /* LogSearchAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = A248052D27DA5E8900E5B7CD /* LogSearchAPI.swift */; };
 		A262B9C824E29ADF00EB621F /* FIGMMCreatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A262B9C524E29ADF00EB621F /* FIGMMCreatorTests.swift */; };
@@ -102,6 +103,7 @@
 		5F84A8132AB425A2002B1735 /* WoosLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WoosLogger.swift; sourceTree = "<group>"; };
 		5FB3E7A22872F2BE0035653E /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
 		5FB3E7A42872F3170035653E /* LocationServiceCoreImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationServiceCoreImpl.swift; sourceTree = "<group>"; };
+		5FBDC8C82C1B26380027D8A5 /* RegionMonitoring.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RegionMonitoring.swift; sourceTree = "<group>"; };
 		A216FBA923E9CEA70003AAC8 /* WoosmapGeofencingCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = WoosmapGeofencingCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		A24796FE2726DF700081AADC /* Distance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Distance.swift; sourceTree = "<group>"; };
 		A248052D27DA5E8900E5B7CD /* LogSearchAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogSearchAPI.swift; sourceTree = "<group>"; };
@@ -290,6 +292,7 @@
 		A2710EE525B5C88100AF62F5 /* Business Logic */ = {
 			isa = PBXGroup;
 			children = (
+				5FBDC8C82C1B26380027D8A5 /* RegionMonitoring.swift */,
 				5F4024712A72983D007BB627 /* WoosmapDataManager.swift */,
 				5F40246C2A7297B1007BB627 /* Woosmap.xcdatamodeld */,
 				A2710EEA25B5C8C400AF62F5 /* POI.swift */,
@@ -461,6 +464,7 @@
 				5F468DFA2A2499DF006F6D94 /* Auxiliary.swift in Sources */,
 				5FB3E7A32872F2BE0035653E /* LocationService.swift in Sources */,
 				5F468DFF2A2499DF006F6D94 /* FFT.swift in Sources */,
+				5FBDC8C92C1B26380027D8A5 /* RegionMonitoring.swift in Sources */,
 				A262B9DA24E29B0000EB621F /* Settings.swift in Sources */,
 				A2BAB7B926774A1F00AA4E80 /* JSONGeneric.swift in Sources */,
 				5F468DFB2A2499DF006F6D94 /* Vector.swift in Sources */,

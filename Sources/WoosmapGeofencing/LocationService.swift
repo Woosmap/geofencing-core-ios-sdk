@@ -21,6 +21,8 @@ public class LastSearhLocation {
 }
 internal protocol LocationServiceInternal {
     
+    var monitor: RegionMonitoring? { get set }
+    
     func requestAuthorization()
     
     func setRegionDelegate(delegate: RegionsServiceDelegate)
@@ -53,6 +55,7 @@ internal protocol LocationServiceInternal {
     
     func removeOldPOIRegions(newPOIS: [POI])
     
+    func woosApiAsync(with url: URL) async throws -> Data
 }
 
 
@@ -95,12 +98,11 @@ public protocol LocationService: NSObject {
                            locationId: String)
     
     func tracingLocationDidFailWithError(error: Error)
-    
     func addRegion(identifier: String, center: CLLocationCoordinate2D, radius: CLLocationDistance) -> (isCreate: Bool, identifier: String)
     
-    func removeRegion(identifier: String)
-    
     func addRegion(identifier: String, center: CLLocationCoordinate2D, radius: Int, type: String) -> (isCreate: Bool, identifier: String)
+    
+    func removeRegion(identifier: String)
     
     // func addRegionIsochrone(identifier: String, center: CLLocationCoordinate2D, radius: Int) -> Bool
     
@@ -132,6 +134,7 @@ public protocol LocationService: NSObject {
     func locationManager(_ manager: CLLocationManager, didStartMonitoringFor region: CLRegion)
     
     func woosApiCall(with url: URL,completionHandler: @escaping @Sendable (Data?, URLResponse?, Error?) -> Void)
+    
 }
 
 public extension LocationService {
