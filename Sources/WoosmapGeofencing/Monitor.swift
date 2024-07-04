@@ -75,7 +75,17 @@ public class LocationManagerProtocol: CLLocationManager {
 //    func stopMonitoring(for region: CLRegion)
 //    func startMonitoring(for region: CLRegion)
 //    func startMonitoringVisits()
-
+    var isLocationServiceStarted: Bool = false
+    public override func startUpdatingLocation(){
+        if(isLocationServiceStarted == false){
+            isLocationServiceStarted = true
+            super.startUpdatingLocation()
+        }
+    }
+    public override func stopUpdatingLocation(){
+        isLocationServiceStarted = false
+        super.stopUpdatingLocation()
+    }
 }
 
 //extension CLLocationManager: LocationManagerProtocol {}

@@ -283,16 +283,6 @@ public class LocationServiceCoreImpl: NSObject,
         guard let newLocation = locations.last else {
             return
         }
-        if(newLocation.horizontalAccuracy > 100 ||  newLocation.horizontalAccuracy < -1){
-            if(invalidLocationTimer == nil){
-                invalidLocationTimer = Timer (timeInterval: 3, repeats: false, block: { Timer in
-                    self.stopUpdatingLocation()
-                    self.invalidLocationTimer?.invalidate()
-                    self.invalidLocationTimer = nil
-                })
-            }
-            return //Less accurate data
-        }
         //Do not consume batter if app is in background
         if(UIApplication.shared.applicationState == .background){
             guard ProcessInfo.processInfo.isLowPowerModeEnabled == false else { return } //When a user has enabled low-power mode you probably want to avoid doing API call to save CPU usage
@@ -303,6 +293,22 @@ public class LocationServiceCoreImpl: NSObject,
             {
                 self.stopUpdatingLocation()
                 return //less then 10% battery remain on device ignore background processing
+            }
+            else if(newLocation.horizontalAccuracy > 100 ||  newLocation.horizontalAccuracy < -1){
+                self.stopUpdatingLocation()
+                return //Low Accuracy
+            }
+        }
+        else{
+            if(newLocation.horizontalAccuracy > 100 ||  newLocation.horizontalAccuracy < -1){
+                if(invalidLocationTimer == nil){
+                    invalidLocationTimer = Timer (timeInterval: 3, repeats: false, block: { Timer in
+                        self.stopUpdatingLocation()
+                        self.invalidLocationTimer?.invalidate()
+                        self.invalidLocationTimer = nil
+                    })
+                }
+                return //Less accurate data
             }
         }
         
@@ -1258,6 +1264,14 @@ extension LocationServiceCoreImpl : RegionMonitoringDelegate{
             addRegionLogTransition(region: region, didEnter: false,fromPositionDetection: false)
             
         }
+        else if  (getRegionType(identifier: region.identifier) == RegionType.position){
+            if let lastTrack = lastRegionUpdate{
+                
+                if(abs(lastTrack.timeIntervalSinceNow) < 2){
+                    return
+                }
+            }
+        }
         self.handleRegionChange()
     }
     
@@ -1280,6 +1294,14 @@ extension LocationServiceCoreImpl : RegionMonitoringDelegate{
         }
         if  (getRegionType(identifier: region.identifier) == RegionType.custom) || (getRegionType(identifier: region.identifier) == RegionType.poi) {
             addRegionLogTransition(region: region, didEnter: true, fromPositionDetection: false)
+        }
+        else if  (getRegionType(identifier: region.identifier) == RegionType.position){
+            if let lastTrack = lastRegionUpdate{
+                
+                if(abs(lastTrack.timeIntervalSinceNow) < 2){
+                    return
+                }
+            }
         }
         self.handleRegionChange()
     }
