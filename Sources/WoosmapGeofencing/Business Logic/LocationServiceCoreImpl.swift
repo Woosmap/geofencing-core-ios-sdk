@@ -294,7 +294,7 @@ public class LocationServiceCoreImpl: NSObject,
                 self.stopUpdatingLocation()
                 return //less then 10% battery remain on device ignore background processing
             }
-            else if(newLocation.horizontalAccuracy > 100 ||  newLocation.horizontalAccuracy < -1){
+            else if(newLocation.horizontalAccuracy > 500 ||  newLocation.horizontalAccuracy < -1){
                 self.stopUpdatingLocation()
                 return //Low Accuracy
             }
