@@ -103,7 +103,7 @@ public class LocationServiceCoreImpl: NSObject,
             lastMonitoring.forEach { region in
                 if(region.identifier == region.RegionIdentifier){
                     let regionType = getRegionType(identifier: region.identifier)
-                    if(regionType == .poi || regionType == .custom){
+                    if(regionType == .poi || regionType == .custom || regionType == .position){
                         myLocationManager.stopMonitoring(for: region)
                         if let circleRegion = region as? CLCircularRegion{
                             Task{
