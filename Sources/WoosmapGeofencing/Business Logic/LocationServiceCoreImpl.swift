@@ -57,7 +57,7 @@ public class LocationServiceCoreImpl: NSObject,
     
     /// Interrnal location manager
     public func initLocationManager() {
-        guard var myLocationManager = self.locationManager else {
+        guard let myLocationManager = self.locationManager else {
             return
         }
         if let backgroundMode:[String] = Bundle.main.infoDictionary?["UIBackgroundModes"] as? [String]{
@@ -87,9 +87,8 @@ public class LocationServiceCoreImpl: NSObject,
         myLocationManager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
         myLocationManager.distanceFilter = 10
         myLocationManager.pausesLocationUpdatesAutomatically = true
-        if let manager = myLocationManager as? CLLocationManager{
-            manager.showsBackgroundLocationIndicator = true
-        }
+        myLocationManager.showsBackgroundLocationIndicator = true
+    
         myLocationManager.delegate = self
         if visitEnable {
             myLocationManager.startMonitoringVisits()
