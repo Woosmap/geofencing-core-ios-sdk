@@ -88,7 +88,6 @@ public class LocationServiceCoreImpl: NSObject,
         myLocationManager.distanceFilter = 10
         myLocationManager.pausesLocationUpdatesAutomatically = true
         myLocationManager.showsBackgroundLocationIndicator = true
-    
         myLocationManager.delegate = self
         if visitEnable {
             myLocationManager.startMonitoringVisits()
@@ -227,6 +226,7 @@ public class LocationServiceCoreImpl: NSObject,
         self.startUpdatingLocation()
     }
     private var lastfatchLocation: CLLocation?
+    private var invalidLocationTimer: Timer?
     /// Callback when new location receive form device
     /// - Parameters:
     ///   - manager: location service
@@ -236,9 +236,6 @@ public class LocationServiceCoreImpl: NSObject,
         guard let newLocation = locations.last else {
             return
         }
-        if(newLocation.horizontalAccuracy > 100 ||  newLocation.horizontalAccuracy < -1){
-            return //Less accurate data
-        }
         //Do not consume batter if app is in background
         if(UIApplication.shared.applicationState == .background){
             guard ProcessInfo.processInfo.isLowPowerModeEnabled == false else { return } //When a user has enabled low-power mode you probably want to avoid doing API call to save CPU usage
@@ -247,9 +244,27 @@ public class LocationServiceCoreImpl: NSObject,
             batteryLevel =  batteryLevel == -1 ? 1.0:batteryLevel
             if(batteryLevel <= 0.1 && UIDevice.current.batteryState != UIDevice.BatteryState.charging)
             {
+                self.stopUpdatingLocation()
                 return //less then 10% battery remain on device ignore background processing
             }
+            else if(newLocation.horizontalAccuracy > 500 ||  newLocation.horizontalAccuracy < -1){
+                self.stopUpdatingLocation()
+                return //Low Accuracy
+            }
         }
+        else{
+            if(newLocation.horizontalAccuracy > 100 ||  newLocation.horizontalAccuracy < -1){
+                if(invalidLocationTimer == nil){
+                    invalidLocationTimer = Timer (timeInterval: 3, repeats: false, block: { Timer in
+                        self.stopUpdatingLocation()
+                        self.invalidLocationTimer?.invalidate()
+                        self.invalidLocationTimer = nil
+                    })
+                }
+                return //Less accurate data
+            }
+        }
+        
         
         if let history = lastfatchLocation{
             let distanceupdated = history.distance(from: newLocation) // meter

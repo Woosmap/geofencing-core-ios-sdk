@@ -59,6 +59,7 @@ public protocol VisitServiceDelegate: AnyObject {
 }
 
 /// Location manage protocal extend  LocationManagerProtocol
+
 public class LocationManagerProtocol: CLLocationManager {
 //    var desiredAccuracy: CLLocationAccuracy { get set }
 //    var allowsBackgroundLocationUpdates: Bool { get set }
@@ -71,9 +72,20 @@ public class LocationManagerProtocol: CLLocationManager {
 //    func stopUpdatingLocation()
 //    func startMonitoringSignificantLocationChanges()
 //    func stopMonitoringSignificantLocationChanges()
-//    func stopMonitoring(for: CLRegion)
-//    func startMonitoring(for: CLRegion)
+//    func stopMonitoring(for region: CLRegion)
+//    func startMonitoring(for region: CLRegion)
 //    func startMonitoringVisits()
+    var isLocationServiceStarted: Bool = false
+    public override func startUpdatingLocation(){
+        if(isLocationServiceStarted == false){
+            isLocationServiceStarted = true
+            super.startUpdatingLocation()
+        }
+    }
+    public override func stopUpdatingLocation(){
+        isLocationServiceStarted = false
+        super.stopUpdatingLocation()
+    }
 }
 
 //extension CLLocationManager: LocationManagerProtocol {}
