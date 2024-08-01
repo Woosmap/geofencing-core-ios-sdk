@@ -285,7 +285,9 @@ public class LocationServiceCoreImpl: NSObject,
         }
         //Do not consume batter if app is in background
         if(UIApplication.shared.applicationState == .background){
-            guard ProcessInfo.processInfo.isLowPowerModeEnabled == false else { return } //When a user has enabled low-power mode you probably want to avoid doing API call to save CPU usage
+            guard ProcessInfo.processInfo.isLowPowerModeEnabled == false else { 
+                self.stopUpdatingLocation()
+                return } //When a user has enabled low-power mode you probably want to avoid doing API call to save CPU usage
             UIDevice.current.isBatteryMonitoringEnabled = true
             var  batteryLevel = UIDevice.current.batteryLevel
             batteryLevel =  batteryLevel == -1 ? 1.0:batteryLevel
