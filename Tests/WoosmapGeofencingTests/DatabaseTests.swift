@@ -6,8 +6,8 @@
 //
 
 import XCTest
-import WoosmapGeofencingCore
 import CoreLocation
+@testable import WoosmapGeofencingCore
 
 class DatabaseTests: XCTestCase {
     let dateFormatter = DateFormatter()
