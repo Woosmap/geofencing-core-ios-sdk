@@ -11,7 +11,7 @@ import CoreLocation
     public var locationService: LocationService!
     public var sphericalMercator: SphericalMercator!
     public var visitPoint: LoadedVisit!
-    var locationManager: CLLocationManager?
+    var locationManager: LocationManagerProtocol?
     
     /**
      Access singleton of Now object
@@ -286,7 +286,7 @@ import CoreLocation
         if !tracking {
             self._stopAllMonitoring()
         } else {
-            self.locationService?.locationManager = CLLocationManager()
+            self.locationService?.locationManager = LocationManagerProtocol()
             self.locationService?.initLocationManager()
             self.locationService?.startUpdatingLocation()
             self.locationService?.startMonitoringSignificantLocationChanges()

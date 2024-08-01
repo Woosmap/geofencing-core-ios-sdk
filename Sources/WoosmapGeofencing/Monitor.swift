@@ -59,24 +59,36 @@ public protocol VisitServiceDelegate: AnyObject {
 }
 
 /// Location manage protocal extend  LocationManagerProtocol
-public protocol LocationManagerProtocol {
-    var desiredAccuracy: CLLocationAccuracy { get set }
-    var allowsBackgroundLocationUpdates: Bool { get set }
-    var distanceFilter: CLLocationDistance { get set }
-    var pausesLocationUpdatesAutomatically: Bool { get set }
-    var delegate: CLLocationManagerDelegate? { get set }
-    var monitoredRegions: Set<CLRegion> { get }
-    func requestAlwaysAuthorization()
-    func startUpdatingLocation()
-    func stopUpdatingLocation()
-    func startMonitoringSignificantLocationChanges()
-    func stopMonitoringSignificantLocationChanges()
-    func stopMonitoring(for: CLRegion)
-    func startMonitoring(for: CLRegion)
-    func startMonitoringVisits()
+
+public class LocationManagerProtocol: CLLocationManager {
+//    var desiredAccuracy: CLLocationAccuracy { get set }
+//    var allowsBackgroundLocationUpdates: Bool { get set }
+//    var distanceFilter: CLLocationDistance { get set }
+//    var pausesLocationUpdatesAutomatically: Bool { get set }
+//    var delegate: CLLocationManagerDelegate? { get set }
+//    var monitoredRegions: Set<CLRegion> { get }
+//    func requestAlwaysAuthorization()
+//    func startUpdatingLocation()
+//    func stopUpdatingLocation()
+//    func startMonitoringSignificantLocationChanges()
+//    func stopMonitoringSignificantLocationChanges()
+//    func stopMonitoring(for region: CLRegion)
+//    func startMonitoring(for region: CLRegion)
+//    func startMonitoringVisits()
+    var isLocationServiceStarted: Bool = false
+    public override func startUpdatingLocation(){
+        if(isLocationServiceStarted == false){
+            isLocationServiceStarted = true
+            super.startUpdatingLocation()
+        }
+    }
+    public override func stopUpdatingLocation(){
+        isLocationServiceStarted = false
+        super.stopUpdatingLocation()
+    }
 }
 
-extension CLLocationManager: LocationManagerProtocol {}
+//extension CLLocationManager: LocationManagerProtocol {}
 
 public extension Date {
     /// Returns the amount of seconds from another date
@@ -102,3 +114,16 @@ public extension Date {
     }
 }
 
+extension CLRegion {
+    var RegionIdentifier: String {
+        get {
+            let idFormat = self.identifier
+            if(idFormat.contains("::")){
+                let seperated = idFormat.components(separatedBy: "@")
+                return seperated[1]
+            }
+            
+            return idFormat
+        }
+    }
+}

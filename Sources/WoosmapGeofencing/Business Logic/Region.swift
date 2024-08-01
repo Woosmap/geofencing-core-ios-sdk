@@ -286,7 +286,7 @@ public class Regions {
                 if(entry.spentTime == 0){ //Do not save if we dont find respective entry event
                     throw NSError(domain: "WoosmapGeofance",
                                   code: 402,
-                                  userInfo: [NSLocalizedDescriptionKey: "No matching entry event found"])
+                                  userInfo: [NSLocalizedDescriptionKey: "No matching entry event found for \(identifier)"])
                 }
             }
             let _ = try WoosmapDataManager.connect.save(entity: entry.dbEntity())
