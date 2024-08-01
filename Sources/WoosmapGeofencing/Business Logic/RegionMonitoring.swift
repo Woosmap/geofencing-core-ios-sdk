@@ -27,20 +27,6 @@ extension CLMonitor {
     }
 }
 
-extension CLRegion {
-    var RegionIdentifier: String {
-        get {
-            let idFormat = self.identifier
-            if(idFormat.contains("::")){
-                let seperated = idFormat.components(separatedBy: "@")
-                return seperated[1]
-            }
-            
-            return idFormat
-        }
-    }
-}
-
 protocol RegionMonitoring{
     
     @available(iOS 17.0, *)
