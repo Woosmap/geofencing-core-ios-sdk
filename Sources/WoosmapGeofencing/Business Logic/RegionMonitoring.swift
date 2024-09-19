@@ -8,7 +8,7 @@
 import Foundation
 import CoreLocation
 
-@available(iOS 17, *)
+@available(iOS 17.0, *)
 extension CLMonitor {
         @MainActor
         static var woosmapMonitor: CLMonitor {
