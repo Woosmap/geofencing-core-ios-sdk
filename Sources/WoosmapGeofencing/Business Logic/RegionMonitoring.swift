@@ -81,6 +81,14 @@ class RegionMonitoringImpl: NSObject,RegionMonitoring{
         Task{
             self.monitor = await CLMonitor.woosmapMonitor
             for try await event in await self.monitor!.events {
+                if delegate == nil{
+                    break
+                }
+                guard let lastEvent = await monitor!.record(for: event.identifier)?.lastEvent else { continue }
+                if event.state == lastEvent.state {
+                    // If the event state is the same as the previous state
+                    continue
+                }
                 switch (event.state){
                 case .satisfied:
                     if let regioninfo = await self.getRegion(event.identifier){
