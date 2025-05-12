@@ -8,7 +8,7 @@ internal class WoosmapDataManager:NSObject {
     
     public static let connect = WoosmapDataManager()
     
-    let identifier: String  = "WebGeoServices.WoosmapGeofencing"       //Your framework bundle ID
+    let identifier: String  = "woosmap.WoosmapGeofencing"       //Your framework bundle ID
     let model: String       = "Woosmap"              //Model name
     var module: String      =  "WoosmapGeofencing"
     
