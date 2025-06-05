@@ -95,7 +95,7 @@ public class POI {
     
     fileprivate convenience init(poiDB: POIDB) {
         self.init()
-        self.jsonData = poiDB.jsonData
+        self.jsonData = poiDB.jsonData as? Data
         self.city = poiDB.city
         self.idstore = poiDB.idstore
         self.name = poiDB.name
@@ -121,7 +121,7 @@ public class POI {
             throw WoosmapGeofenceError.dbMissing
         }
         let newRec:POIDB = POIDB(context: WoosmapDataManager.connect.woosmapDB.viewContext)
-        newRec.jsonData = self.jsonData
+        newRec.jsonData = self.jsonData as? NSData
         newRec.city = self.city
         newRec.idstore = self.idstore
         newRec.name = self.name
@@ -187,7 +187,7 @@ public class POIs {
                         //Not storing all api response as json data
                         let singelPoi: [String: Any] = ["type": "FeatureCollection","features":[feature]]
                         let singleData = try? JSONSerialization.data(withJSONObject: singelPoi)
-                        poi.jsonData =  singleData
+                        poi.jsonData =  singleData as? NSData
                         //Not storing all api response as json data
                         //poi.jsonData =  searchAPIResponse
                         poi.locationId = locationId

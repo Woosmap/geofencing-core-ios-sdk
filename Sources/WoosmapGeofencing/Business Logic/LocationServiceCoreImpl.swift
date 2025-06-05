@@ -148,12 +148,21 @@ public class LocationServiceCoreImpl: NSObject,
     /// Start Locaton service to receive new location update
     public func startUpdatingLocation() {
         self.requestAuthorization()
-        DispatchQueue.global().async {
+        if Thread.isMainThread {
             self.locationManager?.startUpdatingLocation()
             if visitEnable {
                 self.locationManager?.startMonitoringVisits()
             }
         }
+        else{
+            DispatchQueue.main.async {
+                self.locationManager?.startUpdatingLocation()
+                if visitEnable {
+                    self.locationManager?.startMonitoringVisits()
+                }
+            }
+        }
+    
         if(WoosLog.isValidLevel(level: .trace)){
             if #available(iOS 14.0, *) {
                 Logger.sdklog.trace("\(LogEvent.v.rawValue) trace: Starting Location service")
@@ -166,8 +175,13 @@ public class LocationServiceCoreImpl: NSObject,
     /// Stop Locaton service to receive pause location update
     public func stopUpdatingLocation() {
         if (!modeHighfrequencyLocation) {
-            DispatchQueue.global().async {
+            if Thread.isMainThread {
                 self.locationManager?.stopUpdatingLocation()
+            }
+            else{
+                DispatchQueue.main.async {
+                    self.locationManager?.stopUpdatingLocation()
+                }
             }
             if(WoosLog.isValidLevel(level: .trace)){
                 if #available(iOS 14.0, *) {
@@ -326,8 +340,13 @@ public class LocationServiceCoreImpl: NSObject,
         lastfatchLocation = newLocation
         self.stopUpdatingLocation()
         updateLocation(locations: locations)
-        DispatchQueue.global().async {
+        if Thread.isMainThread{
             self.updateRegionMonitoring()
+        }
+        else{
+            DispatchQueue.main.async {
+                self.updateRegionMonitoring()
+            }
         }
     }
     
@@ -936,7 +955,7 @@ public class LocationServiceCoreImpl: NSObject,
         if let url = url.url{
             // Call API Distance
             woosApiCall(with: url) {(data, response, error) in
-                DispatchQueue.main.async {
+                //DispatchQueue.main.async {
                     if let response = response as? HTTPURLResponse {
                         if response.statusCode != 200 {
                             if(WoosLog.isValidLevel(level: .error)){
@@ -969,7 +988,7 @@ public class LocationServiceCoreImpl: NSObject,
                             delegateDistance.distanceAPIResponse(distance: distance)
                         }
                     }
-                }
+                //}
             }
         }
     }
