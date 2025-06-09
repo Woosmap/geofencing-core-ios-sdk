@@ -281,10 +281,10 @@ public class LocationServiceCoreImpl: NSObject,
             }
         }
         
-        if let history = lastfatchLocation{
+        if let history = self.lastfatchLocation{
             let distanceupdated = history.distance(from: newLocation) // meter
             let timeskipped = newLocation.timestamp.seconds(from: history.timestamp) //Seconds
-            if(distanceupdated < 5 &&  timeskipped < 5){ //Small changes
+            if(distanceupdated < 5 &&  timeskipped < 10){ //Small changes
                 self.stopUpdatingLocation()
                 return
             }
