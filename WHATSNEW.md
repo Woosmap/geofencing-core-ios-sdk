@@ -1,1 +1,1 @@
-- Upated CI/CD process
+- Updated CI/CD for automated publishing 
