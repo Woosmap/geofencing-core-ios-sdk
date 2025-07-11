@@ -213,7 +213,7 @@ jobs:
 
       - name: Lint podspec
         run: |
-          pod lib lint WoosmapGeofencing.podspec --allow-warnings
+          pod lib lint WoosmapGeofencingCore.podspec --allow-warnings
 
       - name: Push to CocoaPods trunk
         env:
@@ -227,7 +227,7 @@ jobs:
           EOF
 
           pod trunk me
-          # pod trunk push WoosmapGeofencing.podspec --allow-warnings
+          # pod trunk push WoosmapGeofencingCore.podspec --allow-warnings
 
       - name: Cleanup credentials
         if: ${{ always() }}
