@@ -3,7 +3,7 @@ name: PR Checker
 on:
   pull_request:
     branches:
-      - 'SDK4.0'
+      - 'main'
     types: [synchronize, labeled, opened]
     
 concurrency:
@@ -45,7 +45,7 @@ jobs:
     - name: capture current version
       run: |
         cd sdk
-        VERSION=$(xcodebuild -project WoosmapGeofencing/WoosmapGeofencing.xcodeproj -scheme WoosmapGeofencing -showBuildSettings | grep MARKETING_VERSION | awk '{print $3}')
+        VERSION=$(sed -n "s/.*s.version *= *'\([^']*\)'.*/\1/p" WoosmapGeofencingCore.podspec)
         if [[ $(grep -o "\." <<< "$VERSION" | wc -l) -eq 1 ]]; then
             VERSION="${VERSION}.0"
         fi
@@ -71,12 +71,9 @@ jobs:
         npm version minor --git-tag-version false
         echo "SDK_VERSION=$(jq -r '.version' package.json)" >> $GITHUB_ENV
         
-
-    
     - name: Cleanup base
       run: |
         rm -rf sdk
-        echo ${{ env.SDK_VERSION }}
 
     - name: Checkout PR source branch
       uses: actions/checkout@v3
@@ -112,7 +109,8 @@ jobs:
 
     - name: Update version for SDK
       run: |
-        sed -i "" -e "s/MARKETING_VERSION \= [^\;]*\;/MARKETING_VERSION = $SDK_VERSION;/" WoosmapGeofencing/WoosmapGeofencing.xcodeproj/project.pbxproj
+        sed -i "3 s/.*/  s.version = '${SDK_VERSION}'/" WoosmapGeofencingCore.podspec || exit 1
+        sed -i "" -e "s/MARKETING_VERSION \= [^\;]*\;/MARKETING_VERSION = $SDK_VERSION;/" WoosmapGeofencingCore.xcodeproj/project.pbxproj
 
     - name: Check if branch is dirty
       id: branch_status
@@ -124,11 +122,20 @@ jobs:
         fi
         echo "version=$SDK_VERSION" >> "$GITHUB_OUTPUT"
     
+    - name: Run test
+      run: |
+        xcodebuild test \
+          -project WoosmapGeofencingCore.xcodeproj \
+          -scheme WoosmapGeofencingCoreTests \
+          -sdk iphonesimulator \
+          -destination "platform=iOS Simulator,OS=latest,name=iPhone 16" || exit 1
+
+    
 
   Set_version:
       runs-on: ubuntu-latest
-      if: ${{ needs.Versioning.outputs.changed == 'true' }}
       needs: Versioning
+      if: ${{ needs.Versioning.outputs.changed == 'true' }}
       steps:
 
         - name: Refetch PR source branch
@@ -141,7 +148,8 @@ jobs:
           env:
             SDK_VERSION: ${{ needs.Versioning.outputs.version }}
           run: |
-            sed -i "s/MARKETING_VERSION = [^;]*;/MARKETING_VERSION = $SDK_VERSION;/" WoosmapGeofencing/WoosmapGeofencing.xcodeproj/project.pbxproj
+            sed -i "3 s/.*/  s.version = '${SDK_VERSION}'/" WoosmapGeofencingCore.podspec || exit 1
+            sed -i "" -e "s/MARKETING_VERSION \= [^\;]*\;/MARKETING_VERSION = $SDK_VERSION;/" WoosmapGeofencingCore.xcodeproj/project.pbxproj
         
         - name: Commit and push changes
           uses: devops-infra/action-commit-push@master
