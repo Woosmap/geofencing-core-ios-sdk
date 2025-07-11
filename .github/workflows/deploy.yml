@@ -1,0 +1,82 @@
+name: Publish Geofencing SDK on CocoaPods
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - WoosmapGeofencingCore.xcodeproj/project.pbxproj
+
+permissions:
+  contents: write
+
+jobs:
+  pre-publish:
+    runs-on: ubuntu-latest
+    outputs:
+      sdk_version: ${{ steps.extract_version.outputs.sdk_version }}
+
+    steps:
+      - name: Checkout default branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
+      - name: Fetch SDK version from Podspec
+        id: extract_version
+        run: |
+          SDK_VERSION=$(sed -n "s/.*s.version *= *'\([^']*\)'.*/\1/p" WoosmapGeofencingCore.podspec)
+          echo "SDK version: $SDK_VERSION"
+          echo "sdk_version=$SDK_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create Git tag
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git tag ${{ steps.extract_version.outputs.sdk_version }}
+          git push origin ${{ steps.extract_version.outputs.sdk_version }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.extract_version.outputs.sdk_version }}
+          body_path: WHATSNEW.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  cocoa-pod:
+    runs-on: macos-15
+    needs: pre-publish
+
+    steps:
+      - name: Set up Ruby and CocoaPods
+        run: |
+          sudo gem install cocoapods
+
+      - name: Checkout default branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
+      - name: Lint podspec
+        run: |
+          pod lib lint WoosmapGeofencing.podspec --allow-warnings
+
+      - name: Push to CocoaPods trunk
+        env:
+          COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
+        run: |
+          mkdir -p ~/.cocoapods/trunk
+          cat <<EOF > ~/.cocoapods/trunk/config.json
+          {
+            "trunk_token": "${COCOAPODS_TRUNK_TOKEN}"
+          }
+          EOF
+
+          pod trunk me
+          pod trunk push WoosmapGeofencing.podspec --allow-warnings
+
+      - name: Cleanup credentials
+        if: ${{ always() }}
+        run: |
+          rm -rf ~/.cocoapods
