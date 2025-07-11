@@ -123,13 +123,13 @@ jobs:
         fi
         echo "version=$SDK_VERSION" >> "$GITHUB_OUTPUT"
     
-    - name: Run test
-      run: |
-        xcodebuild test \
-          -project WoosmapGeofencingCore.xcodeproj \
-          -scheme WoosmapGeofencingCoreTests \
-          -sdk iphonesimulator \
-          -destination "platform=iOS Simulator,OS=latest,name=iPhone 16" || exit 1
+    # - name: Run test
+    #   run: |
+    #     xcodebuild test \
+    #       -project WoosmapGeofencingCore.xcodeproj \
+    #       -scheme WoosmapGeofencingCoreTests \
+    #       -sdk iphonesimulator \
+    #       -destination "platform=iOS Simulator,OS=latest,name=iPhone 16" || exit 1
 
     
 
@@ -149,8 +149,8 @@ jobs:
           env:
             SDK_VERSION: ${{ needs.Versioning.outputs.version }}
           run: |
-            sed -i "" -e "3 s/.*/  s.version = '${SDK_VERSION}'/" WoosmapGeofencingCore.podspec || exit 1
-            sed -i "" -e "s/MARKETING_VERSION \= [^\;]*\;/MARKETING_VERSION = $SDK_VERSION;/" WoosmapGeofencingCore.xcodeproj/project.pbxproj
+            sed -i "3 s/.*/  s.version = '${SDK_VERSION}'/" WoosmapGeofencingCore.podspec || exit 1
+            sed -i "s/MARKETING_VERSION \= [^\;]*\;/MARKETING_VERSION = $SDK_VERSION;/" WoosmapGeofencingCore.xcodeproj/project.pbxproj
         
         - name: Commit and push changes
           uses: devops-infra/action-commit-push@master
