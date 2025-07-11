@@ -1,0 +1,154 @@
+name: PR Checker
+
+on:
+  pull_request:
+    branches:
+      - 'SDK4.0'
+    types: [synchronize, labeled, opened]
+    
+concurrency:
+  group: pr-check-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: write
+
+jobs:
+  Versioning:
+    runs-on: macOS-latest
+    outputs:
+      version: ${{ steps.branch_status.outputs.version }}
+      changed: ${{ steps.branch_status.outputs.update }}
+    if: |
+      contains(toJson(github.event.pull_request.labels.*.name), 'Major :star2:') ||
+      contains(toJson(github.event.pull_request.labels.*.name), 'Minor :sparkles:') ||
+      contains(toJson(github.event.pull_request.labels.*.name), 'Patch :bug:') ||
+      contains(toJson(github.event.pull_request.labels.*.name), 'Skip Version')
+
+    steps:
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18.x
+        registry-url: https://registry.npmjs.org/
+
+    - name: Checkout base branch
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.base_ref }}
+        submodules: recursive
+        path: sdk
+
+    - name: capture current version
+      run: |
+        cd sdk
+        VERSION=$(xcodebuild -project WoosmapGeofencing/WoosmapGeofencing.xcodeproj -scheme WoosmapGeofencing -showBuildSettings | grep MARKETING_VERSION | awk '{print $3}')
+        if [[ $(grep -o "\." <<< "$VERSION" | wc -l) -eq 1 ]]; then
+            VERSION="${VERSION}.0"
+        fi
+        cat <<EOF > package.json
+        {
+        "version": "${VERSION}"
+        }
+        EOF
+
+        echo "SDK_VERSION=$(jq -r '.version' package.json)" >> $GITHUB_ENV
+
+    - name: Bump Patch version
+      if: contains(toJson(github.event.pull_request.labels.*.name), 'Patch :bug:')
+      run: |
+        cd sdk
+        npm version patch --git-tag-version false
+        echo "SDK_VERSION=$(jq -r '.version' package.json)" >> $GITHUB_ENV
+
+    - name: Bump Minor version
+      if: contains(toJson(github.event.pull_request.labels.*.name), 'Minor :sparkles:')
+      run: |
+        cd sdk
+        npm version minor --git-tag-version false
+        echo "SDK_VERSION=$(jq -r '.version' package.json)" >> $GITHUB_ENV
+        
+
+    
+    - name: Cleanup base
+      run: |
+        rm -rf sdk
+        echo ${{ env.SDK_VERSION }}
+
+    - name: Checkout PR source branch
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 0 }}
+        
+    - name: Check whatsnew.md update
+      id: whatsnew
+      run: |
+        if ${{ github.event_name == 'pull_request' }}; then
+              files=$(git diff --name-only -r HEAD^1 HEAD | xargs)
+          else
+              files=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | xargs)
+          fi
+        echo "Changed files: $files"
+        if echo "$files" | grep -q "WHATSNEW.md"; then
+          echo "passed=true" >> $GITHUB_OUTPUT
+        else
+          echo "passed=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Fail if WHATSNEW.md not updated
+      if: ${{ steps.whatsnew.outputs.passed == 'false' }}
+      run: |
+        echo "::error::You missed updating WHATSNEW.md with the latest changes."
+        exit 1
+
+    - name: Refetch PR source branch
+      uses: actions/checkout@v3
+      with:
+        ref: "${{ github.head_ref || github.ref_name }}"
+        submodules: recursive
+
+    - name: Update version for SDK
+      run: |
+        sed -i "" -e "s/MARKETING_VERSION \= [^\;]*\;/MARKETING_VERSION = $SDK_VERSION;/" WoosmapGeofencing/WoosmapGeofencing.xcodeproj/project.pbxproj
+
+    - name: Check if branch is dirty
+      id: branch_status
+      run: |
+        if [[ -n $(git status --porcelain) ]]; then
+          echo "update=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "update=false" >> "$GITHUB_OUTPUT"
+        fi
+        echo "version=$SDK_VERSION" >> "$GITHUB_OUTPUT"
+    
+
+  Set_version:
+      runs-on: ubuntu-latest
+      if: ${{ needs.Versioning.outputs.changed == 'true' }}
+      needs: Versioning
+      steps:
+
+        - name: Refetch PR source branch
+          uses: actions/checkout@v3
+          with:
+            ref: "${{ github.head_ref || github.ref_name }}"
+            
+    
+        - name: Update version for SDK
+          env:
+            SDK_VERSION: ${{ needs.Versioning.outputs.version }}
+          run: |
+            sed -i "s/MARKETING_VERSION = [^;]*;/MARKETING_VERSION = $SDK_VERSION;/" WoosmapGeofencing/WoosmapGeofencing.xcodeproj/project.pbxproj
+        
+        - name: Commit and push changes
+          uses: devops-infra/action-commit-push@master
+          env:
+            SDK_VERSION: ${{ needs.Versioning.outputs.version }}
+          with:
+            github_token: ${{ secrets.GITHUB_TOKEN }}
+            commit_message: "Updated ${{ env.SDK_VERSION }}"
+            commit_prefix: "[AUTO]"
+            force: false
