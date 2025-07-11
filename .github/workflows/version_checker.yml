@@ -109,8 +109,9 @@ jobs:
 
     - name: Update version for SDK
       run: |
-        sed -E -i '' "3 s/.*/  s.version = '${SDK_VERSION}'/" WoosmapGeofencingCore.podspec || exit 1
-        sed -E -i '' "" -e "s/MARKETING_VERSION \= [^\;]*\;/MARKETING_VERSION = $SDK_VERSION;/" WoosmapGeofencingCore.xcodeproj/project.pbxproj
+      
+        sed -i "" -e "3 s/.*/  s.version = '${SDK_VERSION}'/" WoosmapGeofencingCore.podspec || exit 1
+        sed -i "" -e "s/MARKETING_VERSION \= [^\;]*\;/MARKETING_VERSION = $SDK_VERSION;/" WoosmapGeofencingCore.xcodeproj/project.pbxproj
 
     - name: Check if branch is dirty
       id: branch_status
@@ -148,7 +149,7 @@ jobs:
           env:
             SDK_VERSION: ${{ needs.Versioning.outputs.version }}
           run: |
-            sed -i "3 s/.*/  s.version = '${SDK_VERSION}'/" WoosmapGeofencingCore.podspec || exit 1
+            sed -i "" -e "3 s/.*/  s.version = '${SDK_VERSION}'/" WoosmapGeofencingCore.podspec || exit 1
             sed -i "" -e "s/MARKETING_VERSION \= [^\;]*\;/MARKETING_VERSION = $SDK_VERSION;/" WoosmapGeofencingCore.xcodeproj/project.pbxproj
         
         - name: Commit and push changes
