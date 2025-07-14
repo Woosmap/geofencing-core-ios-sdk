@@ -1,0 +1,1 @@
+- Updated CI/CD for automated publishing 
