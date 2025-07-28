@@ -1,1 +1,1 @@
-- Updated CI/CD for automated publishing 
+- Updated:  Calculate OpenNow status for POI in realtime

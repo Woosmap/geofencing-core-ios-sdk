@@ -50,11 +50,11 @@ public class POI {
     public var openNow: Bool {
         get {
             // process weekly_opening and get openNow status for current time
-            return _openNow
+            return calculateOpenNow()
         }
-//        set {
-//            _openNow = newValue
-//        }
+        set {
+            _openNow = newValue
+        }
     }
     
     /// Country Code
@@ -173,6 +173,41 @@ public class POI {
             }
             return returnValues
         }
+    }
+    
+
+    /// Calculate openNow status from API response
+    ///  - Parameters:
+    ///     - timeStamp:  Currrent system time
+    func calculateOpenNow(timeStamp: Date = Date()) -> Bool {
+        let jsonStructure = try? JSONDecoder().decode(JSONAny.self, from:  self.jsonData ?? Data.init())
+        if let value = jsonStructure!.value as? [String: Any] {
+            if let features = value["features"] as? [[String: Any]] {
+                for feature in features {
+                    if let properties = feature["properties"] as? [String: Any] {
+                        if let openingHours = properties["opening_hours"] as? [String: Any] {
+                            if var openhrs:OpeningHours  = OpeningHours.openingHoursFrom(dictionary: openingHours) {
+                                if let weeklyOpening = properties["weekly_opening"] as? [String: Any]{
+                                    //Convert WeeklyOpening to OpeningHours as it more reliable from API
+                                    if let currentWeek:WeeklyOpening = WeeklyOpening.weeklyOpeningFrom(dictionary: weeklyOpening){
+                                        openhrs.usual = [:]
+                                        for (day, opening) in currentWeek.days {
+                                            openhrs.usual[day] =  opening.hours
+                                        }
+                                    }
+                                }
+                                //check open now status
+                                let status = OpeningHoursChecker.check(openingHours: openhrs,validateFor: timeStamp)
+                                return status.isOpen
+                            }
+                        }
+                        
+                    }
+                }
+            }
+        }
+        
+        return false
     }
 }
 
