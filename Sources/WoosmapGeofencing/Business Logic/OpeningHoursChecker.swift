@@ -187,6 +187,9 @@ class OpeningHoursChecker {
             if let status = checkPeriods(specialToday, nowTime: nowTime, formatter: timeFormatter) {
                 return status
             }
+            else {
+                return OpeningStatus(isOpen: false, nextOpening: "Next Day Opening") //Close today due to special opening time
+            }
         }
 
         // 🟩 2. Check Usual for Today

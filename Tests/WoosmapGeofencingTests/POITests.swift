@@ -534,4 +534,178 @@ class POIDBTest: XCTestCase {
         let result3 = poi.calculateOpenNow(timeStamp: next3DayAfter) //  on 31th day 10 AM
         XCTAssertTrue(result3)
     }
+    
+    
+    func testSpilloverDay() throws {
+        let poi = POI()
+        
+        /// Default 08 to 13
+        /// sunday 10 to 14
+        ///
+        /// special day     28 open 15 to 20
+     
+        let testdata = """
+        {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "store_id": "18409_190784",
+                        "name": "Elphinstone Road",
+                        "contact": {},
+                        "address": {
+                            "lines": [
+                                "Indiabulls Finance Centre",
+                                "Elphinstone Road (West)"
+                            ],
+                            "country_code": null,
+                            "city": "Mumbai",
+                            "zipcode": "400013"
+                        },
+                        "user_properties": {
+                            "radius": 13
+                        },
+                        "tags": [
+                            "station",
+                            "Group",
+                            "Office"
+                        ],
+                        "types": [],
+                        "last_updated": "2025-07-28T14:15:30.973303+00:00",
+                        "distance": 2323.95810781,
+                        "open": {
+                            "open_now": true,
+                            "open_hours": [
+                                {
+                                    "end": "20:00",
+                                    "start": "15:00"
+                                }
+                            ],
+                            "week_day": 1,
+                            "current_slice": {
+                                "end": "20:00",
+                                "start": "15:00"
+                            }
+                        },
+                        "weekly_opening": {
+                            "timezone": "Asia/Kolkata",
+                            "1": {
+                                "hours": [
+                                    {
+                                        "end": "20:00",
+                                        "start": "15:00"
+                                    }
+                                ],
+                                "isSpecial": true
+                            },
+                            "2": {
+                                "hours": [
+                                    {
+                                        "end": "13:00",
+                                        "start": "08:00"
+                                    }
+                                ],
+                                "isSpecial": false
+                            },
+                            "3": {
+                                "hours": [
+                                    {
+                                        "end": "13:00",
+                                        "start": "08:00"
+                                    }
+                                ],
+                                "isSpecial": false
+                            },
+                            "4": {
+                                "hours": [
+                                    {
+                                        "end": "13:00",
+                                        "start": "08:00"
+                                    }
+                                ],
+                                "isSpecial": false
+                            },
+                            "5": {
+                                "hours": [
+                                    {
+                                        "end": "13:00",
+                                        "start": "08:00"
+                                    }
+                                ],
+                                "isSpecial": false
+                            },
+                            "6": {
+                                "hours": [
+                                    {
+                                        "end": "13:00",
+                                        "start": "08:00"
+                                    }
+                                ],
+                                "isSpecial": false
+                            },
+                            "7": {
+                                "hours": [
+                                    {
+                                        "end": "14:00",
+                                        "start": "10:00"
+                                    }
+                                ],
+                                "isSpecial": false
+                            }
+                        },
+                        "opening_hours": {
+                            "usual": {
+                                "7": [
+                                    {
+                                        "end": "14:00",
+                                        "start": "10:00"
+                                    }
+                                ],
+                                "default": [
+                                    {
+                                        "end": "13:00",
+                                        "start": "08:00"
+                                    }
+                                ]
+                            },
+                            "special": {
+                                "2025-07-28": [
+                                    {
+                                        "end": "20:00",
+                                        "start": "15:00"
+                                    }
+                                ]
+                            },
+                            "timezone": "Asia/Kolkata",
+                            "temporary_closure": []
+                        }
+                    },
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            72.835595,
+                            19.009997
+                        ]
+                    }
+                }
+            ]
+        }
+        """
+        poi.jsonData = testdata.data(using: .utf8)!
+        let result = poi.calculateOpenNow(timeStamp: weekDate) //10 AM
+        XCTAssertFalse(result)
+        
+        let nextDayAfter = Calendar.current.date(byAdding: .day, value: 7, to: weekDate)!
+        let result1 = poi.calculateOpenNow(timeStamp: nextDayAfter) //  next week 10 AM shoild be open
+        XCTAssertTrue(result1)
+//
+//        let next2DayAfter = Calendar.current.date(byAdding: .day, value: 2, to: weekDate)!
+//        let result2 = poi.calculateOpenNow(timeStamp: next2DayAfter) //  on 30th day 10 AM
+//        XCTAssertTrue(result2)
+//        
+//        let next3DayAfter = Calendar.current.date(byAdding: .day, value: 2, to: weekDate)!
+//        let result3 = poi.calculateOpenNow(timeStamp: next3DayAfter) //  on 31th day 10 AM
+//        XCTAssertTrue(result3)
+    }
 }
