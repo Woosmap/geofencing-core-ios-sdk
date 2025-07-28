@@ -107,7 +107,7 @@ class OpeningHoursChecker {
     
     
     
-    public static func check(openingHours: OpeningHours, validateFor:Date = Date()) -> OpeningStatus {
+    public static func check(openingHours inputs: OpeningHours, validateFor:Date = Date()) -> OpeningStatus {
         
         func datesBetween(start: String, end: String, formatter: DateFormatter) -> [String] {
             guard let startDate = formatter.date(from: start),
@@ -130,7 +130,7 @@ class OpeningHoursChecker {
 
             return dates
         }
-        
+        var openingHours: OpeningHours = inputs
         guard let timeZone = TimeZone(identifier: openingHours.timezone) else {
             return OpeningStatus(isOpen: false, nextOpening: nil)
         }
@@ -152,7 +152,9 @@ class OpeningHoursChecker {
         guard let nowTime = timeFormatter.date(from: nowTimeString) else {
             return OpeningStatus(isOpen: false, nextOpening: nil)
         }
-
+        for week in 1...7 {
+            openingHours.usual[String(week)] = openingHours.usual[String(week)] ?? openingHours.usual["default"]
+        }
         // 🔒 Temporary Closure
         var temporaryClosureDays: [String] = []
         
@@ -193,14 +195,14 @@ class OpeningHoursChecker {
         }
 
         // 🟩 2. Check Usual for Today
-        if let usualToday = openingHours.usual[todayKey] {
+        if let usualToday = openingHours.usual[todayKey]{
             if let status = checkPeriods(usualToday, nowTime: nowTime, formatter: timeFormatter) {
                 return status
             }
         }
 
         // 🟧 3. Check Yesterday for Overnight Hours
-        if let usualYesterday = openingHours.usual[yesterdayKey] {
+        if let usualYesterday = openingHours.usual[yesterdayKey]{
             for period in usualYesterday {
                 guard let startStr = period.start, let endStr = period.end,
                       let start = timeFormatter.date(from: startStr),

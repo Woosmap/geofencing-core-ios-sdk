@@ -674,6 +674,10 @@ class POIDBTest: XCTestCase {
                                     {
                                         "end": "20:00",
                                         "start": "15:00"
+                                    },
+                                    {
+                                        "end": "08:00",
+                                        "start": "07:00"
                                     }
                                 ]
                             },
@@ -699,13 +703,9 @@ class POIDBTest: XCTestCase {
         let nextDayAfter = Calendar.current.date(byAdding: .day, value: 7, to: weekDate)!
         let result1 = poi.calculateOpenNow(timeStamp: nextDayAfter) //  next week 10 AM shoild be open
         XCTAssertTrue(result1)
-//
-//        let next2DayAfter = Calendar.current.date(byAdding: .day, value: 2, to: weekDate)!
-//        let result2 = poi.calculateOpenNow(timeStamp: next2DayAfter) //  on 30th day 10 AM
-//        XCTAssertTrue(result2)
-//        
-//        let next3DayAfter = Calendar.current.date(byAdding: .day, value: 2, to: weekDate)!
-//        let result3 = poi.calculateOpenNow(timeStamp: next3DayAfter) //  on 31th day 10 AM
-//        XCTAssertTrue(result3)
+
+        let hr2sbefore = Calendar.current.date(byAdding: .hour, value: -2, to: weekDate)!
+        let result2 = poi.calculateOpenNow(timeStamp: hr2sbefore) //  on 8 AM
+        XCTAssertTrue(result2)
     }
 }
