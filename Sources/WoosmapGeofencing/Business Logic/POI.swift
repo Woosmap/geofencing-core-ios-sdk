@@ -45,8 +45,17 @@ public class POI {
     /// Address
     public var address: String?
     
+    private var _openNow: Bool = false
     /// Open Now
-    public var openNow: Bool = false
+    public var openNow: Bool {
+        get {
+            // process weekly_opening and get openNow status for current time
+            return _openNow
+        }
+//        set {
+//            _openNow = newValue
+//        }
+    }
     
     /// Country Code
     public var countryCode: String?
@@ -108,7 +117,7 @@ public class POI {
         self.zipCode = poiDB.zipCode
         self.radius = poiDB.radius
         self.address = poiDB.address
-        self.openNow = poiDB.openNow
+        self._openNow = poiDB.openNow
         self.countryCode = poiDB.countryCode
         self.tags = poiDB.tags
         self.types = poiDB.types
@@ -134,7 +143,7 @@ public class POI {
         newRec.zipCode = self.zipCode
         newRec.radius = self.radius
         newRec.address = self.address
-        newRec.openNow = self.openNow
+        newRec.openNow = self._openNow
         newRec.countryCode = self.countryCode
         newRec.tags = self.tags
         newRec.types = self.types
