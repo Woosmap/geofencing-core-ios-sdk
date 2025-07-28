@@ -11,7 +11,7 @@ import Foundation
 struct OpeningHours: Codable {
     var usual: [String: [OpeningPeriod]]
     let special: [String: [OpeningPeriod]]
-    let temporaryClosure: [String]
+    let temporaryClosure: [ClosuerPeriod]
     let timezone: String
 
     enum CodingKeys: String, CodingKey {
@@ -39,6 +39,15 @@ struct OpeningPeriod: Codable {
     enum CodingKeys: String, CodingKey {
         case start, end
         case allDay = "all-day"
+    }
+}
+
+struct ClosuerPeriod: Codable {
+    let start: String
+    let end: String
+   
+    enum CodingKeys: String, CodingKey {
+        case start, end
     }
 }
 
@@ -95,7 +104,33 @@ struct OpeningStatus {
 }
 
 class OpeningHoursChecker {
+    
+    
+    
     public static func check(openingHours: OpeningHours, validateFor:Date = Date()) -> OpeningStatus {
+        
+        func datesBetween(start: String, end: String, formatter: DateFormatter) -> [String] {
+            guard let startDate = formatter.date(from: start),
+                  let endDate = formatter.date(from: end) else {
+                return []
+            }
+
+            var currentDate = startDate
+            var dates: [String] = []
+
+            while currentDate <= endDate {
+                let formattedDate = formatter.string(from: currentDate)
+                dates.append(formattedDate)
+
+                guard let nextDate = Calendar.current.date(byAdding: .day, value: 1, to: currentDate) else {
+                    break
+                }
+                currentDate = nextDate
+            }
+
+            return dates
+        }
+        
         guard let timeZone = TimeZone(identifier: openingHours.timezone) else {
             return OpeningStatus(isOpen: false, nextOpening: nil)
         }
@@ -119,7 +154,23 @@ class OpeningHoursChecker {
         }
 
         // 🔒 Temporary Closure
-        if openingHours.temporaryClosure.contains(todayString) {
+        var temporaryClosureDays: [String] = []
+        
+        openingHours.temporaryClosure.forEach { (item) in
+            if (item.start != item.end){
+                // Calculate days between it
+                let datelist = datesBetween(start: item.start,end: item.end, formatter: dateFormatter)
+                datelist.forEach { closeDay in
+                    temporaryClosureDays.append(closeDay)
+                }
+            }
+            else{
+                temporaryClosureDays.append(item.start)
+            }
+            
+        }
+            
+        if temporaryClosureDays.contains(todayString) {
             return OpeningStatus(isOpen: false, nextOpening: nil)
         }
 
