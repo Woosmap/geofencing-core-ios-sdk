@@ -660,7 +660,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 4.3.13;
+				MARKETING_VERSION = 4.3.14;
 				PRODUCT_BUNDLE_IDENTIFIER = woosmap.WoosmapGeofencing;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
 				SKIP_INSTALL = YES;
@@ -690,7 +690,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 4.3.13;
+				MARKETING_VERSION = 4.3.14;
 				PRODUCT_BUNDLE_IDENTIFIER = woosmap.WoosmapGeofencing;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
 				SKIP_INSTALL = YES;
