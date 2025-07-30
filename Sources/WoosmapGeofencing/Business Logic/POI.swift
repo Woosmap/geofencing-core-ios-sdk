@@ -187,33 +187,6 @@ public class POI {
                     if let properties = feature["properties"] as? [String: Any] {
                         if let openingHours = properties["opening_hours"] as? [String: Any] {
                             if let openhrs:OpeningHours  = OpeningHours.openingHoursFrom(dictionary: openingHours) {
-//                                if let weeklyOpening = properties["weekly_opening"] as? [String: Any]{
-//                                    //Convert WeeklyOpening to OpeningHours as it more reliable from API
-//                                    if let currentWeek:WeeklyOpening = WeeklyOpening.weeklyOpeningFrom(dictionary: weeklyOpening){
-//                                        
-//                                        guard let timeZone = TimeZone(identifier: currentWeek.timezone) else {
-//                                            return false
-//                                        }
-//                                        var calendar = Calendar.current
-//                                        calendar.timeZone = timeZone
-//                                        let weekday = calendar.component(.weekday, from: timeStamp) // Sunday = 1
-//                                        let todayKey = weekday == 1 ? 7 : weekday - 1 // 1=Monday, ..., 7=Sunday
-//                                        var monndaysOpening: [OpeningPeriod]? = nil
-//                                        if(todayKey == 1){ // monday
-//                                            monndaysOpening = openhrs.usual["1"] ?? openhrs.usual["default"]
-//                                        }
-//                                      
-//                                        openhrs.usual = [:]
-//                                        for (day, opening) in currentWeek.days {
-//                                            openhrs.usual[day] =  opening.hours
-//                                        }
-//                                        // This is required as weekly_opening only return for current week and we want next week monday setting to calcualate openNow
-//                                        if let monndaysTime = monndaysOpening{
-//                                            openhrs.usual["1"] = monndaysTime
-//                                        }
-//                                        
-//                                    }
-//                                }
                                 //check open now status
                                 let status = OpeningHoursChecker.check(openingHours: openhrs,validateFor: timeStamp)
                                 return status.isOpen
