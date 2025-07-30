@@ -19,8 +19,16 @@ struct OpeningHours: Codable {
         case temporaryClosure = "temporary_closure"
     }
     
-    static func openingHoursFrom(dictionary: [String: Any]) -> OpeningHours? {
+    static func openingHoursFrom(dictionary input: [String: Any]) -> OpeningHours? {
         do {
+            var dictionary = input
+            if dictionary["special"] == nil{
+                dictionary["special"] = [:]
+            }
+            if dictionary["temporary_closure"] == nil{
+                dictionary["temporary_closure"] = []
+            }
+            
             let data = try JSONSerialization.data(withJSONObject: dictionary, options: [])
             let decoder = JSONDecoder()
             return try decoder.decode(OpeningHours.self, from: data)
