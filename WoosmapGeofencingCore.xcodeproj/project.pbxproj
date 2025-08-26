@@ -28,6 +28,8 @@
 		5F468E092A2499DF006F6D94 /* Logarithm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F468DF82A2499DF006F6D94 /* Logarithm.swift */; };
 		5F5CD5EA28A6302C0074D7DD /* DurationLogTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F5CD5E928A6302C0074D7DD /* DurationLogTest.swift */; };
 		5F84A8142AB425A2002B1735 /* WoosLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F84A8132AB425A2002B1735 /* WoosLogger.swift */; };
+		5F84E5A12E377E9100F04234 /* POITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F84E5A02E377E9100F04234 /* POITests.swift */; };
+		5F84E5A32E378BDB00F04234 /* OpeningHoursChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F84E5A22E378BDB00F04234 /* OpeningHoursChecker.swift */; };
 		5FB3E7A32872F2BE0035653E /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FB3E7A22872F2BE0035653E /* LocationService.swift */; };
 		5FB3E7A52872F3170035653E /* LocationServiceCoreImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FB3E7A42872F3170035653E /* LocationServiceCoreImpl.swift */; };
 		A24796FF2726DF700081AADC /* Distance.swift in Sources */ = {isa = PBXBuildFile; fileRef = A24796FE2726DF700081AADC /* Distance.swift */; };
@@ -101,6 +103,8 @@
 		5F5CD5E928A6302C0074D7DD /* DurationLogTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DurationLogTest.swift; sourceTree = "<group>"; };
 		5F6FD2852B95B980009E6A49 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		5F84A8132AB425A2002B1735 /* WoosLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WoosLogger.swift; sourceTree = "<group>"; };
+		5F84E5A02E377E9100F04234 /* POITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = POITests.swift; sourceTree = "<group>"; };
+		5F84E5A22E378BDB00F04234 /* OpeningHoursChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpeningHoursChecker.swift; sourceTree = "<group>"; };
 		5FB3E7A22872F2BE0035653E /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
 		5FB3E7A42872F3170035653E /* LocationServiceCoreImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationServiceCoreImpl.swift; sourceTree = "<group>"; };
 		A216FBA923E9CEA70003AAC8 /* WoosmapGeofencingCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = WoosmapGeofencingCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -303,6 +307,7 @@
 				A248052D27DA5E8900E5B7CD /* LogSearchAPI.swift */,
 				5FB3E7A42872F3170035653E /* LocationServiceCoreImpl.swift */,
 				5F84A8132AB425A2002B1735 /* WoosLogger.swift */,
+				5F84E5A22E378BDB00F04234 /* OpeningHoursChecker.swift */,
 			);
 			path = "Business Logic";
 			sourceTree = "<group>";
@@ -323,6 +328,7 @@
 				A262B9C724E29ADF00EB621F /* Info.plist */,
 				A262B9C624E29ADF00EB621F /* ZoiQualifierTests.swift */,
 				5F5CD5E928A6302C0074D7DD /* DurationLogTest.swift */,
+				5F84E5A02E377E9100F04234 /* POITests.swift */,
 			);
 			name = WoosmapGeofencingTests;
 			path = Tests/WoosmapGeofencingTests;
@@ -445,6 +451,7 @@
 			files = (
 				A262B9D724E29B0000EB621F /* SearchAPiJson.swift in Sources */,
 				A2710EEB25B5C8C400AF62F5 /* POI.swift in Sources */,
+				5F84E5A32E378BDB00F04234 /* OpeningHoursChecker.swift in Sources */,
 				A262B9D524E29B0000EB621F /* FIGMM.swift in Sources */,
 				5F468E012A2499DF006F6D94 /* Array+Extensions.swift in Sources */,
 				5FB3E7A52872F3170035653E /* LocationServiceCoreImpl.swift in Sources */,
@@ -491,6 +498,7 @@
 			files = (
 				A26E646125B98BDD00EDBA72 /* DelayDataDurationTests.swift in Sources */,
 				5F5CD5EA28A6302C0074D7DD /* DurationLogTest.swift in Sources */,
+				5F84E5A12E377E9100F04234 /* POITests.swift in Sources */,
 				A262B9C824E29ADF00EB621F /* FIGMMCreatorTests.swift in Sources */,
 				A2DDC91B25C86B0C00C90486 /* DatabaseTests.swift in Sources */,
 				A262B9C924E29ADF00EB621F /* ZoiQualifierTests.swift in Sources */,
@@ -652,7 +660,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 4.3.13;
+				MARKETING_VERSION = 4.3.14;
 				PRODUCT_BUNDLE_IDENTIFIER = woosmap.WoosmapGeofencing;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
 				SKIP_INSTALL = YES;
@@ -682,7 +690,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 4.3.13;
+				MARKETING_VERSION = 4.3.14;
 				PRODUCT_BUNDLE_IDENTIFIER = woosmap.WoosmapGeofencing;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
 				SKIP_INSTALL = YES;
