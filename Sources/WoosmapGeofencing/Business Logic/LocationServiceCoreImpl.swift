@@ -643,7 +643,7 @@ public class LocationServiceCoreImpl: NSObject,
     
     /// Call Search API
     /// - Parameter location: Location object
-    public func sendSearchAPIRequest(location: Location) {
+    open func sendSearchAPIRequest(location: Location) {
         guard let delegate = self.searchAPIDataDelegate else {
             return
         }
