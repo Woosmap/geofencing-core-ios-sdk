@@ -394,7 +394,7 @@ public class POIs {
         do {
             let predicate = NSPredicate(format: "locationId == %@", locationId)
             let fetchedResults = try WoosmapDataManager.connect.retrieve(entityClass: POIDB.self, predicate: predicate)
-            if let aPOI = fetchedResults.last {
+            if let aPOI = fetchedResults.first {
                 return aPOI
             }
         
@@ -466,7 +466,7 @@ public class POIs {
     ///   - duration: duration
     ///   - locationId: Location
     /// - Returns: Updated POI information
-    internal class func updatePOIWithDistance(distance: Double, duration: String, locationId: String) -> POI {
+    private class func updatePOIWithDistance(distance: Double, duration: String, locationId: String) -> POI {
         do {
 
             if let poiToUpdate = POIs._getPOIModelbyLocationID(locationId: locationId) {
