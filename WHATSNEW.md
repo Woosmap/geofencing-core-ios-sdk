@@ -1,1 +1,2 @@
 - Updated:  Calculate OpenNow status for POI in realtime
+- Update: Republish SDK on CocoPod
