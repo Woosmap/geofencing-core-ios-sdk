@@ -1,1 +1,1 @@
-- Updated:  Calculate OpenNow status for POI in realtime
+- Updated:  improved main-thread handling for better reliability and performance
