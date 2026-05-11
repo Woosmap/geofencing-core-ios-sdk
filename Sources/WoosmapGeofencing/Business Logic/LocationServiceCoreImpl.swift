@@ -130,7 +130,7 @@ public class LocationServiceCoreImpl: NSObject,
             }
         }
         else{
-            DispatchQueue.main.async {
+            Task { @MainActor in
                 self.locationManager?.startUpdatingLocation()
                 if visitEnable {
                     self.locationManager?.startMonitoringVisits()
@@ -154,7 +154,7 @@ public class LocationServiceCoreImpl: NSObject,
                 self.locationManager?.stopUpdatingLocation()
             }
             else{
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     self.locationManager?.stopUpdatingLocation()
                 }
             }
@@ -297,7 +297,7 @@ public class LocationServiceCoreImpl: NSObject,
             self.updateRegionMonitoring()
         }
         else{
-            DispatchQueue.main.async {
+            Task { @MainActor in
                 self.updateRegionMonitoring()
             }
         }
@@ -859,7 +859,6 @@ public class LocationServiceCoreImpl: NSObject,
         if let url = url.url{
             // Call API Distance
             woosApiCall(with: url) {(data, response, error) in
-                //DispatchQueue.main.async {
                     if let response = response as? HTTPURLResponse {
                         if response.statusCode != 200 {
                             if(WoosLog.isValidLevel(level: .error)){
@@ -892,7 +891,6 @@ public class LocationServiceCoreImpl: NSObject,
                             delegateDistance.distanceAPIResponse(distance: distance)
                         }
                     }
-                //}
             }
         }
     }
@@ -1113,7 +1111,7 @@ public class LocationServiceCoreImpl: NSObject,
         
         let apiURLSession = URLSession(configuration: apiConfigtation)
         let task = apiURLSession.dataTask(with: url) { data, response, error in
-            DispatchQueue.main.async {
+            Task { @MainActor in
                 completionHandler(data, response, error)
             }
         }
