@@ -144,7 +144,7 @@ class OpeningHoursChecker {
         }
 
         let now = validateFor
-        var calendar = Calendar.current
+        var calendar = Calendar(identifier: .iso8601)
         calendar.timeZone = timeZone
 
         let timeFormatter = DateFormatter()
@@ -186,11 +186,12 @@ class OpeningHoursChecker {
 
         // 📅 Get day keys
         let weekday = calendar.component(.weekday, from: now) // Sunday = 1
-        let todayKey = String(weekday == 1 ? 7 : weekday - 1) // 1=Monday, ..., 7=Sunday
+        let todayInt = weekday == 1 ? 7 : weekday - 1           // ISO: Mon=1 … Sun=7
+        let todayKey = String(todayInt) // 1=Monday, ..., 7=Sunday
 
 //        let yesterday = calendar.date(byAdding: .day, value: -1, to: now)!
 //        let yesterdayString = dateFormatter.string(from: yesterday)
-        let yesterdayKey = String((weekday == 2 ? 7 : weekday - 2 == 0 ? 7 : weekday - 2))
+        let yesterdayKey = String(todayInt == 1 ? 7 : todayInt - 1)   // wrap Mon → Sun
 
         // 🟨 1. Check Special for Today
         if let specialToday = openingHours.special[todayString] {
