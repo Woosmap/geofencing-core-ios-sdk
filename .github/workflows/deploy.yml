@@ -18,7 +18,7 @@ jobs:
 
     steps:
       - name: Checkout default branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Fetch SDK version from Podspec
         id: extract_version
@@ -35,7 +35,7 @@ jobs:
           git push origin ${{ steps.extract_version.outputs.sdk_version }}
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.extract_version.outputs.sdk_version }}
           body_path: WHATSNEW.md
@@ -52,7 +52,7 @@ jobs:
           sudo gem install cocoapods
 
       - name: Checkout default branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Lint podspec
         run: |
