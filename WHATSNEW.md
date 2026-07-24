@@ -1,1 +1,1 @@
-- Updated:  improved main-thread handling for better reliability and performance
+- Fixed: opening hours slots that run past midnight (e.g. 22:00 → 02:00) now correctly keep a store open into the next day
