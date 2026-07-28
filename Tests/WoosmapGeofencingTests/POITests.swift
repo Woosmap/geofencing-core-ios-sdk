@@ -873,4 +873,72 @@ class POIDBTest: XCTestCase {
         let result = poi.calculateOpenNow(timeStamp: weekDate) //10 AM
         XCTAssertFalse(result)
     }
+
+    /// Regression for issue #163: a Saturday slot that runs past midnight
+    /// (e.g. 22:00 → 02:00, ISO key "6") must keep the store open on Sunday
+    /// between 00:00 and 02:00. Before the fix, yesterdayKey resolved to "-1"
+    /// on Sunday, so Saturday's overnight hours were never checked.
+    func testSaturdayOvernightOpenOnSunday() throws {
+        let poi = POI()
+
+        /// Saturday (ISO "6") open 22:00 → 02:00, Sunday (ISO "7") open 10:00 → 14:00
+        let testdata = """
+        {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "store_id": "18409_190784",
+                        "name": "Elphinstone Road",
+                        "opening_hours": {
+                            "usual": {
+                                "6": [
+                                    {
+                                        "start": "22:00",
+                                        "end": "02:00"
+                                    }
+                                ],
+                                "7": [
+                                    {
+                                        "start": "10:00",
+                                        "end": "14:00"
+                                    }
+                                ]
+                            },
+                            "special": {},
+                            "timezone": "Asia/Kolkata",
+                            "temporary_closure": []
+                        }
+                    },
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            72.835595,
+                            19.009997
+                        ]
+                    }
+                }
+            ]
+        }
+        """
+        poi.jsonData = testdata.data(using: .utf8)!
+
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm"
+        formatter.timeZone = TimeZone(identifier: "Asia/Kolkata")
+
+        // Saturday night, inside today's overnight slot → open
+        XCTAssertTrue(poi.calculateOpenNow(timeStamp: formatter.date(from: "2025-08-02 23:00")!))
+
+        // Sunday early morning, still inside Saturday's overnight slot → open (the bug)
+        XCTAssertTrue(poi.calculateOpenNow(timeStamp: formatter.date(from: "2025-08-03 00:30")!))
+        XCTAssertTrue(poi.calculateOpenNow(timeStamp: formatter.date(from: "2025-08-03 01:59")!))
+
+        // Sunday after the overnight slot ends, before Sunday's own hours → closed
+        XCTAssertFalse(poi.calculateOpenNow(timeStamp: formatter.date(from: "2025-08-03 02:30")!))
+
+        // Sunday during its own usual hours → open
+        XCTAssertTrue(poi.calculateOpenNow(timeStamp: formatter.date(from: "2025-08-03 11:00")!))
+    }
 }
