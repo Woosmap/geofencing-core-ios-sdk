@@ -42,8 +42,20 @@ public class LocationServiceCoreImpl: NSObject,
     
     /// Visit service callback
     public weak var visitDelegate: VisitServiceDelegate?
-    
-    
+
+    /// Performs circular-region monitoring.
+    ///
+    /// Every circular start/stop goes through here so the implementation can be
+    /// swapped for `CLMonitor` later. Beacons bypass it and keep calling
+    /// `locationManager` directly — see `stopMonitoring(_:)`.
+    internal lazy var monitoringBackend: GeofenceMonitoringBackend = {
+        let backend = LegacyRegionBackend(locationManager: { [weak self] in self?.locationManager })
+        backend.onTransition = { [weak self] transition in
+            self?.handle(transition: transition)
+        }
+        return backend
+    }()
+
     /// New Locaion service
     /// - Parameter locationManger: location service object
     required public init(locationManger: LocationManagerProtocol?) {
@@ -193,12 +205,26 @@ public class LocationServiceCoreImpl: NSObject,
         }
     }
     
+    /// Stops monitoring `region`.
+    ///
+    /// Circular regions go through the monitoring backend; beacons stay on
+    /// `CLLocationManager`, which is where they remain for the whole migration.
+    /// Callers hold a `CLRegion` from `monitoredRegions` and cannot assume which
+    /// kind it is — POI beacons and POI circles share the `poi<id>…<id>` scheme.
+    internal func stopMonitoring(_ region: CLRegion) {
+        if region is CLCircularRegion {
+            monitoringBackend.stop(identifier: region.identifier)
+        } else {
+            self.locationManager?.stopMonitoring(for: region)
+        }
+    }
+
     /// Stop mnitoring region
     public func stopMonitoringCurrentRegions() {
         guard let monitoredRegions = locationManager?.monitoredRegions else { return }
         for region in monitoredRegions {
             if getRegionType(identifier: region.identifier) == RegionType.position {
-                self.locationManager?.stopMonitoring(for: region)
+                self.stopMonitoring(region)
             }
         }
         if(WoosLog.isValidLevel(level: .trace)){
@@ -214,7 +240,13 @@ public class LocationServiceCoreImpl: NSObject,
     func startMonitoringCurrentRegions(regions: Set<CLRegion>) {
         self.requestAuthorization()
         for region in regions {
-            self.locationManager?.startMonitoring(for: region)
+            if let circular = region as? CLCircularRegion {
+                monitoringBackend.start(identifier: circular.identifier,
+                                        center: circular.center,
+                                        radius: circular.radius)
+            } else {
+                self.locationManager?.startMonitoring(for: region)
+            }
         }
         guard let monitoredRegions = locationManager?.monitoredRegions else { return }
         self.regionDelegate?.updateRegions(regions: monitoredRegions)
@@ -331,29 +363,57 @@ public class LocationServiceCoreImpl: NSObject,
     ///   - manager: location service
     ///   - region: region info
     public func locationManager(_ manager: CLLocationManager, didExitRegion region: CLRegion) {
-        if (modeHighfrequencyLocation) {
-            self.handleRegionChange()
-            return
-        }
-        if  (getRegionType(identifier: region.identifier) == RegionType.custom) || (getRegionType(identifier: region.identifier) == RegionType.poi) {
-            addRegionLogTransition(region: region, didEnter: false,fromPositionDetection: false)
-        }
-        self.handleRegionChange()
+        handlePlatformRegionEvent(region: region, didEnter: false)
     }
-    
+
     /// Fires when User entered region that monitor by app
     /// - Parameters:
     ///   - manager: location service
     ///   - region: region info
     public func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
+        handlePlatformRegionEvent(region: region, didEnter: true)
+    }
+
+    /// Routes a transition CoreLocation reported to the right place: circular
+    /// regions through the monitoring backend, beacons straight to the log.
+    private func handlePlatformRegionEvent(region: CLRegion, didEnter: Bool) {
         if (modeHighfrequencyLocation) {
             self.handleRegionChange()
             return
         }
-        if  (getRegionType(identifier: region.identifier) == RegionType.custom) || (getRegionType(identifier: region.identifier) == RegionType.poi) {
-            addRegionLogTransition(region: region, didEnter: true, fromPositionDetection: false)
+        if let circular = region as? CLCircularRegion {
+            monitoringBackend.reportPlatformEvent(region: circular, didEnter: didEnter)
+        } else {
+            logTransition(region: region, didEnter: didEnter, fromPositionDetection: false)
         }
         self.handleRegionChange()
+    }
+
+    /// Sink for `monitoringBackend.onTransition`.
+    ///
+    /// The transition is rebuilt into a `CLCircularRegion` because
+    /// `addRegionLogTransition` — and the Enterprise override of it — need the
+    /// geometry to cross-check against the last known fix.
+    private func handle(transition: GeofenceTransition) {
+        let region = CLCircularRegion(center: transition.center,
+                                      radius: transition.radius,
+                                      identifier: transition.identifier)
+        // An initial state is a position determination, not a crossing, which is
+        // exactly what `fromPositionDetection` means. The legacy backend never
+        // sets it, so this is `false` until a CLMonitor backend lands.
+        logTransition(region: region,
+                      didEnter: transition.didEnter,
+                      fromPositionDetection: transition.initialState)
+    }
+
+    /// Records a transition for the region types that produce events. Position
+    /// grid cells drive refreshes and are deliberately not logged.
+    private func logTransition(region: CLRegion, didEnter: Bool, fromPositionDetection: Bool) {
+        if  (getRegionType(identifier: region.identifier) == RegionType.custom) || (getRegionType(identifier: region.identifier) == RegionType.poi) {
+            addRegionLogTransition(region: region,
+                                   didEnter: didEnter,
+                                   fromPositionDetection: fromPositionDetection)
+        }
     }
     
     /// Created new circular region
@@ -375,7 +435,7 @@ public class LocationServiceCoreImpl: NSObject,
             return (false, "number of custom geofence can be more than 3")
         }
         let id = RegionType.custom.rawValue + "<id>" + identifier
-        self.locationManager?.startMonitoring(for: CLCircularRegion(center: center, radius: radius, identifier: id ))
+        monitoringBackend.start(identifier: id, center: center, radius: radius)
         checkIfUserIsInRegion(region: CLCircularRegion(center: center, radius: radius, identifier: id ))
         return (true, RegionType.custom.rawValue + "<id>" + identifier)
     }
@@ -387,7 +447,7 @@ public class LocationServiceCoreImpl: NSObject,
         guard let monitoredRegions = locationManager?.monitoredRegions else { return }
         for region in monitoredRegions {
             if (region.identifier == identifier) {
-                self.locationManager?.stopMonitoring(for: region)
+                self.stopMonitoring(region)
                 self.handleRegionChange()
             }
         }
@@ -418,7 +478,7 @@ public class LocationServiceCoreImpl: NSObject,
                 let latRegion = circularRegion.center.latitude
                 let lngRegion = circularRegion.center.longitude
                 if center.latitude == latRegion && center.longitude == lngRegion {
-                    self.locationManager?.stopMonitoring(for: region)
+                    self.stopMonitoring(region)
                     self.handleRegionChange()
                 }
             }
@@ -432,13 +492,13 @@ public class LocationServiceCoreImpl: NSObject,
         if RegionType.none == type {
             for region in monitoredRegions {
                 if !region.identifier.contains(RegionType.position.rawValue) {
-                    self.locationManager?.stopMonitoring(for: region)
+                    self.stopMonitoring(region)
                 }
             }
         } else {
             for region in monitoredRegions {
                 if region.identifier.contains(type.rawValue) {
-                    self.locationManager?.stopMonitoring(for: region)
+                    self.stopMonitoring(region)
                 }
             }
         }
@@ -765,7 +825,7 @@ public class LocationServiceCoreImpl: NSObject,
             }
             if(!exist) {
                 if region.identifier.contains(RegionType.poi.rawValue) {
-                    self.locationManager?.stopMonitoring(for: region)
+                    self.stopMonitoring(region)
                 }
             }
         }
