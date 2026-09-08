@@ -45,6 +45,10 @@ internal protocol GeofenceMonitoringBackend: AnyObject {
     ///
     /// Beacon regions are excluded even though they share the `poi<id>…<id>`
     /// identifier scheme.
+    ///
+    /// Not yet consumed by `LocationServiceCoreImpl`, which still reads
+    /// `CLLocationManager.monitoredRegions` directly — see the note on
+    /// `monitoringBackend` for why those reads are deliberately deferred.
     var monitoredCircularIdentifiers: Set<String> { get }
 
     /// Invoked for every transition the backend observes.
@@ -69,6 +73,12 @@ internal protocol GeofenceMonitoringBackend: AnyObject {
 
 /// Monitoring backend that preserves the pre-migration behaviour exactly:
 /// `CLCircularRegion` plus `startMonitoring(for:)` / `stopMonitoring(for:)`.
+///
+/// `CLCircularRegion` and the `startMonitoring(for:)` family are soft-deprecated
+/// from iOS 17 in favour of `CLMonitor`. Continuing to use them here is the point
+/// of this type: it is the behaviour-preserving baseline that a `CLMonitor` backend
+/// will be measured against, and it is the only place in the SDK that still names
+/// them for circular regions.
 internal final class LegacyRegionBackend: GeofenceMonitoringBackend {
 
     /// Resolved on each use rather than captured once, because
@@ -92,9 +102,12 @@ internal final class LegacyRegionBackend: GeofenceMonitoringBackend {
                                                                  identifier: identifier))
     }
 
+    /// Resolves the monitored set from `CLLocationManager` itself, which makes this
+    /// implementation legacy-only by construction: a `CLMonitor` backend tracks its
+    /// own registrations instead.
     func stop(identifier: String) {
         guard let manager = locationManager() else { return }
-        for region in circularRegions() where region.identifier == identifier {
+        for region in circularRegions(of: manager) where region.identifier == identifier {
             manager.stopMonitoring(for: region)
         }
     }
@@ -107,7 +120,10 @@ internal final class LegacyRegionBackend: GeofenceMonitoringBackend {
                                          initialState: false))
     }
 
-    private func circularRegions() -> [CLCircularRegion] {
-        (locationManager()?.monitoredRegions ?? []).compactMap { $0 as? CLCircularRegion }
+    private func circularRegions(of manager: LocationManagerProtocol? = nil) -> [CLCircularRegion] {
+        // Resolved once by the caller where it matters, so a manager swapped
+        // mid-call cannot have its regions stopped through a different manager.
+        let source = manager ?? locationManager()
+        return (source?.monitoredRegions ?? []).compactMap { $0 as? CLCircularRegion }
     }
 }

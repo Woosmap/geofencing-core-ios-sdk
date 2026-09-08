@@ -45,16 +45,35 @@ public class LocationServiceCoreImpl: NSObject,
 
     /// Performs circular-region monitoring.
     ///
-    /// Every circular start/stop goes through here so the implementation can be
-    /// swapped for `CLMonitor` later. Beacons bypass it and keep calling
-    /// `locationManager` directly — see `stopMonitoring(_:)`.
-    internal lazy var monitoringBackend: GeofenceMonitoringBackend = {
-        let backend = LegacyRegionBackend(locationManager: { [weak self] in self?.locationManager })
-        backend.onTransition = { [weak self] transition in
+    /// Every circular **write** — start and stop — goes through here so the
+    /// implementation can be swapped for `CLMonitor` later. Beacons bypass it and
+    /// keep calling `locationManager` directly; see `stopMonitoring(_:)`.
+    ///
+    /// **Reads are deliberately still direct.** `monitoredRegions` is consulted in
+    /// place by `setRegionDelegate`, `stopMonitoringCurrentRegions`,
+    /// `startMonitoringCurrentRegions`, `addRegion(identifier:center:radius:)`,
+    /// `removeRegion(identifier:)`, `removeRegion(center:)`, `removeRegions(type:)`,
+    /// `removeOldPOIRegions` and `checkIfPositionIsInsideGeofencingRegions`.
+    ///
+    /// Those reads cannot move behind `monitoredCircularIdentifiers` without
+    /// changing behaviour, which this phase must not do: `removeRegions(type:)` and
+    /// `removeOldPOIRegions` currently sweep *beacons* out of `monitoredRegions`
+    /// too, and a circular-only view would silently stop doing that. Deciding what
+    /// the sweeps should mean belongs with the `CLMonitor` backend, which has no
+    /// beacon registrations at all.
+    ///
+    /// - Note: assigning a replacement re-wires `onTransition` via `didSet`, so a
+    ///   backend installed by a later phase or a test can never end up event-less.
+    internal var monitoringBackend: GeofenceMonitoringBackend = LegacyRegionBackend(locationManager: { nil }) {
+        didSet { wireMonitoringBackend() }
+    }
+
+    /// Points the current backend's transition hook back at this service.
+    private func wireMonitoringBackend() {
+        monitoringBackend.onTransition = { [weak self] transition in
             self?.handle(transition: transition)
         }
-        return backend
-    }()
+    }
 
     /// New Locaion service
     /// - Parameter locationManger: location service object
@@ -63,6 +82,12 @@ public class LocationServiceCoreImpl: NSObject,
         super.init()
         
         self.locationManager = locationManger
+        // Eager, not lazy: `lazy var` has no synchronisation, and this service is
+        // reachable from any thread (public region APIs, CoreLocation callbacks).
+        self.monitoringBackend = LegacyRegionBackend(locationManager: { [weak self] in self?.locationManager })
+        // Swift does not run `didSet` for assignments made inside an initialiser,
+        // so the hook has to be wired explicitly here as well.
+        wireMonitoringBackend()
         initLocationManager()
         
     }
