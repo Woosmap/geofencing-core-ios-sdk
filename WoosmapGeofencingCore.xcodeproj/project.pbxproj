@@ -29,6 +29,7 @@
 		5F5CD5EA28A6302C0074D7DD /* DurationLogTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F5CD5E928A6302C0074D7DD /* DurationLogTest.swift */; };
 		5F84A8142AB425A2002B1735 /* WoosLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F84A8132AB425A2002B1735 /* WoosLogger.swift */; };
 		5F84E5A12E377E9100F04234 /* POITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F84E5A02E377E9100F04234 /* POITests.swift */; };
+		5FCC17020004000000000001 /* GeofenceMonitoringBackendTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FCC17010004000000000001 /* GeofenceMonitoringBackendTests.swift */; };
 		5F84E5A32E378BDB00F04234 /* OpeningHoursChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F84E5A22E378BDB00F04234 /* OpeningHoursChecker.swift */; };
 		5FB3E7A32872F2BE0035653E /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FB3E7A22872F2BE0035653E /* LocationService.swift */; };
 		5FB3E7A52872F3170035653E /* LocationServiceCoreImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FB3E7A42872F3170035653E /* LocationServiceCoreImpl.swift */; };
@@ -37,6 +38,7 @@
 		A262B9C824E29ADF00EB621F /* FIGMMCreatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A262B9C524E29ADF00EB621F /* FIGMMCreatorTests.swift */; };
 		A262B9C924E29ADF00EB621F /* ZoiQualifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A262B9C624E29ADF00EB621F /* ZoiQualifierTests.swift */; };
 		A262B9D424E29B0000EB621F /* Monitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A262B9CB24E29AFF00EB621F /* Monitor.swift */; };
+		5FCC17020003000000000001 /* GeofenceMonitoringBackend.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FCC17010003000000000001 /* GeofenceMonitoringBackend.swift */; };
 		A262B9D524E29B0000EB621F /* FIGMM.swift in Sources */ = {isa = PBXBuildFile; fileRef = A262B9CC24E29AFF00EB621F /* FIGMM.swift */; };
 		A262B9D624E29B0000EB621F /* WoosmapGeofencingCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A262B9CD24E29AFF00EB621F /* WoosmapGeofencingCore.swift */; };
 		A262B9D724E29B0000EB621F /* SearchAPiJson.swift in Sources */ = {isa = PBXBuildFile; fileRef = A262B9CE24E29AFF00EB621F /* SearchAPiJson.swift */; };
@@ -104,6 +106,7 @@
 		5F6FD2852B95B980009E6A49 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		5F84A8132AB425A2002B1735 /* WoosLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WoosLogger.swift; sourceTree = "<group>"; };
 		5F84E5A02E377E9100F04234 /* POITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = POITests.swift; sourceTree = "<group>"; };
+		5FCC17010004000000000001 /* GeofenceMonitoringBackendTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeofenceMonitoringBackendTests.swift; sourceTree = "<group>"; };
 		5F84E5A22E378BDB00F04234 /* OpeningHoursChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpeningHoursChecker.swift; sourceTree = "<group>"; };
 		5FB3E7A22872F2BE0035653E /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
 		5FB3E7A42872F3170035653E /* LocationServiceCoreImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationServiceCoreImpl.swift; sourceTree = "<group>"; };
@@ -114,6 +117,7 @@
 		A262B9C624E29ADF00EB621F /* ZoiQualifierTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ZoiQualifierTests.swift; path = Tests/WoosmapGeofencingTests/ZoiQualifierTests.swift; sourceTree = SOURCE_ROOT; };
 		A262B9C724E29ADF00EB621F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; name = Info.plist; path = Tests/WoosmapGeofencingTests/Info.plist; sourceTree = SOURCE_ROOT; };
 		A262B9CB24E29AFF00EB621F /* Monitor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Monitor.swift; path = Sources/WoosmapGeofencing/Monitor.swift; sourceTree = SOURCE_ROOT; };
+		5FCC17010003000000000001 /* GeofenceMonitoringBackend.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = GeofenceMonitoringBackend.swift; path = Sources/WoosmapGeofencing/GeofenceMonitoringBackend.swift; sourceTree = SOURCE_ROOT; };
 		A262B9CC24E29AFF00EB621F /* FIGMM.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = FIGMM.swift; path = Sources/WoosmapGeofencing/FIGMM.swift; sourceTree = SOURCE_ROOT; };
 		A262B9CD24E29AFF00EB621F /* WoosmapGeofencingCore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = WoosmapGeofencingCore.swift; path = Sources/WoosmapGeofencing/WoosmapGeofencingCore.swift; sourceTree = SOURCE_ROOT; };
 		A262B9CE24E29AFF00EB621F /* SearchAPiJson.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SearchAPiJson.swift; path = Sources/WoosmapGeofencing/SearchAPiJson.swift; sourceTree = SOURCE_ROOT; };
@@ -278,6 +282,7 @@
 				A262B9CC24E29AFF00EB621F /* FIGMM.swift */,
 				A262B9D324E29B0000EB621F /* Info.plist */,
 				A262B9CB24E29AFF00EB621F /* Monitor.swift */,
+				5FCC17010003000000000001 /* GeofenceMonitoringBackend.swift */,
 				A262B9CF24E29B0000EB621F /* RegionGenerator.swift */,
 				A262B9CE24E29AFF00EB621F /* SearchAPiJson.swift */,
 				A2DFFA1F2728254200ED2B48 /* DistanceAPIJson.swift */,
@@ -329,6 +334,7 @@
 				A262B9C624E29ADF00EB621F /* ZoiQualifierTests.swift */,
 				5F5CD5E928A6302C0074D7DD /* DurationLogTest.swift */,
 				5F84E5A02E377E9100F04234 /* POITests.swift */,
+				5FCC17010004000000000001 /* GeofenceMonitoringBackendTests.swift */,
 			);
 			name = WoosmapGeofencingTests;
 			path = Tests/WoosmapGeofencingTests;
@@ -481,6 +487,7 @@
 				5F468DFE2A2499DF006F6D94 /* Trigonometric.swift in Sources */,
 				A262B9D624E29B0000EB621F /* WoosmapGeofencingCore.swift in Sources */,
 				A262B9D424E29B0000EB621F /* Monitor.swift in Sources */,
+				5FCC17020003000000000001 /* GeofenceMonitoringBackend.swift in Sources */,
 				5F468E082A2499DF006F6D94 /* Random.swift in Sources */,
 				A262B9D824E29B0000EB621F /* RegionGenerator.swift in Sources */,
 				A2710EF325B5CA7C00AF62F5 /* Visit.swift in Sources */,
@@ -499,6 +506,7 @@
 				A26E646125B98BDD00EDBA72 /* DelayDataDurationTests.swift in Sources */,
 				5F5CD5EA28A6302C0074D7DD /* DurationLogTest.swift in Sources */,
 				5F84E5A12E377E9100F04234 /* POITests.swift in Sources */,
+				5FCC17020004000000000001 /* GeofenceMonitoringBackendTests.swift in Sources */,
 				A262B9C824E29ADF00EB621F /* FIGMMCreatorTests.swift in Sources */,
 				A2DDC91B25C86B0C00C90486 /* DatabaseTests.swift in Sources */,
 				A262B9C924E29ADF00EB621F /* ZoiQualifierTests.swift in Sources */,
@@ -660,7 +668,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 4.4.1;
+				MARKETING_VERSION = 4.4.2;
 				PRODUCT_BUNDLE_IDENTIFIER = woosmap.WoosmapGeofencing;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
 				SKIP_INSTALL = YES;
@@ -690,7 +698,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 4.4.1;
+				MARKETING_VERSION = 4.4.2;
 				PRODUCT_BUNDLE_IDENTIFIER = woosmap.WoosmapGeofencing;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
 				SKIP_INSTALL = YES;

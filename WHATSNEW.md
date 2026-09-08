@@ -1,1 +1,1 @@
-- Fixed: opening hours slots that run past midnight (e.g. 22:00 → 02:00) now correctly keep a store open into the next day
+- Updated: internal refactor of circular-region monitoring behind a new abstraction. No functional change

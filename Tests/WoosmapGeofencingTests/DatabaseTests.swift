@@ -126,6 +126,10 @@ class DatabaseTests: XCTestCase {
         Visits.deleteAll()
         ZOIs.deleteAll()
         POIs.deleteAll()
+        // Region logs (and the duration logs they write) outlive the process, so
+        // test_add_delete_region_in_DB counts stale rows unless they are cleared.
+        Regions.deleteAll()
+        DurationLogs.deleteAll()
     }
 
 }
