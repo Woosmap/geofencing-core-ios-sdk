@@ -23,6 +23,20 @@ import Foundation
 import CoreLocation
 import os
 
+/// What an incoming `CLMonitor` state means for a monitored identifier.
+@available(iOS 17.0, *)
+internal enum MonitorStateDecision: Equatable {
+    /// The same delivery arrived twice — CoreLocation has been observed handing
+    /// one event to the stream more than once, milliseconds apart.
+    case duplicate
+    /// A real transition. `isInitial` marks a determination rather than a crossing.
+    case transition(didEnter: Bool, isInitial: Bool)
+    /// The condition is no longer monitored; the identifier is now untracked.
+    case forget
+    /// State could not be determined; nothing to report and nothing forgotten.
+    case undetermined
+}
+
 @available(iOS 17.0, *)
 internal final class CLMonitorBackend: GeofenceMonitoringBackend {
 
@@ -271,36 +285,107 @@ internal final class MonitorSession: @unchecked Sendable {
     }
 
     private func handle(_ event: CLMonitor.Event) {
-        let identifier = event.identifier
-        let now = Date()
-
-        let isInitial: Bool? = stateLock.withLock {
-            if let seen = lastHandled[identifier],
-               seen.date == event.date,
-               seen.state == event.state,
-               now.timeIntervalSince(seen.receivedAt) < Self.duplicateWindow {
-                return nil  // same delivery twice
-            }
-            lastHandled[identifier] = (event.date, event.state, now)
-            let first = lastStates[identifier] == nil
-            lastStates[identifier] = event.state
-            return first
-        }
-        guard let isInitial else { return }
-
-        let didEnter: Bool
-        switch event.state {
-        case .satisfied:   didEnter = true
-        case .unsatisfied: didEnter = false
-        default:
-            // `.unknown`, and `.unmonitored` from iOS 17.2, are not crossings.
+        switch decide(identifier: event.identifier, state: event.state, eventDate: event.date) {
+        case .duplicate, .undetermined:
             return
+        case .forget:
+            logStoppedMonitoring(event)
+        case .transition(let didEnter, let isInitial):
+            let handlers = stateLock.withLock { Array(observers.values) }
+            for handler in handlers {
+                handler(event.identifier, didEnter, isInitial)
+            }
         }
+    }
 
-        let handlers = stateLock.withLock { Array(observers.values) }
-        for handler in handlers {
-            handler(identifier, didEnter, isInitial)
+    /// Records `state` for `identifier` and says what it means.
+    ///
+    /// Split out of `handle(_:)` because `CLMonitor.Event` has no public
+    /// initialiser: the event path itself cannot be reached from a test, so the
+    /// logic lives here where it can be.
+    internal func decide(identifier: String,
+                         state: CLMonitor.Event.State,
+                         eventDate: Date,
+                         now: Date = Date()) -> MonitorStateDecision {
+        stateLock.withLock {
+            if let seen = lastHandled[identifier],
+               seen.date == eventDate,
+               seen.state == state,
+               now.timeIntervalSince(seen.receivedAt) < Self.duplicateWindow {
+                return .duplicate
+            }
+
+            switch state {
+            case .satisfied, .unsatisfied:
+                lastHandled[identifier] = (eventDate, state, now)
+                let isInitial = lastStates[identifier] == nil
+                lastStates[identifier] = state
+                return .transition(didEnter: state == .satisfied, isInitial: isInitial)
+
+            case .unknown:
+                // State not yet resolved. Nothing to report, and the last known
+                // state is deliberately kept: this is a gap in knowledge, not a
+                // removal.
+                return .undetermined
+
+            default:
+                // `.unmonitored`, iOS 17.2+. Normally CoreLocation acknowledging
+                // our own `remove()`.
+                //
+                // The identifier is forgotten rather than recorded, for two
+                // reasons. `remove()` clears this state, but the `.unmonitored`
+                // event lands *after* it — recording it would resurrect the
+                // entry, and then a later re-add would see a non-nil last state
+                // and report the "already inside" enter as a crossing instead of
+                // an initial determination. Nearest-N churn re-adds POIs
+                // constantly, so that is a live path, not a corner case.
+                // It also keeps these dictionaries bounded: the position grid
+                // alone churns 13 identifiers on every location update.
+                lastStates[identifier] = nil
+                lastHandled[identifier] = nil
+                return .forget
+            }
         }
+    }
+
+    /// Records that CoreLocation stopped monitoring a condition.
+    ///
+    /// Routine when it is answering our own `remove()`. Not routine when it
+    /// decided by itself — from iOS 18 the event carries the reason, which is the
+    /// only way to see a condition limit or authorization problem now that there
+    /// is no `monitoringDidFailFor` delegate callback.
+    private func logStoppedMonitoring(_ event: CLMonitor.Event) {
+        let reasons = Self.diagnosticReasons(for: event)
+        guard WoosLog.isValidLevel(level: reasons == nil ? .trace : .warn) else { return }
+        let detail = reasons.map { "CoreLocation stopped monitoring \(event.identifier): \($0)" }
+            ?? "stopped monitoring \(event.identifier) (expected after remove)"
+        if #available(iOS 14.0, *) {
+            if reasons == nil {
+                Logger.sdklog.trace("\(LogEvent.v.rawValue) \(detail)")
+            } else {
+                Logger.sdklog.warning("\(LogEvent.w.rawValue) \(detail)")
+            }
+        } else {
+            reasons == nil ? WoosLog.trace(detail) : WoosLog.warning(detail)
+        }
+    }
+
+    /// Why CoreLocation stopped monitoring, when it says. `nil` means it gave no
+    /// reason, which is what a removal we asked for looks like.
+    private static func diagnosticReasons(for event: CLMonitor.Event) -> String? {
+        guard #available(iOS 18.0, *) else { return nil }
+        let flags = [
+            ("authorizationDenied", event.authorizationDenied),
+            ("authorizationDeniedGlobally", event.authorizationDeniedGlobally),
+            ("authorizationRestricted", event.authorizationRestricted),
+            ("insufficientlyInUse", event.insufficientlyInUse),
+            ("accuracyLimited", event.accuracyLimited),
+            ("conditionUnsupported", event.conditionUnsupported),
+            ("conditionLimitExceeded", event.conditionLimitExceeded),
+            ("persistenceUnavailable", event.persistenceUnavailable),
+            ("serviceSessionRequired", event.serviceSessionRequired),
+        ].filter { $0.1 }.map { $0.0 }
+        return flags.isEmpty ? nil : flags.joined(separator: ",")
     }
 }
 
