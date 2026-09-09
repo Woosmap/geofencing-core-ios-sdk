@@ -471,11 +471,27 @@ public class LocationServiceCoreImpl: NSObject,
                                       radius: transition.radius,
                                       identifier: transition.identifier)
         // An initial state is a position determination, not a crossing, which is
-        // exactly what `fromPositionDetection` means. The legacy backend never
-        // sets it, so this is `false` until a CLMonitor backend lands.
+        // exactly what `fromPositionDetection` means.
         logTransition(region: region,
                       didEnter: transition.didEnter,
                       fromPositionDetection: transition.initialState)
+
+        // Deliberately does *not* call `handleRegionChange()`, even though the
+        // legacy `handlePlatformRegionEvent` does for every region callback.
+        //
+        // That asymmetry is real and unresolved — see
+        // `test_backendTransition_doesNotYetTriggerARegionChange`. Adding the call
+        // here was tried and reverted: it cost two of the three events in an
+        // end-to-end run, because `handleRegionChange` restarts location updates
+        // and reorders the CLMonitor event against `didUpdateLocations`, and the
+        // Enterprise override of `addRegionLogTransition` then rejects the exit
+        // as a false positive by cross-checking against a `currentLocation` that
+        // has not been refreshed yet.
+        //
+        // Under CLMonitor the wake-up may not be needed at all: CoreLocation
+        // relaunches the process for a pending condition event, which the killed-
+        // app run confirmed. Establishing that properly needs a passive-tracking
+        // test with continuous updates disabled, which a simulator cannot express.
     }
 
     /// Records a transition for the region types that produce events. Position
