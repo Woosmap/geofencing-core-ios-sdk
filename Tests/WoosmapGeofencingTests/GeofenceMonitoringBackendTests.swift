@@ -33,9 +33,11 @@ final class FakeLocationManager: LocationManagerProtocol {
 final class RecordingBackend: GeofenceMonitoringBackend {
     var onTransition: ((GeofenceTransition) -> Void)?
 
-    /// Stands in for a `CLLocationManager`-style backend: reports crossings only,
-    /// never an initial state.
-    let reportsInitialState = false
+    /// `false` presents a `CLLocationManager`-shaped backend, reporting crossings
+    /// only. Set it to `true` to present a `CLMonitor`-shaped one, which reports a
+    /// region's initial state itself. Settable rather than two doubles, so there
+    /// is one recorder to keep in step with the protocol.
+    var reportsInitialState = false
 
     var monitoredGeofences: [CircularGeofence] = []
 
