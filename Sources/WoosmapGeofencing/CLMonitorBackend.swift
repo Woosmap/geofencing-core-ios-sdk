@@ -216,16 +216,37 @@ internal final class MonitorSession: @unchecked Sendable {
     func add(identifier: String, center: CLLocationCoordinate2D, radius: CLLocationDistance) async {
         let monitor = await activeMonitor()
         let condition = CLMonitor.CircularGeographicCondition(center: center, radius: radius)
-        // Assume outside and let CoreLocation correct us.
-        //
-        // Adding with `.unknown` makes every new condition emit an event the
-        // moment its state resolves — usually an exit the user never walked.
-        // Assuming `.unsatisfied` costs nothing when it is right (silence, which
-        // is what the legacy path produced for a region you are outside of) and
-        // self-corrects when it is wrong: standing inside still yields a genuine
-        // enter, which is exactly the "already inside" fire the SDK used to
-        // synthesise via checkIfUserIsInRegion.
-        await monitor.add(condition, identifier: identifier, assuming: .unsatisfied)
+        await monitor.add(condition,
+                          identifier: identifier,
+                          assuming: Self.assumedState(for: identifier))
+    }
+
+    /// Prefix of the position grid's concentric rings.
+    ///
+    /// `RegionsGenerator` centres these on the very fix that generated them, with
+    /// radii from 200 m to 2 km, so the user is inside every one of them at the
+    /// moment they are registered.
+    private static let concentricRingPrefix = RegionType.position.rawValue + "_radius"
+
+    /// The state a new condition is seeded with.
+    ///
+    /// Seeding matters because `CLMonitor` emits an event whenever the state it
+    /// resolves differs from the assumption. Adding with `.unknown` therefore
+    /// makes *every* new condition fire the moment it resolves.
+    ///
+    /// - The position grid's concentric rings are centred on the user, so
+    ///   `.satisfied` is a certainty rather than a guess. Seeding `.unsatisfied`
+    ///   there would make all five rings fire a bogus enter on every location
+    ///   update, since the grid is torn down and rebuilt each time.
+    /// - Everything else — POI circles, custom geofences, and the grid's
+    ///   directional translations, which sit at least 270 m away from a ~140 m
+    ///   circle — is assumed outside. That is silent when right, which is what
+    ///   the legacy path produced for a region you are outside of, and
+    ///   self-correcting when wrong: standing inside still yields a genuine
+    ///   enter, which is exactly the "already inside" fire the SDK used to
+    ///   synthesise via `checkIfUserIsInRegion`.
+    internal static func assumedState(for identifier: String) -> CLMonitor.Event.State {
+        identifier.hasPrefix(concentricRingPrefix) ? .satisfied : .unsatisfied
     }
 
     func remove(identifier: String) async {
