@@ -5,7 +5,11 @@ import PackageDescription
 
 let package = Package(
     name: "WoosmapGeofencingCore",
-    platforms: [.iOS(.v11)],
+    // iOS 13 is the real floor, not a preference: the SDK uses Swift concurrency
+    // (`Task { @MainActor in … }`, added in #153), which does not exist below it.
+    // Declaring .v11 made every SPM build fail with "'Task' is only available in
+    // iOS 13.0 or newer". 13.0 also matches WoosmapGeofencingCore.podspec.
+    platforms: [.iOS(.v13)],
     products: [
         // Products define the executables and libraries produced by a package, and make them visible to other packages.
         .library(
