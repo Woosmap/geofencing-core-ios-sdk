@@ -295,12 +295,10 @@ internal final class MonitorSession: @unchecked Sendable {
                 handle(event)
             }
         } catch {
+            // No `WoosLog` fallback, unlike the rest of the SDK: this type is
+            // `@available(iOS 17, *)`, so `Logger` is always available here.
             if WoosLog.isValidLevel(level: .error) {
-                if #available(iOS 14.0, *) {
-                    Logger.sdklog.error("\(LogEvent.e.rawValue) CLMonitor event stream failed: \(error.localizedDescription)")
-                } else {
-                    WoosLog.error("CLMonitor event stream failed: \(error.localizedDescription)")
-                }
+                Logger.sdklog.error("\(LogEvent.e.rawValue) CLMonitor event stream failed: \(error.localizedDescription)")
             }
         }
     }
@@ -380,14 +378,11 @@ internal final class MonitorSession: @unchecked Sendable {
         guard WoosLog.isValidLevel(level: reasons == nil ? .trace : .warn) else { return }
         let detail = reasons.map { "CoreLocation stopped monitoring \(event.identifier): \($0)" }
             ?? "stopped monitoring \(event.identifier) (expected after remove)"
-        if #available(iOS 14.0, *) {
-            if reasons == nil {
-                Logger.sdklog.trace("\(LogEvent.v.rawValue) \(detail)")
-            } else {
-                Logger.sdklog.warning("\(LogEvent.w.rawValue) \(detail)")
-            }
+        // `Logger` unconditionally: see the note in `consume(from:)`.
+        if reasons == nil {
+            Logger.sdklog.trace("\(LogEvent.v.rawValue) \(detail)")
         } else {
-            reasons == nil ? WoosLog.trace(detail) : WoosLog.warning(detail)
+            Logger.sdklog.warning("\(LogEvent.w.rawValue) \(detail)")
         }
     }
 
