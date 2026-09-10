@@ -1,1 +1,1 @@
-- Updated: internal refactor of circular-region monitoring behind a new abstraction. No functional change
+- Updated: circular-region monitoring now runs on CLMonitor on iOS 17 and later, and keeps using CLLocationManager region monitoring below it. No change to the public API or to reported events
