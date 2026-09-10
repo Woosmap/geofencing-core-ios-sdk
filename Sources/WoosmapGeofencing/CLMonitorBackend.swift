@@ -86,7 +86,17 @@ internal final class CLMonitorBackend: GeofenceMonitoringBackend {
     // MARK: - GeofenceMonitoringBackend
 
     var monitoredGeofences: [CircularGeofence] {
-        lock.withLock { Array(registry.values) }
+        // Conditions `CLMonitor` restored from a previous launch count as
+        // monitored, because they are: callers use this set to decide what to
+        // tear down, and on a relaunch the registry is still empty while
+        // `CLMonitor`'s persistent store is not. The registry wins on conflict,
+        // being this process's own view.
+        var merged = Dictionary(uniqueKeysWithValues:
+            session.knownGeofences().map { ($0.identifier, $0) })
+        for (identifier, geofence) in lock.withLock({ registry }) {
+            merged[identifier] = geofence
+        }
+        return Array(merged.values)
     }
 
     func start(identifier: String, center: CLLocationCoordinate2D, radius: CLLocationDistance) {
@@ -97,10 +107,15 @@ internal final class CLMonitorBackend: GeofenceMonitoringBackend {
     }
 
     func stop(identifier: String) {
-        let known = lock.withLock { registry.removeValue(forKey: identifier) != nil }
-        // A beacon sharing this identifier is not in the registry, so it is left
-        // alone — the same guarantee the legacy backend gives by type-checking.
-        guard known else { return }
+        let wasRegistered = lock.withLock { registry.removeValue(forKey: identifier) != nil }
+        // Restored conditions have to be stoppable too. This process never
+        // registered them, so gating on the registry alone left stale POI
+        // circles from previous launches in the persistent store, counting
+        // against the condition limit and never removed.
+        //
+        // A beacon is in neither collection, so it is still left alone — the
+        // same guarantee the legacy backend gives by type-checking.
+        guard wasRegistered || session.knownGeofence(identifier) != nil else { return }
         enqueue { await $0.remove(identifier: identifier) }
     }
 
@@ -124,17 +139,46 @@ internal final class CLMonitorBackend: GeofenceMonitoringBackend {
         }
     }
 
-    /// Resolves the geometry an event needs from the mirror, then hands the
-    /// transition to the service.
-    private func publish(identifier: String, didEnter: Bool, isInitial: Bool) {
+    /// Resolves the geometry an event needs, then hands the transition to the
+    /// service on the main queue.
+    ///
+    /// Internal rather than private so tests can reach it. `CLMonitor.Event` has
+    /// no public initialiser, so the real event path cannot be driven from a
+    /// test — the same reason `decide` is exposed.
+    internal func publish(identifier: String, didEnter: Bool, isInitial: Bool) {
+        // Registry first, then the restored store. The second source is what
+        // answers an event replayed on a relaunch, which arrives milliseconds
+        // after the monitor opens and long before the SDK registers anything:
+        // resolving those from the registry alone dropped every one of them.
         let geofence = lock.withLock { registry[identifier] }
-        guard let geofence else { return }  // removed while the event was in flight
-        let handler = lock.withLock { transitionHandler }
-        handler?(GeofenceTransition(identifier: identifier,
-                                    center: geofence.center,
-                                    radius: geofence.radius,
-                                    didEnter: didEnter,
-                                    initialState: isInitial))
+            ?? session.knownGeofence(identifier)
+        guard let geofence, let handler = lock.withLock({ transitionHandler }) else {
+            return  // not a circular condition of ours, or nothing listening
+        }
+        let transition = GeofenceTransition(identifier: identifier,
+                                            center: geofence.center,
+                                            radius: geofence.radius,
+                                            didEnter: didEnter,
+                                            initialState: isInitial)
+        // Hop to main. `consume(from:)` runs on the cooperative pool, and
+        // everything downstream is main-queue work: `Regions.add` builds
+        // entities on `NSPersistentContainer.viewContext`, and the public
+        // `didEnterPOIRegion` / `didExitPOIRegion` callbacks fired on main under
+        // the legacy delegate path, which this has to keep matching.
+        //
+        // Delivery is therefore asynchronous here where the legacy backend's is
+        // synchronous. Ordering between two events for one identifier still
+        // holds: `decide` has already collapsed duplicates synchronously, in
+        // arrival order, before anything reaches this point.
+        //
+        // `DispatchQueue.main.async` rather than the `Task { @MainActor }` the
+        // rest of the SDK moved to in #38, because this is the one place that
+        // needs the queue's FIFO guarantee: a burst of ~20 replayed conditions
+        // lands here at once on a relaunch, and unstructured tasks are not
+        // ordered against each other.
+        DispatchQueue.main.async {
+            handler(transition)
+        }
     }
 }
 
@@ -219,6 +263,11 @@ internal final class MonitorSession: @unchecked Sendable {
         await monitor.add(condition,
                           identifier: identifier,
                           assuming: Self.assumedState(for: identifier))
+        stateLock.withLock {
+            persisted[identifier] = CircularGeofence(identifier: identifier,
+                                                     center: center,
+                                                     radius: radius)
+        }
     }
 
     /// Prefix of the position grid's concentric rings.
@@ -253,16 +302,45 @@ internal final class MonitorSession: @unchecked Sendable {
         let monitor = await activeMonitor()
         await monitor.remove(identifier)
         stateLock.withLock {
+            persisted[identifier] = nil
             lastStates[identifier] = nil
             lastHandled[identifier] = nil
         }
     }
 
-    /// Identifiers `CLMonitor` itself holds, as opposed to the backend's mirror.
-    /// Used for reconciliation and diagnostics, not on the hot path.
-    func registeredIdentifiers() async -> Set<String> {
-        let monitor = await activeMonitor()
-        return Set(await monitor.identifiers)
+    /// Circular conditions `CLMonitor` already held when this process opened it.
+    ///
+    /// `CLMonitor`'s condition store is persistent, so after a relaunch it knows
+    /// conditions the SDK has not re-registered yet. Read once while opening and
+    /// kept in step with `add` / `remove` afterwards.
+    private var persisted: [String: CircularGeofence] = [:]
+
+    /// Geometry for a condition `CLMonitor` holds, whether or not this process
+    /// is the one that registered it.
+    func knownGeofence(_ identifier: String) -> CircularGeofence? {
+        stateLock.withLock { persisted[identifier] }
+    }
+
+    func knownGeofences() -> [CircularGeofence] {
+        stateLock.withLock { Array(persisted.values) }
+    }
+
+    /// Rebuilds the circular conditions from `CLMonitor`'s own store.
+    ///
+    /// `record(for:)` carries the `CLMonitor.CircularGeographicCondition`, and so
+    /// the centre and radius, which the event itself does not.
+    private static func restoredConditions(from monitor: CLMonitor) async -> [String: CircularGeofence] {
+        var restored: [String: CircularGeofence] = [:]
+        for identifier in await monitor.identifiers {
+            guard let record = await monitor.record(for: identifier),
+                  let circle = record.condition as? CLMonitor.CircularGeographicCondition else {
+                continue  // a beacon condition, or removed between the two calls
+            }
+            restored[identifier] = CircularGeofence(identifier: identifier,
+                                                    center: circle.center,
+                                                    radius: circle.radius)
+        }
+        return restored
     }
 
     private func activeMonitor() async -> CLMonitor {
@@ -276,11 +354,17 @@ internal final class MonitorSession: @unchecked Sendable {
             return created
         }
         let opened = await task.value
+        // Read the store *before* draining events. On a relaunch CoreLocation
+        // replays every condition's state within milliseconds of the monitor
+        // opening, so seeding after `consume` starts loses the race and the
+        // events that woke the app cannot be resolved to a geometry.
+        let restored = await Self.restoredConditions(from: opened)
 
         return stateLock.withLock {
             // A concurrent caller may have installed it while we awaited.
             if let existing = monitor { return existing }
             monitor = opened
+            persisted = restored
             // Draining must start now and stay up: CoreLocation stops monitoring
             // a condition when an event is pending for it and no monitor is open
             // to receive it.
@@ -402,13 +486,5 @@ internal final class MonitorSession: @unchecked Sendable {
             ("serviceSessionRequired", event.serviceSessionRequired),
         ].filter { $0.1 }.map { $0.0 }
         return flags.isEmpty ? nil : flags.joined(separator: ",")
-    }
-}
-
-private extension NSLock {
-    func withLock<T>(_ body: () throws -> T) rethrows -> T {
-        lock()
-        defer { unlock() }
-        return try body()
     }
 }

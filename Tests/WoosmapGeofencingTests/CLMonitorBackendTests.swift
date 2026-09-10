@@ -55,6 +55,9 @@ final class CLMonitorBackendTests: XCTestCase {
         guard #available(iOS 17.0, *) else { throw XCTSkip("CLMonitor requires iOS 17") }
         for suffix in ["_translation n", "_translation nw", "_translation ne",
                        "_translation s", "_translation sw", "_translation se",
+                       // Not a typo here: `RegionGenerator.swift` really builds
+                       // this one without the leading underscore, and has since
+                       // 2022. The test mirrors the identifier the SDK ships.
                        "translation e", "_translation w"] {
             let identifier = RegionType.position.rawValue + suffix
             XCTAssertEqual(MonitorSession.assumedState(for: identifier), .unsatisfied, identifier)
@@ -235,5 +238,71 @@ final class CLMonitorBackendTests: XCTestCase {
                                     didEnter: true)
 
         XCTAssertEqual(received, 0, "CLMonitor drives its own events")
+    }
+
+    // MARK: - Publishing a transition
+
+    /// `publish` is the step between `CLMonitor`'s event stream and the service.
+    /// It was previously uncovered, and both defects found in review lived here.
+    func test_publish_resolvesGeometryFromTheRegistry() throws {
+        guard #available(iOS 17.0, *) else { throw XCTSkip("CLMonitor requires iOS 17") }
+        let backend = CLMonitorBackend(monitorName: uniqueName("Publish"))
+        backend.start(identifier: "poi<id>store-A<id>", center: anchor, radius: 250)
+
+        let delivered = expectation(description: "transition delivered")
+        var received: GeofenceTransition?
+        backend.onTransition = { transition in
+            received = transition
+            delivered.fulfill()
+        }
+
+        backend.publish(identifier: "poi<id>store-A<id>", didEnter: true, isInitial: false)
+        wait(for: [delivered], timeout: 2)
+
+        XCTAssertEqual(received?.identifier, "poi<id>store-A<id>")
+        XCTAssertEqual(received?.radius, 250)
+        XCTAssertEqual(received?.center.latitude, anchor.latitude)
+        XCTAssertEqual(received?.didEnter, true)
+        XCTAssertEqual(received?.initialState, false)
+    }
+
+    /// The whole write path downstream of `onTransition` is main-queue work:
+    /// `Regions.add` builds entities on `NSPersistentContainer.viewContext`, and
+    /// the public region callbacks fired on main under the legacy delegate path.
+    /// `CLMonitor`'s events arrive on the cooperative pool, so the hop matters.
+    func test_publish_deliversOnTheMainQueue() throws {
+        guard #available(iOS 17.0, *) else { throw XCTSkip("CLMonitor requires iOS 17") }
+        let backend = CLMonitorBackend(monitorName: uniqueName("MainQueue"))
+        backend.start(identifier: "poi<id>store-A<id>", center: anchor, radius: 100)
+
+        let delivered = expectation(description: "transition delivered")
+        var wasMain = false
+        backend.onTransition = { _ in
+            wasMain = Thread.isMainThread
+            delivered.fulfill()
+        }
+
+        // Publish from a background queue, which is where `consume(from:)` runs.
+        DispatchQueue.global().async {
+            backend.publish(identifier: "poi<id>store-A<id>", didEnter: false, isInitial: false)
+        }
+        wait(for: [delivered], timeout: 2)
+
+        XCTAssertTrue(wasMain, "delivery must land on the main queue")
+    }
+
+    /// A beacon condition shares the POI identifier scheme but is not circular,
+    /// so it is in neither the registry nor the restored store.
+    func test_publish_ignoresAnIdentifierNothingKnows() throws {
+        guard #available(iOS 17.0, *) else { throw XCTSkip("CLMonitor requires iOS 17") }
+        let backend = CLMonitorBackend(monitorName: uniqueName("Unknown"))
+        var received = 0
+        backend.onTransition = { _ in received += 1 }
+
+        backend.publish(identifier: "poi<id>never-registered<id>", didEnter: true, isInitial: true)
+
+        // Nothing to wait for: with no geometry to resolve, `publish` returns
+        // before it would ever schedule a delivery.
+        XCTAssertEqual(received, 0)
     }
 }
