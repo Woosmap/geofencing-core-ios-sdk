@@ -32,7 +32,14 @@ final class FakeLocationManager: LocationManagerProtocol {
 /// Records what the service asked the backend to do.
 final class RecordingBackend: GeofenceMonitoringBackend {
     var onTransition: ((GeofenceTransition) -> Void)?
-    var monitoredCircularIdentifiers: Set<String> = []
+
+    /// `false` presents a `CLLocationManager`-shaped backend, reporting crossings
+    /// only. Set it to `true` to present a `CLMonitor`-shaped one, which reports a
+    /// region's initial state itself. Settable rather than two doubles, so there
+    /// is one recorder to keep in step with the protocol.
+    var reportsInitialState = false
+
+    var monitoredGeofences: [CircularGeofence] = []
 
     private(set) var started: [(identifier: String, center: CLLocationCoordinate2D, radius: CLLocationDistance)] = []
     private(set) var stopped: [String] = []
@@ -174,8 +181,12 @@ final class GeofenceMonitoringBackendTests: XCTestCase {
 
     func test_removeRegion_stopsThroughTheBackend() {
         let (service, recorder) = makeServiceWithRecordingBackend()
-        let region = CLCircularRegion(center: anchor, radius: 100, identifier: "custom<id>my-zone")
-        service.locationManager?.startMonitoring(for: region)
+        // Seeded on the backend, not the location manager: the backend is now the
+        // source of truth for circular regions, so poking one into the manager
+        // would be invisible to the service.
+        recorder.monitoredGeofences = [
+            CircularGeofence(identifier: "custom<id>my-zone", center: anchor, radius: 100)
+        ]
 
         service.removeRegion(identifier: "custom<id>my-zone")
 

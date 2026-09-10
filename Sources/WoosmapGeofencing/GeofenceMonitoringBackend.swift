@@ -10,6 +10,14 @@
 import Foundation
 import CoreLocation
 
+/// A circular geofence as the SDK describes it, independent of whichever
+/// platform API is monitoring it.
+internal struct CircularGeofence {
+    let identifier: String
+    let center: CLLocationCoordinate2D
+    let radius: CLLocationDistance
+}
+
 /// A circular geofence transition observed by a monitoring backend.
 internal struct GeofenceTransition {
 
@@ -41,15 +49,22 @@ internal struct GeofenceTransition {
 /// `CLLocationManager` directly, because `CLMonitor` has no beacon equivalent.
 internal protocol GeofenceMonitoringBackend: AnyObject {
 
-    /// Identifiers of every circular region currently monitored.
+    /// Every circular geofence currently monitored, with its geometry.
     ///
     /// Beacon regions are excluded even though they share the `poi<id>…<id>`
     /// identifier scheme.
     ///
-    /// Not yet consumed by `LocationServiceCoreImpl`, which still reads
-    /// `CLLocationManager.monitoredRegions` directly — see the note on
-    /// `monitoringBackend` for why those reads are deliberately deferred.
-    var monitoredCircularIdentifiers: Set<String> { get }
+    /// Carries centre and radius, not just identifiers: callers reconstruct
+    /// `CLCircularRegion` for the public API, test containment, and match by
+    /// centre, none of which an identifier alone supports.
+    var monitoredGeofences: [CircularGeofence] { get }
+
+    /// `true` when the backend reports a region's initial state by itself.
+    ///
+    /// `CLMonitor` does, given a seeded assumption, which makes the SDK's manual
+    /// "already inside" check redundant and a source of duplicate enter events.
+    /// `CLLocationManager` does not — it only reports crossings.
+    var reportsInitialState: Bool { get }
 
     /// Invoked for every transition the backend observes.
     var onTransition: ((GeofenceTransition) -> Void)? { get set }
@@ -69,6 +84,14 @@ internal protocol GeofenceMonitoringBackend: AnyObject {
     /// implemented by the service rather than by the backend. A `CLMonitor` backend
     /// owns its own event stream and drives `onTransition` directly.
     func reportPlatformEvent(region: CLCircularRegion, didEnter: Bool)
+}
+
+internal extension GeofenceMonitoringBackend {
+
+    /// Identifiers of every circular region currently monitored.
+    var monitoredCircularIdentifiers: Set<String> {
+        Set(monitoredGeofences.map { $0.identifier })
+    }
 }
 
 /// Monitoring backend that preserves the pre-migration behaviour exactly:
@@ -92,8 +115,13 @@ internal final class LegacyRegionBackend: GeofenceMonitoringBackend {
         self.locationManager = locationManager
     }
 
-    var monitoredCircularIdentifiers: Set<String> {
-        Set(circularRegions().map { $0.identifier })
+    /// `CLLocationManager` only ever reports crossings, never an initial state.
+    let reportsInitialState = false
+
+    var monitoredGeofences: [CircularGeofence] {
+        circularRegions().map {
+            CircularGeofence(identifier: $0.identifier, center: $0.center, radius: $0.radius)
+        }
     }
 
     func start(identifier: String, center: CLLocationCoordinate2D, radius: CLLocationDistance) {
