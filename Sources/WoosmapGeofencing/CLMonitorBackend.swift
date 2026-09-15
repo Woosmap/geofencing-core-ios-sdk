@@ -44,6 +44,10 @@ internal final class CLMonitorBackend: GeofenceMonitoringBackend {
     /// own "already inside" check must stand down — see `MonitorSession.apply`.
     let reportsInitialState = true
 
+    /// `CLMonitor` keeps its own persistent condition store, so circular regions
+    /// on `CLLocationManager` are not this backend's and need adopting.
+    let usesPlatformRegionStore = false
+
     private let session: MonitorSession
     private let lock = NSLock()
 

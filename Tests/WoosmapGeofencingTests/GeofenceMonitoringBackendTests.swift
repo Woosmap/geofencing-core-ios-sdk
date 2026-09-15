@@ -39,6 +39,10 @@ final class RecordingBackend: GeofenceMonitoringBackend {
     /// is one recorder to keep in step with the protocol.
     var reportsInitialState = false
 
+    /// `false` presents a backend with its own store, the shape that has legacy
+    /// regions to adopt. `true` presents a `CLLocationManager`-backed one.
+    var usesPlatformRegionStore = false
+
     var monitoredGeofences: [CircularGeofence] = []
 
     private(set) var started: [(identifier: String, center: CLLocationCoordinate2D, radius: CLLocationDistance)] = []

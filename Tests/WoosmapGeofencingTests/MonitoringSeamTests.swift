@@ -239,6 +239,64 @@ final class MonitoringSeamTests: XCTestCase {
             XCTAssertFalse(fresh.monitoringBackend.reportsInitialState)
         }
     }
+
+    // MARK: - Adopting regions left behind by an older SDK version
+
+    /// `CLLocationManager` registrations survive an app update, so an app moving
+    /// from a pre-CLMonitor release starts with regions iOS holds and the new
+    /// backend does not know. They are invisible to every query, unreachable by
+    /// `stopMonitoring`, and their events are discarded — so they are moved over.
+    func test_adoption_movesLegacyCircularRegionsIntoTheBackend() {
+        manager.startMonitoring(for: CLCircularRegion(center: anchor, radius: 150,
+                                                      identifier: "custom<id>home"))
+        manager.startMonitoring(for: CLCircularRegion(center: anchor, radius: 100,
+                                                      identifier: "poi<id>store-A<id>"))
+
+        service.adoptLegacyCircularRegions()
+
+        XCTAssertEqual(Set(backend.started.map { $0.identifier }),
+                       ["custom<id>home", "poi<id>store-A<id>"])
+        XCTAssertEqual(backend.started.first { $0.identifier == "custom<id>home" }?.radius, 150,
+                       "geometry comes across, which is what a custom geofence needs")
+        XCTAssertTrue(manager.monitoredRegions.isEmpty,
+                      "and they are taken off the manager, so nothing is monitored twice")
+    }
+
+    /// Beacon monitoring still lives on `CLLocationManager`, so beacons are not
+    /// the backend's to take.
+    func test_adoption_leavesBeaconsOnTheManager() {
+        manager.startMonitoring(for: beacon("beacon-1"))
+
+        service.adoptLegacyCircularRegions()
+
+        XCTAssertTrue(backend.started.isEmpty)
+        XCTAssertEqual(manager.monitoredRegions.count, 1)
+    }
+
+    /// Under the legacy backend the manager's regions *are* the backend's state.
+    /// Adopting them would register each one and immediately stop it again.
+    func test_adoption_isSkippedWhenTheBackendUsesThePlatformStore() {
+        backend.usesPlatformRegionStore = true
+        manager.startMonitoring(for: CLCircularRegion(center: anchor, radius: 100,
+                                                      identifier: "poi<id>store-A<id>"))
+
+        service.adoptLegacyCircularRegions()
+
+        XCTAssertTrue(backend.started.isEmpty)
+        XCTAssertEqual(manager.monitoredRegions.count, 1,
+                       "the legacy backend's own regions must survive")
+    }
+
+    /// It runs on every launch, not only the first one after an upgrade.
+    func test_adoption_isIdempotent() {
+        manager.startMonitoring(for: CLCircularRegion(center: anchor, radius: 100,
+                                                      identifier: "poi<id>store-A<id>"))
+
+        service.adoptLegacyCircularRegions()
+        service.adoptLegacyCircularRegions()
+
+        XCTAssertEqual(backend.started.count, 1)
+    }
 }
 
 /// Minimal region delegate recorder for these tests.

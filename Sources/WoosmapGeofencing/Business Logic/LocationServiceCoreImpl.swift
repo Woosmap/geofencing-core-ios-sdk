@@ -104,7 +104,59 @@ public class LocationServiceCoreImpl: NSObject,
         // so the hook has to be wired explicitly here as well.
         wireMonitoringBackend()
         initLocationManager()
+        adoptLegacyCircularRegions()
         
+    }
+
+    /// Moves circular regions registered by a previous SDK release into the
+    /// active backend.
+    ///
+    /// `CLLocationManager` region monitoring outlives an app update: the
+    /// registrations live in the location daemon, keyed to the bundle id, and
+    /// persist until something stops them or the app is deleted. An app upgrading
+    /// from a release that called `startMonitoring(for:)` therefore starts up with
+    /// regions iOS still holds and `CLMonitor` has never heard of.
+    ///
+    /// Left alone those are worse than useless. They keep waking the app; their
+    /// events arrive at `reportPlatformEvent`, which the `CLMonitor` backend
+    /// discards; they are invisible to `monitoredRegionsUnified`, so nothing
+    /// counts, lists or tears them down; and `stopMonitoring` cannot reach them
+    /// either, because it routes circular regions to a backend whose store never
+    /// had them. Short of deleting the app there is no way back.
+    ///
+    /// Custom geofences are what this really rescues. A POI is re-derived by the
+    /// next Search API refresh, but `addRegion` keeps no record of its own, so a
+    /// custom region existed *only* in `CLLocationManager` — without this it would
+    /// quietly stop reporting and could never be removed.
+    ///
+    /// Position-grid cells are adopted rather than filtered out: once they are in
+    /// the backend, `stopMonitoringCurrentRegions()` tears them down on the next
+    /// refresh, which is where that policy already lives.
+    ///
+    /// Idempotent — the pass leaves no circular region on the manager, so a later
+    /// call finds nothing. Beacons are left alone, since that is still where their
+    /// monitoring lives.
+    internal func adoptLegacyCircularRegions() {
+        guard !monitoringBackend.usesPlatformRegionStore,
+              let manager = locationManager else { return }
+        // Snapshot first: `stopMonitoring(for:)` mutates the set being read.
+        let legacy = manager.monitoredRegions.compactMap { $0 as? CLCircularRegion }
+        guard !legacy.isEmpty else { return }
+
+        for region in legacy {
+            monitoringBackend.start(identifier: region.identifier,
+                                    center: region.center,
+                                    radius: region.radius)
+            manager.stopMonitoring(for: region)
+        }
+
+        if WoosLog.isValidLevel(level: .info) {
+            if #available(iOS 14.0, *) {
+                Logger.sdklog.info("\(LogEvent.i.rawValue) Adopted \(legacy.count) region(s) left by a previous SDK version")
+            } else {
+                WoosLog.info("Adopted \(legacy.count) region(s) left by a previous SDK version")
+            }
+        }
     }
     
     /// Interrnal location manager
