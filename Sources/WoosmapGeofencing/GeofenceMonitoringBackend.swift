@@ -66,6 +66,15 @@ internal protocol GeofenceMonitoringBackend: AnyObject {
     /// `CLLocationManager` does not — it only reports crossings.
     var reportsInitialState: Bool { get }
 
+    /// `true` when the backend's circular regions live in `CLLocationManager`'s
+    /// own persistent store, so what the manager reports *is* this backend's state.
+    ///
+    /// `false` means the backend keeps a store of its own — `CLMonitor` does — and
+    /// any circular region the manager still holds was put there by something
+    /// else, in practice an older release of the SDK before an app upgrade. See
+    /// `LocationServiceCoreImpl.adoptLegacyCircularRegions()`.
+    var usesPlatformRegionStore: Bool { get }
+
     /// Invoked for every transition the backend observes.
     var onTransition: ((GeofenceTransition) -> Void)? { get set }
 
@@ -108,6 +117,10 @@ internal final class LegacyRegionBackend: GeofenceMonitoringBackend {
     /// `LocationServiceCoreImpl.locationManager` is replaced when tracking is
     /// toggled and by tests installing a fake.
     private let locationManager: () -> LocationManagerProtocol?
+
+    /// This backend *is* `CLLocationManager`'s store, so there is nothing to
+    /// adopt and nothing the SDK did not put there itself.
+    let usesPlatformRegionStore = true
 
     var onTransition: ((GeofenceTransition) -> Void)?
 
