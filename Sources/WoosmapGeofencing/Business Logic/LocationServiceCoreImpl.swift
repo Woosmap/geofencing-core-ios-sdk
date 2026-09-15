@@ -70,10 +70,13 @@ public class LocationServiceCoreImpl: NSObject,
 
     /// Chooses the monitoring implementation for the running OS.
     ///
-    /// Core's floor is iOS 13 — `WoosmapGeofencingCore.podspec` and
-    /// `Package.swift` both say 13.0, and the xcodeproj's targets range 12.0 to
-    /// 13.2 — so the legacy `CLCircularRegion` path has to stay as the pre-iOS 17
-    /// fallback. This is the only place the choice is made.
+    /// Core still ships below iOS 17, so the legacy `CLCircularRegion` path has to
+    /// stay as the fallback. This is the only place the choice is made.
+    ///
+    /// The manifests do not agree on how far below. The xcodeproj now says 15.0,
+    /// raised because Xcode 27 refuses to build anything under it; the podspec
+    /// says 13.0 and `Package.swift` says 13. Whichever of those wins, it is
+    /// under 17, which is all this decision needs.
     private static func makeMonitoringBackend(
         locationManager: @escaping () -> LocationManagerProtocol?
     ) -> GeofenceMonitoringBackend {
