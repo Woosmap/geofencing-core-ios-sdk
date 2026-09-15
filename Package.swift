@@ -1,15 +1,24 @@
-// swift-tools-version:5.3
+// swift-tools-version:5.5
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
 
 let package = Package(
     name: "WoosmapGeofencingCore",
-    // iOS 13 is the real floor, not a preference: the SDK uses Swift concurrency
-    // (`Task { @MainActor in … }`, added in #153), which does not exist below it.
-    // Declaring .v11 made every SPM build fail with "'Task' is only available in
-    // iOS 13.0 or newer". 13.0 also matches WoosmapGeofencingCore.podspec.
-    platforms: [.iOS(.v13)],
+    // 15.0 across all three manifests. The xcodeproj had to move there because
+    // Xcode 27 refuses any deployment target below it — which made core
+    // unbuildable, framework included — and the podspec follows it, so a
+    // consumer gets the same answer however it integrates.
+    //
+    // The tools version above is 5.5 because of this line: `.v15` is only
+    // available from PackageDescription 5.5, and 5.3 fails to compile the
+    // manifest at all.
+    //
+    // Whatever a later toolchain allows, do not take this below 13: the SDK has
+    // used Swift concurrency (`Task { @MainActor in … }`) since #153, and .v11
+    // made every SPM build fail with "'Task' is only available in iOS 13.0 or
+    // newer".
+    platforms: [.iOS(.v15)],
     products: [
         // Products define the executables and libraries produced by a package, and make them visible to other packages.
         .library(
