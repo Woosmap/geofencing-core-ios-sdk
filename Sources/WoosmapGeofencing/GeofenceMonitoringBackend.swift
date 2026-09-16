@@ -93,6 +93,18 @@ internal protocol GeofenceMonitoringBackend: AnyObject {
     /// implemented by the service rather than by the backend. A `CLMonitor` backend
     /// owns its own event stream and drives `onTransition` directly.
     func reportPlatformEvent(region: CLCircularRegion, didEnter: Bool)
+
+    /// Reconciles the backend's view of what is monitored against the platform's.
+    ///
+    /// Only a backend that keeps its own store can drift. `LegacyRegionBackend`
+    /// reads `CLLocationManager.monitoredRegions` on every query, so its answer is
+    /// the platform's answer and there is nothing to reconcile — hence the default
+    /// no-op below, which also keeps test doubles free of boilerplate.
+    func reconcile()
+}
+
+internal extension GeofenceMonitoringBackend {
+    func reconcile() {}
 }
 
 internal extension GeofenceMonitoringBackend {

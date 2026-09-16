@@ -1141,6 +1141,10 @@ public class LocationServiceCoreImpl: NSObject,
     /// Handle Region Changes
     func handleRegionChange() {
         self.lastRegionUpdate = Date()
+        // Before tearing anything down, let the backend notice conditions the
+        // platform dropped without telling us. It throttles itself, so calling it
+        // on every region event is deliberate rather than careless.
+        self.monitoringBackend.reconcile()
         self.stopMonitoringCurrentRegions()
         self.startUpdatingLocation()
         self.startMonitoringSignificantLocationChanges()

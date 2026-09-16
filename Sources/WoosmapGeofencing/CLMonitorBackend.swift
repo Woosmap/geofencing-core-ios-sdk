@@ -37,8 +37,11 @@ internal enum MonitorStateDecision: Equatable {
     case undetermined
 }
 
+/// `@unchecked Sendable` on the same terms as `MonitorSession`: every mutable
+/// property below is guarded by `lock`, and the reconcile work has to carry a
+/// reference across a suspension point.
 @available(iOS 17.0, *)
-internal final class CLMonitorBackend: GeofenceMonitoringBackend {
+internal final class CLMonitorBackend: GeofenceMonitoringBackend, @unchecked Sendable {
 
     /// `CLMonitor` reports a region's initial state once seeded, so the SDK's
     /// own "already inside" check must stand down — see `MonitorSession.apply`.
@@ -61,6 +64,10 @@ internal final class CLMonitorBackend: GeofenceMonitoringBackend {
     private var pendingWork: Task<Void, Never>?
 
     private var transitionHandler: ((GeofenceTransition) -> Void)?
+
+    /// Last time `reconcile()` actually ran, and how often it is allowed to.
+    private var lastReconcile: Date?
+    private static let reconcileInterval: TimeInterval = 30
 
     var onTransition: ((GeofenceTransition) -> Void)? {
         get { lock.withLock { transitionHandler } }
@@ -121,6 +128,63 @@ internal final class CLMonitorBackend: GeofenceMonitoringBackend {
         // same guarantee the legacy backend gives by type-checking.
         guard wasRegistered || session.knownGeofence(identifier) != nil else { return }
         enqueue { await $0.remove(identifier: identifier) }
+    }
+
+    /// Drops anything `CLMonitor` no longer holds from the mirror.
+    ///
+    /// The mirror drifts without anything saying so. Below iOS 17.2 there is no
+    /// `.unmonitored` state at all, so a condition CoreLocation evicts is simply
+    /// gone in silence; above it the event arrives but only reports the loss.
+    /// This is not theoretical — field logs show `conditionLimitExceeded`
+    /// evicting conditions the SDK never asked to remove, twice per run, and not
+    /// always the one just added.
+    ///
+    /// The drift is what blocks recovery. `handleRefreshSystemGeofence` re-adds
+    /// the nearest POIs on every refresh, but it skips anything the mirror claims
+    /// is already monitored — so a silently evicted region is never re-registered
+    /// precisely because we are still lying about it. Pruning is therefore the
+    /// whole fix: stop lying, and the existing refresh re-adds it under its own
+    /// budget rules.
+    ///
+    /// Deliberately does *not* re-register here. A condition evicted for
+    /// exceeding the limit would be re-added, evicted again, and re-added for as
+    /// long as the app runs.
+    ///
+    /// Throttled, because `handleRegionChange()` calls this on every region event.
+    func reconcile() {
+        let due: Bool = lock.withLock {
+            let now = Date()
+            if let last = lastReconcile, now.timeIntervalSince(last) < Self.reconcileInterval {
+                return false
+            }
+            lastReconcile = now
+            return true
+        }
+        guard due else { return }
+        enqueue { [weak self] session in
+            let live = await session.liveIdentifiers()
+            self?.prune(keeping: live, in: session)
+        }
+    }
+
+    /// Removes identifiers absent from `live` from both halves of the mirror.
+    /// Internal so a test can drive it without a real `CLMonitor`.
+    @discardableResult
+    internal func prune(keeping live: Set<String>, in session: MonitorSession) -> [String] {
+        let droppedHere: [String] = lock.withLock {
+            let gone = registry.keys.filter { !live.contains($0) }
+            for identifier in gone { registry[identifier] = nil }
+            return gone
+        }
+        let droppedThere = session.prune(keeping: live)
+        let dropped = Array(Set(droppedHere).union(droppedThere)).sorted()
+        guard !dropped.isEmpty, WoosLog.isValidLevel(level: .warn) else { return dropped }
+        // `Logger` unconditionally: see the note in `consume(from:)`.
+        Logger.sdklog.warning("""
+            \(LogEvent.w.rawValue) CLMonitor no longer holds \(dropped.count) condition(s) \
+            the SDK believed were monitored: \(dropped.joined(separator: ", "))
+            """)
+        return dropped
     }
 
     /// Unused on this backend: `CLMonitor` owns its event stream, so nothing
@@ -309,6 +373,36 @@ internal final class MonitorSession: @unchecked Sendable {
             persisted[identifier] = nil
             lastStates[identifier] = nil
             lastHandled[identifier] = nil
+        }
+    }
+
+    /// Identifiers `CLMonitor` actually holds right now, as opposed to the ones
+    /// the mirror believes in.
+    func liveIdentifiers() async -> Set<String> {
+        let monitor = await activeMonitor()
+        return Set(await monitor.identifiers)
+    }
+
+    /// Forgets everything absent from `live`, including its last known state, so
+    /// a later re-add is reported as an initial determination rather than as a
+    /// crossing the user never made.
+    func prune(keeping live: Set<String>) -> [String] {
+        stateLock.withLock {
+            // Every identifier the mirror knows about, not just the ones carrying
+            // geometry. `lastStates` is populated by `decide` for any event that
+            // arrives and can outlive its `persisted` entry — and it is the stale
+            // `lastStates` entry, not the geometry, that makes a later re-add
+            // report a crossing the user never made.
+            let known = Set(persisted.keys)
+                .union(lastStates.keys)
+                .union(lastHandled.keys)
+            let gone = known.subtracting(live).sorted()
+            for identifier in gone {
+                persisted[identifier] = nil
+                lastStates[identifier] = nil
+                lastHandled[identifier] = nil
+            }
+            return gone
         }
     }
 
