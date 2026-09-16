@@ -231,7 +231,7 @@ final class MonitoringSeamTests: XCTestCase {
     func test_theServiceSelectsABackendForTheRunningOS() {
         let fresh = LocationServiceCoreImpl(locationManger: FakeLocationManager())
 
-        if #available(iOS 17.0, *) {
+        if #available(iOS 17.2, *) {
             XCTAssertTrue(fresh.monitoringBackend is CLMonitorBackend)
             XCTAssertTrue(fresh.monitoringBackend.reportsInitialState)
         } else {

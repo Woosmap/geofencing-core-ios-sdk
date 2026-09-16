@@ -24,7 +24,7 @@ import CoreLocation
 import os
 
 /// What an incoming `CLMonitor` state means for a monitored identifier.
-@available(iOS 17.0, *)
+@available(iOS 17.2, *)
 internal enum MonitorStateDecision: Equatable {
     /// The same delivery arrived twice — CoreLocation has been observed handing
     /// one event to the stream more than once, milliseconds apart.
@@ -37,7 +37,7 @@ internal enum MonitorStateDecision: Equatable {
     case undetermined
 }
 
-@available(iOS 17.0, *)
+@available(iOS 17.2, *)
 internal final class CLMonitorBackend: GeofenceMonitoringBackend {
 
     /// `CLMonitor` reports a region's initial state once seeded, so the SDK's
@@ -190,7 +190,7 @@ internal final class CLMonitorBackend: GeofenceMonitoringBackend {
 ///
 /// Separate from the backend because everything here is async and actor-isolated,
 /// while the backend must present a synchronous face to the SDK.
-@available(iOS 17.0, *)
+@available(iOS 17.2, *)
 internal final class MonitorSession: @unchecked Sendable {
 
     /// Names the on-disk condition store CoreLocation keeps for us. Changing it
@@ -384,7 +384,7 @@ internal final class MonitorSession: @unchecked Sendable {
             }
         } catch {
             // No `WoosLog` fallback, unlike the rest of the SDK: this type is
-            // `@available(iOS 17, *)`, so `Logger` is always available here.
+            // `@available(iOS 17.2, *)`, so `Logger` is always available here.
             if WoosLog.isValidLevel(level: .error) {
                 Logger.sdklog.error("\(LogEvent.e.rawValue) CLMonitor event stream failed: \(error.localizedDescription)")
             }
@@ -436,8 +436,14 @@ internal final class MonitorSession: @unchecked Sendable {
                 return .undetermined
 
             default:
-                // `.unmonitored`, iOS 17.2+. Normally CoreLocation acknowledging
-                // our own `remove()`.
+                // `.unmonitored`. Normally CoreLocation acknowledging our own
+                // `remove()`.
+                //
+                // Still matched as `default` rather than by name, now that the
+                // enclosing type is gated at 17.2 and the case could be named:
+                // the state comes from an Objective-C `NS_ENUM`, so Swift treats
+                // it as non-exhaustive and wants a catch-all anyway. Naming it
+                // would add a case without removing this one.
                 //
                 // The identifier is forgotten rather than recorded, for two
                 // reasons. `remove()` clears this state, but the `.unmonitored`

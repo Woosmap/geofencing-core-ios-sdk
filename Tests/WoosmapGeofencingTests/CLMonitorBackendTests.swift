@@ -21,7 +21,7 @@ import CoreLocation
 
 //
 //  Note on availability: the class is deliberately *not* marked
-//  `@available(iOS 17.0, *)`. XCTest discovers tests through the Objective-C
+//  `@available(iOS 17.2, *)`. XCTest discovers tests through the Objective-C
 //  runtime, which ignores Swift availability, so an annotated class still runs on
 //  iOS 16 — and then crashes the moment it touches `CLMonitor`. Every test carries
 //  a runtime guard instead, which both skips cleanly and satisfies the compiler.
@@ -42,7 +42,7 @@ final class CLMonitorBackendTests: XCTestCase {
     /// them, so the user is inside by construction. Seeding `.unsatisfied` would
     /// make all five fire an enter nobody walked, on every location update.
     func test_concentricRings_areSeededSatisfied() throws {
-        guard #available(iOS 17.0, *) else { throw XCTSkip("CLMonitor requires iOS 17") }
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
         for radius in [200.0, 300.0, 500.0, 1000.0, 2000.0] {
             let identifier = "\(RegionType.position.rawValue)_radius \(radius)"
             XCTAssertEqual(MonitorSession.assumedState(for: identifier), .satisfied, identifier)
@@ -52,7 +52,7 @@ final class CLMonitorBackendTests: XCTestCase {
     /// The translations sit at least 270 m from the user with a ~140 m radius, so
     /// outside is equally certain.
     func test_gridTranslations_areSeededUnsatisfied() throws {
-        guard #available(iOS 17.0, *) else { throw XCTSkip("CLMonitor requires iOS 17") }
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
         for suffix in ["_translation n", "_translation nw", "_translation ne",
                        "_translation s", "_translation sw", "_translation se",
                        // Not a typo here: `RegionGenerator.swift` really builds
@@ -67,7 +67,7 @@ final class CLMonitorBackendTests: XCTestCase {
     /// Assuming outside is what lets a genuine "already inside" enter arrive as an
     /// initial determination rather than being pre-empted.
     func test_poiAndCustomGeofences_areSeededUnsatisfied() throws {
-        guard #available(iOS 17.0, *) else { throw XCTSkip("CLMonitor requires iOS 17") }
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
         XCTAssertEqual(MonitorSession.assumedState(for: "poi<id>store-A<id>"), .unsatisfied)
         XCTAssertEqual(MonitorSession.assumedState(for: "custom<id>my-zone"), .unsatisfied)
     }
@@ -75,7 +75,7 @@ final class CLMonitorBackendTests: XCTestCase {
     /// The check is a prefix match on the whole identifier, so a POI whose store id
     /// merely contains the ring prefix is not mistaken for a ring.
     func test_aPOIContainingTheRingPrefix_isNotSeededSatisfied() throws {
-        guard #available(iOS 17.0, *) else { throw XCTSkip("CLMonitor requires iOS 17") }
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
         XCTAssertEqual(MonitorSession.assumedState(for: "poi<id>position_radius 200.0<id>"),
                        .unsatisfied)
     }
@@ -83,7 +83,7 @@ final class CLMonitorBackendTests: XCTestCase {
     // MARK: - State decision
 
     func test_firstStateForAnIdentifier_isAnInitialDetermination() throws {
-        guard #available(iOS 17.0, *) else { throw XCTSkip("CLMonitor requires iOS 17") }
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
         let session = MonitorSession.shared(named: uniqueName("First"))
 
         XCTAssertEqual(session.decide(identifier: "poi<id>a<id>", state: .satisfied, eventDate: Date()),
@@ -91,7 +91,7 @@ final class CLMonitorBackendTests: XCTestCase {
     }
 
     func test_aLaterFlip_isACrossingNotAnInitialDetermination() throws {
-        guard #available(iOS 17.0, *) else { throw XCTSkip("CLMonitor requires iOS 17") }
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
         let session = MonitorSession.shared(named: uniqueName("Flip"))
         let base = Date()
         _ = session.decide(identifier: "poi<id>a<id>", state: .unsatisfied, eventDate: base)
@@ -104,7 +104,7 @@ final class CLMonitorBackendTests: XCTestCase {
     /// CoreLocation has been observed handing one event to the stream twice,
     /// milliseconds apart, with an identical date and state.
     func test_theSameDeliveryTwice_isSuppressed() throws {
-        guard #available(iOS 17.0, *) else { throw XCTSkip("CLMonitor requires iOS 17") }
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
         let session = MonitorSession.shared(named: uniqueName("Dup"))
         let eventDate = Date(), arrival = Date()
         _ = session.decide(identifier: "poi<id>a<id>", state: .satisfied,
@@ -118,7 +118,7 @@ final class CLMonitorBackendTests: XCTestCase {
 
     /// A genuine later crossing carries a later date, so it survives the window.
     func test_aLaterCrossingInsideTheWindow_survives() throws {
-        guard #available(iOS 17.0, *) else { throw XCTSkip("CLMonitor requires iOS 17") }
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
         let session = MonitorSession.shared(named: uniqueName("Window"))
         let eventDate = Date(), arrival = Date()
         _ = session.decide(identifier: "poi<id>a<id>", state: .satisfied,
@@ -133,7 +133,7 @@ final class CLMonitorBackendTests: XCTestCase {
     /// `.unknown` is a gap in knowledge, not a removal, so the last known state is
     /// kept and a following flip is still a crossing.
     func test_unknown_reportsNothingAndKeepsTheLastKnownState() throws {
-        guard #available(iOS 17.0, *) else { throw XCTSkip("CLMonitor requires iOS 17") }
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
         let session = MonitorSession.shared(named: uniqueName("Unknown"))
         let base = Date()
         _ = session.decide(identifier: "poi<id>a<id>", state: .unsatisfied, eventDate: base)
@@ -168,7 +168,7 @@ final class CLMonitorBackendTests: XCTestCase {
     /// State is tracked per identifier, so one region's history cannot affect
     /// another's first report.
     func test_stateIsTrackedPerIdentifier() throws {
-        guard #available(iOS 17.0, *) else { throw XCTSkip("CLMonitor requires iOS 17") }
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
         let session = MonitorSession.shared(named: uniqueName("PerId"))
         let base = Date()
         _ = session.decide(identifier: "poi<id>a<id>", state: .satisfied, eventDate: base)
@@ -182,7 +182,7 @@ final class CLMonitorBackendTests: XCTestCase {
     /// `CLMonitor` is async but the seam is not: reads answer from the mirror
     /// immediately rather than awaiting the platform.
     func test_startAndStop_areVisibleImmediately() throws {
-        guard #available(iOS 17.0, *) else { throw XCTSkip("CLMonitor requires iOS 17") }
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
         let backend = CLMonitorBackend(monitorName: uniqueName("Mirror"))
 
         backend.start(identifier: "poi<id>store-A<id>", center: anchor, radius: 120)
@@ -198,7 +198,7 @@ final class CLMonitorBackendTests: XCTestCase {
     }
 
     func test_startingTheSameIdentifierTwice_replacesRatherThanDuplicates() throws {
-        guard #available(iOS 17.0, *) else { throw XCTSkip("CLMonitor requires iOS 17") }
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
         let backend = CLMonitorBackend(monitorName: uniqueName("Replace"))
 
         backend.start(identifier: "poi<id>store-A<id>", center: anchor, radius: 120)
@@ -209,7 +209,7 @@ final class CLMonitorBackendTests: XCTestCase {
     }
 
     func test_stop_forAnIdentifierItDoesNotHold_isANoOp() throws {
-        guard #available(iOS 17.0, *) else { throw XCTSkip("CLMonitor requires iOS 17") }
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
         let backend = CLMonitorBackend(monitorName: uniqueName("NoOp"))
         backend.start(identifier: "poi<id>store-A<id>", center: anchor, radius: 120)
 
@@ -221,14 +221,14 @@ final class CLMonitorBackendTests: XCTestCase {
     /// `CLMonitor` reports a region's initial state once seeded, which is what
     /// stands the SDK's manual "already inside" check down.
     func test_theBackendDeclaresThatItReportsInitialState() throws {
-        guard #available(iOS 17.0, *) else { throw XCTSkip("CLMonitor requires iOS 17") }
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
         XCTAssertTrue(CLMonitorBackend(monitorName: uniqueName("Flag")).reportsInitialState)
         XCTAssertFalse(LegacyRegionBackend(locationManager: { nil }).reportsInitialState)
     }
 
     /// The backend owns its event stream, so platform callbacks are discarded.
     func test_reportPlatformEvent_isIgnored() throws {
-        guard #available(iOS 17.0, *) else { throw XCTSkip("CLMonitor requires iOS 17") }
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
         let backend = CLMonitorBackend(monitorName: uniqueName("Ignore"))
         var received = 0
         backend.onTransition = { _ in received += 1 }
@@ -245,7 +245,7 @@ final class CLMonitorBackendTests: XCTestCase {
     /// `publish` is the step between `CLMonitor`'s event stream and the service.
     /// It was previously uncovered, and both defects found in review lived here.
     func test_publish_resolvesGeometryFromTheRegistry() throws {
-        guard #available(iOS 17.0, *) else { throw XCTSkip("CLMonitor requires iOS 17") }
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
         let backend = CLMonitorBackend(monitorName: uniqueName("Publish"))
         backend.start(identifier: "poi<id>store-A<id>", center: anchor, radius: 250)
 
@@ -271,7 +271,7 @@ final class CLMonitorBackendTests: XCTestCase {
     /// the public region callbacks fired on main under the legacy delegate path.
     /// `CLMonitor`'s events arrive on the cooperative pool, so the hop matters.
     func test_publish_deliversOnTheMainQueue() throws {
-        guard #available(iOS 17.0, *) else { throw XCTSkip("CLMonitor requires iOS 17") }
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
         let backend = CLMonitorBackend(monitorName: uniqueName("MainQueue"))
         backend.start(identifier: "poi<id>store-A<id>", center: anchor, radius: 100)
 
@@ -294,7 +294,7 @@ final class CLMonitorBackendTests: XCTestCase {
     /// A beacon condition shares the POI identifier scheme but is not circular,
     /// so it is in neither the registry nor the restored store.
     func test_publish_ignoresAnIdentifierNothingKnows() throws {
-        guard #available(iOS 17.0, *) else { throw XCTSkip("CLMonitor requires iOS 17") }
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
         let backend = CLMonitorBackend(monitorName: uniqueName("Unknown"))
         var received = 0
         backend.onTransition = { _ in received += 1 }

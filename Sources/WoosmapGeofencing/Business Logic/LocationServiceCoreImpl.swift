@@ -80,7 +80,7 @@ public class LocationServiceCoreImpl: NSObject,
     private static func makeMonitoringBackend(
         locationManager: @escaping () -> LocationManagerProtocol?
     ) -> GeofenceMonitoringBackend {
-        if #available(iOS 17.0, *) {
+        if #available(iOS 17.2, *) {
             return CLMonitorBackend()
         }
         return LegacyRegionBackend(locationManager: locationManager)
