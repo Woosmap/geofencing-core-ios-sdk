@@ -1,4 +1,4 @@
-// swift-tools-version:5.5
+// swift-tools-version:5.9
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -10,9 +10,10 @@ let package = Package(
     // unbuildable, framework included — and the podspec follows it, so a
     // consumer gets the same answer however it integrates.
     //
-    // The tools version above is 5.5 because of this line: `.v15` is only
-    // available from PackageDescription 5.5, and 5.3 fails to compile the
-    // manifest at all.
+    // The tools version above is 5.9, matching the podspec's `swift_versions`:
+    // the sources reference `CLMonitor`, which only exists in the iOS 17 SDK, so
+    // nothing below Xcode 15 can compile this package whatever the manifest says.
+    // (`.v15` on the next line needs 5.5 at minimum; 5.9 is the honest floor.)
     //
     // Whatever a later toolchain allows, do not take this below 13: the SDK has
     // used Swift concurrency (`Task { @MainActor in … }`) since #153, and .v11

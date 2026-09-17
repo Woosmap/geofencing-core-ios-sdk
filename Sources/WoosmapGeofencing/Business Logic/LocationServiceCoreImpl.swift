@@ -49,18 +49,11 @@ public class LocationServiceCoreImpl: NSObject,
     /// implementation can be swapped for `CLMonitor` later. Beacons bypass it and
     /// keep calling `locationManager` directly; see `stopMonitoring(_:)`.
     ///
-    /// **Reads are deliberately still direct.** `monitoredRegions` is consulted in
-    /// place by `setRegionDelegate`, `stopMonitoringCurrentRegions`,
-    /// `startMonitoringCurrentRegions`, `addRegion(identifier:center:radius:)`,
-    /// `removeRegion(identifier:)`, `removeRegion(center:)`, `removeRegions(type:)`,
-    /// `removeOldPOIRegions` and `checkIfPositionIsInsideGeofencingRegions`.
-    ///
-    /// Those reads cannot move behind `monitoredCircularIdentifiers` without
-    /// changing behaviour, which this phase must not do: `removeRegions(type:)` and
-    /// `removeOldPOIRegions` currently sweep *beacons* out of `monitoredRegions`
-    /// too, and a circular-only view would silently stop doing that. Deciding what
-    /// the sweeps should mean belongs with the `CLMonitor` backend, which has no
-    /// beacon registrations at all.
+    /// **Reads go through `monitoredRegionsUnified`**, which answers circular
+    /// regions from this backend and unions the non-circular ones still held by
+    /// `CLLocationManager`. That union is what let the reads move: the sweeps in
+    /// `removeRegions(type:)` and `removeOldPOIRegions` clear *beacons* as well as
+    /// circles, and a circular-only view would have silently stopped doing that.
     ///
     /// - Note: assigning a replacement re-wires `onTransition` via `didSet`, so a
     ///   backend installed by a later phase or a test can never end up event-less.
@@ -73,10 +66,9 @@ public class LocationServiceCoreImpl: NSObject,
     /// Core still ships below iOS 17, so the legacy `CLCircularRegion` path has to
     /// stay as the fallback. This is the only place the choice is made.
     ///
-    /// The manifests do not agree on how far below. The xcodeproj now says 15.0,
-    /// raised because Xcode 27 refuses to build anything under it; the podspec
-    /// says 13.0 and `Package.swift` says 13. Whichever of those wins, it is
-    /// under 17, which is all this decision needs.
+    /// The exact floor is whatever the manifests say and is deliberately not
+    /// repeated here — this comment has already drifted twice as they moved. All
+    /// this decision needs is that the floor is below 17.2, which it is.
     private static func makeMonitoringBackend(
         locationManager: @escaping () -> LocationManagerProtocol?
     ) -> GeofenceMonitoringBackend {
@@ -139,6 +131,13 @@ public class LocationServiceCoreImpl: NSObject,
     /// Idempotent — the pass leaves no circular region on the manager, so a later
     /// call finds nothing. Beacons are left alone, since that is still where their
     /// monitoring lives.
+    ///
+    /// - Note: adopted conditions are seeded like any other, which for POI and
+    ///   custom regions means `.unsatisfied`. On the first launch after an upgrade
+    ///   every region the user is *currently inside* therefore reports an enter
+    ///   they already received under the legacy path. It arrives as an initial
+    ///   determination rather than a crossing, so it is `fromPositionDetection`,
+    ///   but it is still a duplicate for that one launch.
     internal func adoptLegacyCircularRegions() {
         guard !monitoringBackend.usesPlatformRegionStore,
               let manager = locationManager else { return }
@@ -154,11 +153,9 @@ public class LocationServiceCoreImpl: NSObject,
         }
 
         if WoosLog.isValidLevel(level: .info) {
-            if #available(iOS 14.0, *) {
-                Logger.sdklog.info("\(LogEvent.i.rawValue) Adopted \(legacy.count) region(s) left by a previous SDK version")
-            } else {
-                WoosLog.info("Adopted \(legacy.count) region(s) left by a previous SDK version")
-            }
+            // No `#available(iOS 14)` branch: the deployment floor is 15.0, so the
+            // `WoosLog` fallback the older call sites carry is unreachable here.
+            Logger.sdklog.info("\(LogEvent.i.rawValue) Adopted \(legacy.count) region(s) left by a previous SDK version")
         }
     }
     

@@ -119,7 +119,12 @@ internal final class CLMonitorBackend: GeofenceMonitoringBackend {
         //
         // A beacon is in neither collection, so it is still left alone — the
         // same guarantee the legacy backend gives by type-checking.
-        guard wasRegistered || session.knownGeofence(identifier) != nil else { return }
+        // Clear the restored store synchronously too. `remove` clears it, but only
+        // once the awaited work lands — until then `monitoredGeofences` still
+        // reported a stopped geofence, so `addRegion` counted it against the
+        // custom limit and sweeps called `stop` on it again.
+        let wasRestored = session.forget(identifier: identifier)
+        guard wasRegistered || wasRestored else { return }
         enqueue { await $0.remove(identifier: identifier) }
     }
 
@@ -216,8 +221,11 @@ internal final class MonitorSession: @unchecked Sendable {
 
     /// Subscribers, keyed so each backend can detach on deinit.
     ///
-    /// Events fan out to all of them; a backend ignores any identifier absent
-    /// from its own registry, so sharing one session is safe.
+    /// Events fan out to all of them. Each backend drops identifiers it cannot
+    /// resolve, but since `publish` now falls back to the session's shared
+    /// restored store, two backends on one session would both publish the same
+    /// event. That is sound for the single service the SDK creates, and would
+    /// need revisiting before a second one exists.
     private var observers: [UUID: (String, Bool, Bool) -> Void] = [:]
 
     func addObserver(_ token: UUID, _ handler: @escaping (String, Bool, Bool) -> Void) {
@@ -318,6 +326,20 @@ internal final class MonitorSession: @unchecked Sendable {
     /// conditions the SDK has not re-registered yet. Read once while opening and
     /// kept in step with `add` / `remove` afterwards.
     private var persisted: [String: CircularGeofence] = [:]
+
+    /// Drops one identifier from the restored store and its remembered state,
+    /// synchronously, so a caller that has just stopped it never sees it again.
+    /// Returns whether it was known. `remove` repeats this once its awaited work
+    /// lands; doing it twice is harmless.
+    @discardableResult
+    func forget(identifier: String) -> Bool {
+        stateLock.withLock {
+            let known = persisted.removeValue(forKey: identifier) != nil
+            lastStates[identifier] = nil
+            lastHandled[identifier] = nil
+            return known
+        }
+    }
 
     /// Geometry for a condition `CLMonitor` holds, whether or not this process
     /// is the one that registered it.
