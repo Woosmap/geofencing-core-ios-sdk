@@ -36,6 +36,22 @@ final class CLMonitorBackendTests: XCTestCase {
         "WoosmapCoreTest\(label)\(UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(8))"
     }
 
+    /// Builds a backend and registers teardown that stops whatever it still holds.
+    ///
+    /// Each distinct monitor name keys its own persisted condition store on disk,
+    /// so tests that add conditions and never remove them leave a store behind on
+    /// every run. Going through here keeps that bounded.
+    @available(iOS 17.2, *)
+    private func makeBackend(_ label: String) -> CLMonitorBackend {
+        let backend = CLMonitorBackend(monitorName: uniqueName(label))
+        addTeardownBlock {
+            for geofence in backend.monitoredGeofences {
+                backend.stop(identifier: geofence.identifier)
+            }
+        }
+        return backend
+    }
+
     // MARK: - Seeded assumption
 
     /// `RegionsGenerator` centres the `_radius` rings on the fix that produced
@@ -183,7 +199,7 @@ final class CLMonitorBackendTests: XCTestCase {
     /// immediately rather than awaiting the platform.
     func test_startAndStop_areVisibleImmediately() throws {
         guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
-        let backend = CLMonitorBackend(monitorName: uniqueName("Mirror"))
+        let backend = makeBackend("Mirror")
 
         backend.start(identifier: "poi<id>store-A<id>", center: anchor, radius: 120)
 
@@ -199,7 +215,7 @@ final class CLMonitorBackendTests: XCTestCase {
 
     func test_startingTheSameIdentifierTwice_replacesRatherThanDuplicates() throws {
         guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
-        let backend = CLMonitorBackend(monitorName: uniqueName("Replace"))
+        let backend = makeBackend("Replace")
 
         backend.start(identifier: "poi<id>store-A<id>", center: anchor, radius: 120)
         backend.start(identifier: "poi<id>store-A<id>", center: anchor, radius: 400)
@@ -210,7 +226,7 @@ final class CLMonitorBackendTests: XCTestCase {
 
     func test_stop_forAnIdentifierItDoesNotHold_isANoOp() throws {
         guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
-        let backend = CLMonitorBackend(monitorName: uniqueName("NoOp"))
+        let backend = makeBackend("NoOp")
         backend.start(identifier: "poi<id>store-A<id>", center: anchor, radius: 120)
 
         backend.stop(identifier: "poi<id>beacon-1<id>")
@@ -222,14 +238,14 @@ final class CLMonitorBackendTests: XCTestCase {
     /// stands the SDK's manual "already inside" check down.
     func test_theBackendDeclaresThatItReportsInitialState() throws {
         guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
-        XCTAssertTrue(CLMonitorBackend(monitorName: uniqueName("Flag")).reportsInitialState)
+        XCTAssertTrue(makeBackend("Flag").reportsInitialState)
         XCTAssertFalse(LegacyRegionBackend(locationManager: { nil }).reportsInitialState)
     }
 
     /// The backend owns its event stream, so platform callbacks are discarded.
     func test_reportPlatformEvent_isIgnored() throws {
         guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
-        let backend = CLMonitorBackend(monitorName: uniqueName("Ignore"))
+        let backend = makeBackend("Ignore")
         var received = 0
         backend.onTransition = { _ in received += 1 }
 
@@ -246,7 +262,7 @@ final class CLMonitorBackendTests: XCTestCase {
     /// It was previously uncovered, and both defects found in review lived here.
     func test_publish_resolvesGeometryFromTheRegistry() throws {
         guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
-        let backend = CLMonitorBackend(monitorName: uniqueName("Publish"))
+        let backend = makeBackend("Publish")
         backend.start(identifier: "poi<id>store-A<id>", center: anchor, radius: 250)
 
         let delivered = expectation(description: "transition delivered")
@@ -272,7 +288,7 @@ final class CLMonitorBackendTests: XCTestCase {
     /// `CLMonitor`'s events arrive on the cooperative pool, so the hop matters.
     func test_publish_deliversOnTheMainQueue() throws {
         guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
-        let backend = CLMonitorBackend(monitorName: uniqueName("MainQueue"))
+        let backend = makeBackend("MainQueue")
         backend.start(identifier: "poi<id>store-A<id>", center: anchor, radius: 100)
 
         let delivered = expectation(description: "transition delivered")
@@ -295,14 +311,24 @@ final class CLMonitorBackendTests: XCTestCase {
     /// so it is in neither the registry nor the restored store.
     func test_publish_ignoresAnIdentifierNothingKnows() throws {
         guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
-        let backend = CLMonitorBackend(monitorName: uniqueName("Unknown"))
+        let backend = makeBackend("Unknown")
         var received = 0
         backend.onTransition = { _ in received += 1 }
 
+        // Inverted rather than a plain assertion: `publish` delivers via
+        // `DispatchQueue.main.async`, so checking a counter synchronously would
+        // pass even if the identifier *were* wrongly resolved — the delivery
+        // could not have run yet. This fails if anything arrives.
+        let nothingDelivered = expectation(description: "no transition delivered")
+        nothingDelivered.isInverted = true
+        backend.onTransition = { _ in
+            received += 1
+            nothingDelivered.fulfill()
+        }
+
         backend.publish(identifier: "poi<id>never-registered<id>", didEnter: true, isInitial: true)
 
-        // Nothing to wait for: with no geometry to resolve, `publish` returns
-        // before it would ever schedule a delivery.
+        wait(for: [nothingDelivered], timeout: 0.5)
         XCTAssertEqual(received, 0)
     }
 }

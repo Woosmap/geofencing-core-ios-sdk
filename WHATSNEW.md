@@ -1,1 +1,2 @@
-- Updated: circular-region monitoring now runs on CLMonitor on iOS 17 and later, and keeps using CLLocationManager region monitoring below it. No change to the public API or to reported events
+- Updated: **minimum deployment target raised from iOS 13.0 to iOS 15.0.** Apps on a lower floor cannot integrate this version
+- Updated: circular-region monitoring runs on CLMonitor on iOS 17.2 and later, and keeps using CLLocationManager region monitoring below it. No change to the public API or to reported events
