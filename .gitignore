@@ -2,3 +2,4 @@
 WoosmapGeofencingCore.xcodeproj/project.xcworkspace/xcuserdata/*
 WoosmapGeofencingCore.xcodeproj/xcuserdata/*
 WoosmapGeofencingCore.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/*
+.build/
