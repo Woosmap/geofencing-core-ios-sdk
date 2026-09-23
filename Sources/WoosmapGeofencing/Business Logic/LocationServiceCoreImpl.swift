@@ -530,22 +530,20 @@ public class LocationServiceCoreImpl: NSObject,
                       didEnter: transition.didEnter,
                       fromPositionDetection: transition.initialState)
 
-        // Deliberately does *not* call `handleRegionChange()`, even though the
-        // legacy `handlePlatformRegionEvent` does for every region callback.
+        // A region event is a trigger, not a verdict: this restarts location
+        // updates so the position sweep can evaluate a fresh fix, and rebuilds the
+        // grid. The legacy path has always done this from
+        // `handlePlatformRegionEvent`; without it, passive tracking on iOS 17.2+
+        // lost the grid-driven wake-up entirely, because `logTransition` drops
+        // position-typed regions and continuous updates stop after each fix.
         //
-        // That asymmetry is real and unresolved — see
-        // `test_backendTransition_doesNotYetTriggerARegionChange`. Adding the call
-        // here was tried and reverted: it cost two of the three events in an
-        // end-to-end run, because `handleRegionChange` restarts location updates
-        // and reorders the CLMonitor event against `didUpdateLocations`, and the
-        // Enterprise override of `addRegionLogTransition` then rejects the exit
-        // as a false positive by cross-checking against a `currentLocation` that
-        // has not been refreshed yet.
-        //
-        // Under CLMonitor the wake-up may not be needed at all: CoreLocation
-        // relaunches the process for a pending condition event, which the killed-
-        // app run confirmed. Establishing that properly needs a passive-tracking
-        // test with continuous updates disabled, which a simulator cannot express.
+        // An earlier attempt at this was reverted after an end-to-end run went
+        // from three events to one. That measurement predated the registry-restore
+        // fix, which was dropping every replayed event at `publish`. Re-run on the
+        // same scenario afterwards, the comparison inverts: two events without this
+        // call, three with it, and location updates restart five times rather than
+        // three.
+        self.handleRegionChange()
     }
 
     /// Records a transition for the region types that produce events. Position
