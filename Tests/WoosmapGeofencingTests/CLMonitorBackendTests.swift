@@ -82,10 +82,10 @@ final class CLMonitorBackendTests: XCTestCase {
 
     /// Assuming outside is what lets a genuine "already inside" enter arrive as an
     /// initial determination rather than being pre-empted.
-    func test_poiAndCustomGeofences_areSeededUnsatisfied() throws {
+    func test_poiAndCustomGeofences_areSeededUnknown() throws {
         guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
-        XCTAssertEqual(MonitorSession.assumedState(for: "poi<id>store-A<id>"), .unsatisfied)
-        XCTAssertEqual(MonitorSession.assumedState(for: "custom<id>my-zone"), .unsatisfied)
+        XCTAssertEqual(MonitorSession.assumedState(for: "poi<id>store-A<id>"), .unknown)
+        XCTAssertEqual(MonitorSession.assumedState(for: "custom<id>my-zone"), .unknown)
     }
 
     /// The check is a prefix match on the whole identifier, so a POI whose store id
@@ -93,7 +93,8 @@ final class CLMonitorBackendTests: XCTestCase {
     func test_aPOIContainingTheRingPrefix_isNotSeededSatisfied() throws {
         guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
         XCTAssertEqual(MonitorSession.assumedState(for: "poi<id>position_radius 200.0<id>"),
-                       .unsatisfied)
+                       .unknown,
+                       "seeded as the POI it is, not as a grid cell")
     }
 
     // MARK: - State decision

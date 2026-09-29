@@ -292,22 +292,33 @@ internal final class MonitorSession: @unchecked Sendable {
     /// The state a new condition is seeded with.
     ///
     /// Seeding matters because `CLMonitor` emits an event whenever the state it
-    /// resolves differs from the assumption. Adding with `.unknown` therefore
-    /// makes *every* new condition fire the moment it resolves.
+    /// resolves differs from the assumption. `.unknown` never matches a resolved
+    /// state, so it guarantees a report; a concrete assumption stays silent when
+    /// it turns out to be right.
     ///
-    /// - The position grid's concentric rings are centred on the user, so
-    ///   `.satisfied` is a certainty rather than a guess. Seeding `.unsatisfied`
-    ///   there would make all five rings fire a bogus enter on every location
+    /// Three kinds, three answers:
+    ///
+    /// - **Concentric rings** (`position…_radius`) are centred on the very fix
+    ///   that generated them, so `.satisfied` is a certainty rather than a guess.
+    ///   Any other seed makes all five fire a bogus enter on every location
     ///   update, since the grid is torn down and rebuilt each time.
-    /// - Everything else — POI circles, custom geofences, and the grid's
-    ///   directional translations, which sit at least 270 m away from a ~140 m
-    ///   circle — is assumed outside. That is silent when right, which is what
-    ///   the legacy path produced for a region you are outside of, and
-    ///   self-correcting when wrong: standing inside still yields a genuine
-    ///   enter, which is exactly the "already inside" fire the SDK used to
-    ///   synthesise via `checkIfUserIsInRegion`.
+    /// - **Grid translations** (the other `position…` cells) sit at least 270 m
+    ///   away from a ~140 m circle, so `.unsatisfied` is nearly always right and
+    ///   therefore silent. Nothing ever wants an event from them —
+    ///   `logTransition` discards position-typed regions anyway — and they are
+    ///   rebuilt on every fix. Seeding them `.unknown` measured at **three times**
+    ///   the location-service restarts, because each rebuild reported eight cells
+    ///   and every report calls `handleRegionChange()`.
+    /// - **POI and custom circles** get `.unknown`, so the SDK always learns
+    ///   whether the user is inside at registration instead of waiting for the
+    ///   position sweep to notice. `.unsatisfied` measurably lost events: the same
+    ///   end-to-end run produced two with it and three with `.unknown`, the extra
+    ///   one being an enter for a POI already occupied.
     internal static func assumedState(for identifier: String) -> CLMonitor.Event.State {
-        identifier.hasPrefix(concentricRingPrefix) ? .satisfied : .unsatisfied
+        if identifier.hasPrefix(concentricRingPrefix) { return .satisfied }
+        // Every other `position…` identifier is a grid translation.
+        if identifier.hasPrefix(RegionType.position.rawValue) { return .unsatisfied }
+        return .unknown
     }
 
     func remove(identifier: String) async {
