@@ -43,6 +43,10 @@ public class LocationServiceCoreImpl: NSObject,
     /// Visit service callback
     public weak var visitDelegate: VisitServiceDelegate?
 
+    /// Whether the user has answered the location prompt during this process, so the
+    /// first-authorization start in `startServicesIfNewlyAuthorized` runs only once.
+    private var authorizationDecided = false
+
     /// Performs circular-region monitoring.
     ///
     /// Every circular **write** — start and stop — goes through here so the
@@ -188,9 +192,31 @@ public class LocationServiceCoreImpl: NSObject,
             }
         }
         
-        myLocationManager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
-        myLocationManager.distanceFilter = 10
-        myLocationManager.pausesLocationUpdatesAutomatically = true
+        // Settings differ by backend. The CLMonitor path (17.2+) needs updates to
+        // keep flowing, because it has no delegate callback to restart them.
+        if #available(iOS 18.0, *) {
+            ServiceSession.shared.update(for: myLocationManager.authorizationStatus)
+        }
+        if #available(iOS 17.2, *) {
+            // `BestForNavigation` is for turn-by-turn with the screen on; its power
+            // draw makes the system keener to pause a background app.
+            myLocationManager.desiredAccuracy = kCLLocationAccuracyBest
+            // A 10 m floor discards the short movements that cross a 140 m grid
+            // circle near its edge.
+            myLocationManager.distanceFilter = kCLDistanceFilterNone
+            // The important one. With automatic pausing on, iOS stops updates once
+            // it decides the device is stationary and **never resumes on its own** —
+            // the only recovery is an explicit stop/start, and there is no delegate
+            // callback here to trigger one. That is the mechanism behind a single
+            // stored fix followed by silence until some other wake-up intervenes.
+            myLocationManager.pausesLocationUpdatesAutomatically = false
+        } else {
+            // Legacy region monitoring is woken by `didEnterRegion`/`didExitRegion`,
+            // which restart the cycle, so pausing is recoverable there. Left as is.
+            myLocationManager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
+            myLocationManager.distanceFilter = 10
+            myLocationManager.pausesLocationUpdatesAutomatically = true
+        }
         myLocationManager.showsBackgroundLocationIndicator = true
         myLocationManager.delegate = self
         if visitEnable {
@@ -199,20 +225,41 @@ public class LocationServiceCoreImpl: NSObject,
     }
     
     /// Authorization request for location service
+    /// Asks for the authorization background monitoring needs. Idempotent — this
+    /// runs on every start.
+    ///
+    /// `.authorizedWhenInUse` is the case that matters. **iOS never grants "Always"
+    /// on a first ask**: requesting it while `.notDetermined` shows the ordinary
+    /// when-in-use prompt, with no Always option. The only route to Always is to ask
+    /// *again* once when-in-use is held, which moves the app into provisional always
+    /// and lets iOS raise its own retrospective prompt after real background use.
+    ///
+    /// Guarding solely on `.notDetermined`, as this did, meant an app that reached
+    /// when-in-use by any other route — a map view calling
+    /// `requestWhenInUseAuthorization()` first, say — could never be upgraded, and
+    /// silently stayed foreground-only forever.
     func requestAuthorization () {
-        if CLLocationManager.authorizationStatus() == .notDetermined {
-            locationManager?.requestAlwaysAuthorization()
-        }
-        else{
-            if (CLLocationManager.authorizationStatus() == .denied){
-                if(WoosLog.isValidLevel(level: .warn)){
-                    if #available(iOS 14.0, *) {
-                        Logger.sdklog.warning("\(LogEvent.w.rawValue) Permission: Location permission not granted")
-                    } else {
-                        WoosLog.warning("Permission: Location permission not granted")
-                    }
-                }
+        // No manager means the service was never initialised, or has been torn down.
+        // There is nothing to ask with, and the `?? .notDetermined` this replaced
+        // reported that state as "the user has not answered yet", which is a
+        // different thing and would have logged a misleading permission warning.
+        guard let myLocationManager = self.locationManager else {
+            if WoosLog.isValidLevel(level: .trace) {
+                Logger.sdklog.trace("\(LogEvent.v.rawValue) Permission: No location manager, authorization request skipped")
             }
+            return
+        }
+        switch myLocationManager.authorizationStatus {
+        case .notDetermined, .authorizedWhenInUse:
+            // A repeat call, once Always is granted or the prompt already shown, is
+            // a no-op, which is what makes this safe to run on every start.
+            myLocationManager.requestAlwaysAuthorization()
+        case .denied, .restricted:
+            if WoosLog.isValidLevel(level: .warn) {
+                Logger.sdklog.warning("\(LogEvent.w.rawValue) Permission: Location permission not granted")
+            }
+        default:
+            break
         }
     }
     
@@ -227,17 +274,26 @@ public class LocationServiceCoreImpl: NSObject,
     /// Start Locaton service to receive new location update
     public func startUpdatingLocation() {
         self.requestAuthorization()
+        // Same reason as `requestAuthorization`: with no manager there is nothing to
+        // start, and the "Starting Location service" trace below would otherwise
+        // report a start that never happened.
+        guard let myLocationManager = self.locationManager else {
+            if WoosLog.isValidLevel(level: .trace) {
+                Logger.sdklog.trace("\(LogEvent.v.rawValue) trace: No location manager, location service not started")
+            }
+            return
+        }
         if Thread.isMainThread {
-            self.locationManager?.startUpdatingLocation()
+            myLocationManager.startUpdatingLocation()
             if visitEnable {
-                self.locationManager?.startMonitoringVisits()
+                myLocationManager.startMonitoringVisits()
             }
         }
         else{
             Task { @MainActor in
-                self.locationManager?.startUpdatingLocation()
+                myLocationManager.startUpdatingLocation()
                 if visitEnable {
-                    self.locationManager?.startMonitoringVisits()
+                    myLocationManager.startMonitoringVisits()
                 }
             }
         }
@@ -474,6 +530,40 @@ public class LocationServiceCoreImpl: NSObject,
                 WoosLog.info("trace: Location manager status \(status.rawValue)")
             }
         }
+        // Keep the service session matched to whatever was just granted. Only the
+        // CLMonitor backend relies on it, and the API is 18.0+, so the legacy path
+        // is untouched.
+        WoosFileLog.shared.append("authorization status \(status.rawValue)")
+        if #available(iOS 18.0, *) {
+            ServiceSession.shared.update(for: status)
+        }
+        startServicesIfNewlyAuthorized(status)
+    }
+
+    /// Starts the services that were skipped while authorization was undecided.
+    ///
+    /// On a first run every start path runs before the user has answered the prompt:
+    /// the status is still `.notDetermined`, so an integrator guarding its own
+    /// `startUpdatingLocation` on the status skips it, and nothing re-runs once the
+    /// answer arrives. The app then stays inert until it is next backgrounded or
+    /// relaunched, which reads as "geofencing does nothing on the first day".
+    ///
+    /// Acting here closes that gap: this is the one callback that fires with the
+    /// user's decision. Both starts are idempotent — passive tracking already calls
+    /// `startUpdatingLocation` on every cycle — so a redundant call costs nothing.
+    private func startServicesIfNewlyAuthorized(_ status: CLAuthorizationStatus) {
+        guard trackingEnable else { return }
+        guard status == .authorizedAlways || status == .authorizedWhenInUse else { return }
+        // `authorizationDecided` latches, so the upgrade from when-in-use to always
+        // does not restart services that are already running.
+        guard !authorizationDecided else { return }
+        authorizationDecided = true
+        WoosFileLog.shared.append("authorization granted, starting location services")
+        if WoosLog.isValidLevel(level: .trace) {
+            Logger.sdklog.trace("\(LogEvent.v.rawValue) trace: Authorization granted, starting location services")
+        }
+        startUpdatingLocation()
+        startMonitoringSignificantLocationChanges()
     }
     
     /// Handle all error callback in case of something wrong in service
@@ -700,22 +790,32 @@ public class LocationServiceCoreImpl: NSObject,
     /// - Parameter visit: Visit Info
     func updateVisit(visit: CLVisit) {
         guard let delegate = self.visitDelegate else {
+            if WoosLog.isValidLevel(level: .trace) {
+                Logger.sdklog.trace("\(LogEvent.v.rawValue) Event: Visit dropped, no visitDelegate set")
+            }
             return
         }
-        if visit.horizontalAccuracy < accuracyVisitFilter {
-            detectVisitInZOIClassified(visit: visit)
-            let visitRecorded = Visits.add(visit: visit)
-            if visitRecorded.visitId != nil {
-                delegate.processVisit(visit: visitRecorded)
-                if(WoosLog.isValidLevel(level: .info)){
-                    if #available(iOS 14.0, *) {
-                        Logger.sdklog.info("\(LogEvent.d.rawValue) Event: Visit recorded at \(visitRecorded.visitId ?? "-")")
-                    } else {
-                        WoosLog.info("Event: Visit recored at \(visitRecorded.visitId ?? "-")")
-                    }
-                }
-                handleVisitEvent(visit: visitRecorded)
+        // `accuracyVisitFilter` defaults to 50 m and CoreLocation regularly reports
+        // visits well above that, so a silent drop here reads as "visits never fire".
+        guard visit.horizontalAccuracy < accuracyVisitFilter else {
+            if WoosLog.isValidLevel(level: .trace) {
+                let detail = "accuracy \(visit.horizontalAccuracy) m is at or over accuracyVisitFilter \(accuracyVisitFilter) m"
+                Logger.sdklog.trace("\(LogEvent.v.rawValue) Event: Visit dropped, \(detail)")
             }
+            return
+        }
+        detectVisitInZOIClassified(visit: visit)
+        let visitRecorded = Visits.add(visit: visit)
+        if visitRecorded.visitId != nil {
+            delegate.processVisit(visit: visitRecorded)
+            if(WoosLog.isValidLevel(level: .info)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.info("\(LogEvent.d.rawValue) Event: Visit recorded at \(visitRecorded.visitId ?? "-")")
+                } else {
+                    WoosLog.info("Event: Visit recored at \(visitRecorded.visitId ?? "-")")
+                }
+            }
+            handleVisitEvent(visit: visitRecorded)
         }
     }
     
@@ -739,6 +839,10 @@ public class LocationServiceCoreImpl: NSObject,
                 return
             }
         }
+        WoosFileLog.shared.append(String(format: "fix %.6f,%.6f acc=%.0fm appState=%d",
+                                         location.coordinate.latitude, location.coordinate.longitude,
+                                         location.horizontalAccuracy,
+                                         UIApplication.shared.applicationState.rawValue))
         // Save in database
         let locationSaved = Locations.add(locations: locations)
         

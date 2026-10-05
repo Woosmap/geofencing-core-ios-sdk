@@ -22,6 +22,9 @@
 import Foundation
 import CoreLocation
 import os
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// What an incoming `CLMonitor` state means for a monitored identifier.
 @available(iOS 17.2, *)
@@ -259,6 +262,9 @@ internal final class MonitorSession: @unchecked Sendable {
     private var lastHandled: [String: (date: Date, state: CLMonitor.Event.State, receivedAt: Date)] = [:]
     private static let duplicateWindow: TimeInterval = 5
 
+    /// Guards against adding the unlock observer more than once.
+    private var unlockReconcileArmed = false
+
     private let stateLock = NSLock()
 
     private init(monitorName: String) {
@@ -274,7 +280,7 @@ internal final class MonitorSession: @unchecked Sendable {
         let condition = CLMonitor.CircularGeographicCondition(center: center, radius: radius)
         await monitor.add(condition,
                           identifier: identifier,
-                          assuming: Self.assumedState(for: identifier))
+                          assuming: .unknown)//Self.assumedState(for: identifier))
         stateLock.withLock {
             persisted[identifier] = CircularGeofence(identifier: identifier,
                                                      center: center,
@@ -315,7 +321,7 @@ internal final class MonitorSession: @unchecked Sendable {
     ///   end-to-end run produced two with it and three with `.unknown`, the extra
     ///   one being an enter for a POI already occupied.
     internal static func assumedState(for identifier: String) -> CLMonitor.Event.State {
-        if identifier.hasPrefix(concentricRingPrefix) { return .satisfied }
+        if identifier.hasPrefix(concentricRingPrefix) { return .satisfied}
         // Every other `position…` identifier is a grid translation.
         if identifier.hasPrefix(RegionType.position.rawValue) { return .unsatisfied }
         return .unknown
@@ -390,7 +396,22 @@ internal final class MonitorSession: @unchecked Sendable {
             openTask = created
             return created
         }
+        // Opening against a locked device is deliberate. The CLMonitor header
+        // suggests waiting for protected data, but that collides with its other
+        // rule: CoreLocation stops monitoring a condition when an event is pending
+        // and no monitor has been opened to receive it. A background relaunch for a
+        // crossing is exactly when the device is likely to be locked, so waiting
+        // risks dropping the event that woke the app. Opening now can instead meet
+        // an unreadable condition store, which is visible (events carry
+        // `persistenceUnavailable`) and recoverable on the unlock hook below.
+        #if canImport(UIKit)
+        if await !MainActor.run(body: { UIApplication.shared.isProtectedDataAvailable }),
+           WoosLog.isValidLevel(level: .warn) {
+            Logger.sdklog.warning("\(LogEvent.w.rawValue) Opening the condition store with the device locked, persistence may be unavailable until unlock")
+        }
+        #endif
         let opened = await task.value
+        armUnlockReconcile()
         // Read the store *before* draining events. On a relaunch CoreLocation
         // replays every condition's state within milliseconds of the monitor
         // opening, so seeding after `consume` starts loses the race and the
@@ -408,6 +429,42 @@ internal final class MonitorSession: @unchecked Sendable {
             eventTask = Task { [weak self] in await self?.consume(from: opened) }
             return opened
         }
+    }
+
+    /// Re-registers anything the persisted store knows about that CoreLocation is
+    /// no longer monitoring. Conditions added while the condition file was
+    /// unreadable are the case this recovers.
+    private func reconcile() async {
+        let monitor = await activeMonitor()
+        let live = Set(await monitor.identifiers)
+        let known = knownGeofences()
+        for fence in known where !live.contains(fence.identifier) {
+            await add(identifier: fence.identifier, center: fence.center, radius: fence.radius)
+            if WoosLog.isValidLevel(level: .info) {
+                Logger.sdklog.info("\(LogEvent.i.rawValue) Re-added \(fence.identifier, privacy: .public) after unlock")
+            }
+        }
+    }
+
+    /// Reconciles once protected data comes back, in case the monitor was opened
+    /// against a store it could not read. Armed once; the observer is wanted for
+    /// the life of the process.
+    private func armUnlockReconcile() {
+        #if canImport(UIKit)
+        let shouldArm: Bool = stateLock.withLock {
+            guard !unlockReconcileArmed else { return false }
+            unlockReconcileArmed = true
+            return true
+        }
+        guard shouldArm else { return }
+        Task { @MainActor [weak self] in
+            NotificationCenter.default.addObserver(
+                forName: UIApplication.protectedDataDidBecomeAvailableNotification,
+                object: nil, queue: .main) { _ in
+                    Task { await self?.reconcile() }
+                }
+        }
+        #endif
     }
 
     private func consume(from monitor: CLMonitor) async {
@@ -511,6 +568,7 @@ internal final class MonitorSession: @unchecked Sendable {
         } else {
             Logger.sdklog.warning("\(LogEvent.w.rawValue) \(detail)")
         }
+        WoosFileLog.shared.append(detail)
     }
 
     /// Why CoreLocation stopped monitoring, when it says. `nil` means it gave no

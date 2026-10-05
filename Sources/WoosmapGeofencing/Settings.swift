@@ -12,6 +12,12 @@ public var trackingEnable = false
 
 // Woosmap SearchAPI Key
 private var _WoosmapAPIKey: String = ""
+
+/// Shows enough of a credential to identify it and not enough to use it.
+internal func woosmapMaskedKey(_ key: String) -> String {
+    guard key.count > 8 else { return key.isEmpty ? "(empty)" : "(set)" }
+    return "\(key.prefix(4))…\(key.suffix(4))"
+}
 public var WoosmapAPIKey: String {
     get{
         return _WoosmapAPIKey
@@ -19,10 +25,16 @@ public var WoosmapAPIKey: String {
     set {
         if _WoosmapAPIKey != newValue {
             if(WoosLog.isValidLevel(level: .info)){
+                // Masked rather than marked `.private`. Privacy annotations redact for
+                // readers outside the process, but an in-process `OSLogStore` read —
+                // which is how a host app exports its own diagnostics — sees straight
+                // through them. The key then travels in every support bundle. Enough
+                // characters remain to tell two keys apart.
+                let masked = woosmapMaskedKey(newValue)
                 if #available(iOS 14.0, *) {
-                    Logger.sdklog.info("\(LogEvent.i.rawValue) Woosmap API: \(newValue, privacy: .private)")
+                    Logger.sdklog.info("\(LogEvent.i.rawValue) Woosmap API: \(masked, privacy: .public)")
                 } else {
-                    WoosLog.info("Woosmap API: \(newValue)")
+                    WoosLog.info("Woosmap API: \(masked)")
                 }
             }
         }
