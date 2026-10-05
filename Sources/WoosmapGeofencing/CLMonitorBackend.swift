@@ -63,9 +63,9 @@ internal final class CLMonitorBackend: GeofenceMonitoringBackend {
     /// guarantee that.
     private var pendingWork: Task<Void, Never>?
 
-    private var transitionHandler: ((GeofenceTransition) -> Void)?
+    private var transitionHandler: (@Sendable (GeofenceTransition) -> Void)?
 
-    var onTransition: ((GeofenceTransition) -> Void)? {
+    var onTransition: (@Sendable (GeofenceTransition) -> Void)? {
         get { lock.withLock { transitionHandler } }
         set { lock.withLock { transitionHandler = newValue } }
     }
@@ -210,7 +210,10 @@ internal final class MonitorSession: @unchecked Sendable {
     private let monitorName: String
 
     private static let sessionsLock = NSLock()
-    private static var sessions: [String: MonitorSession] = [:]
+    /// `nonisolated(unsafe)` because every access goes through `sessionsLock`, which
+    /// the compiler cannot verify. Isolating it to an actor would make `shared(named:)`
+    /// async, and it is called from synchronous backend init.
+    nonisolated(unsafe) private static var sessions: [String: MonitorSession] = [:]
 
     /// The one session for this monitor name in this process.
     static func shared(named name: String) -> MonitorSession {
@@ -457,12 +460,21 @@ internal final class MonitorSession: @unchecked Sendable {
             return true
         }
         guard shouldArm else { return }
-        Task { @MainActor [weak self] in
-            NotificationCenter.default.addObserver(
-                forName: UIApplication.protectedDataDidBecomeAvailableNotification,
-                object: nil, queue: .main) { _ in
-                    Task { await self?.reconcile() }
-                }
+        // Registered directly: `NotificationCenter.addObserver` is safe to call from
+        // any thread, and `queue: .main` already delivers on the main queue, so the
+        // `Task { @MainActor }` wrapper this replaced bought nothing.
+        //
+        // The handler binds a strong local before starting its Task. Referring to the
+        // weak optional from inside the Task captures the enclosing closure's
+        // variable, which Swift 6 rejects as a concurrent reference to captured
+        // state; a plain `let` has no such problem.
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.protectedDataDidBecomeAvailableNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let session = self else { return }
+            Task { await session.reconcile() }
         }
         #endif
     }

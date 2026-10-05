@@ -19,7 +19,7 @@ internal struct CircularGeofence {
 }
 
 /// A circular geofence transition observed by a monitoring backend.
-internal struct GeofenceTransition {
+internal struct GeofenceTransition: Sendable {
 
     /// Identifier of the region that was crossed, in the SDK's own
     /// `poi<id>…<id>` / `custom<id>…` / `position…` scheme.
@@ -76,7 +76,7 @@ internal protocol GeofenceMonitoringBackend: AnyObject {
     var usesPlatformRegionStore: Bool { get }
 
     /// Invoked for every transition the backend observes.
-    var onTransition: ((GeofenceTransition) -> Void)? { get set }
+    var onTransition: (@Sendable (GeofenceTransition) -> Void)? { get set }
 
     /// Begins monitoring a circular geofence. Replaces any region already
     /// monitored under the same identifier, matching `CLLocationManager`.
@@ -122,7 +122,7 @@ internal final class LegacyRegionBackend: GeofenceMonitoringBackend {
     /// adopt and nothing the SDK did not put there itself.
     let usesPlatformRegionStore = true
 
-    var onTransition: ((GeofenceTransition) -> Void)?
+    var onTransition: (@Sendable (GeofenceTransition) -> Void)?
 
     init(locationManager: @escaping () -> LocationManagerProtocol?) {
         self.locationManager = locationManager
