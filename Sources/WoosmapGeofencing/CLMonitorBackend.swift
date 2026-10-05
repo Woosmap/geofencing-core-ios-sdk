@@ -568,7 +568,6 @@ internal final class MonitorSession: @unchecked Sendable {
         } else {
             Logger.sdklog.warning("\(LogEvent.w.rawValue) \(detail)")
         }
-        WoosFileLog.shared.append(detail)
     }
 
     /// Why CoreLocation stopped monitoring, when it says. `nil` means it gave no

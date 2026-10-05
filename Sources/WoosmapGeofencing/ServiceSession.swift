@@ -82,7 +82,6 @@ internal final class ServiceSession: @unchecked Sendable {
         do {
             for try await diagnostic in diagnostics {
                 if let problems = flags(in: diagnostic) {
-                    WoosFileLog.shared.append("CLServiceSession suspended: \(problems)")
                     Logger.sdklog.error("\(LogEvent.e.rawValue) Permission: CLServiceSession suspended: \(problems, privacy: .public)")
                 } else if WoosLog.isValidLevel(level: .trace) {
                     Logger.sdklog.trace("\(LogEvent.v.rawValue) Permission: CLServiceSession running, nothing reported")

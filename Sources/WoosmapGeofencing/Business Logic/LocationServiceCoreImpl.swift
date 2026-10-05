@@ -250,10 +250,10 @@ public class LocationServiceCoreImpl: NSObject,
             return
         }
         switch myLocationManager.authorizationStatus {
-        case .notDetermined, .authorizedWhenInUse:
-            // A repeat call, once Always is granted or the prompt already shown, is
-            // a no-op, which is what makes this safe to run on every start.
+        case .notDetermined:
             myLocationManager.requestAlwaysAuthorization()
+        case .authorizedWhenInUse:
+            scheduleAlwaysUpgradeRequest()
         case .denied, .restricted:
             if WoosLog.isValidLevel(level: .warn) {
                 Logger.sdklog.warning("\(LogEvent.w.rawValue) Permission: Location permission not granted")
@@ -263,6 +263,50 @@ public class LocationServiceCoreImpl: NSObject,
         }
     }
     
+    /// How long to wait before asking a when-in-use app to upgrade to Always.
+    private static let alwaysUpgradeDelay: TimeInterval = 60
+
+    /// Set while a delayed upgrade request is pending, so repeated calls do not
+    /// stack timers. Only ever touched on the main queue.
+    private var alwaysUpgradeScheduled = false
+
+    /// Asks for Always a minute after when-in-use was granted, rather than at once.
+    ///
+    /// iOS decides whether to show the upgrade prompt, and asking in the same breath
+    /// as the first grant is routinely ignored — the system wants evidence the app
+    /// has actually been used. The delay gives it that window.
+    ///
+    /// Two things make this safe to call from every start:
+    ///
+    /// - The pending flag means a start loop cannot queue a timer per call.
+    /// - The status is read again when the timer fires, not captured now. By then the
+    ///   user may have granted Always through Settings, or revoked location entirely,
+    ///   and asking from the wrong state is at best wasted and at worst misleading.
+    ///
+    /// The timer only fires while the process is alive. In passive tracking the app
+    /// is usually suspended long before a minute is up, so in practice this lands on
+    /// a foreground session — which is the only place the prompt could be seen anyway.
+    private func scheduleAlwaysUpgradeRequest() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self, !self.alwaysUpgradeScheduled else { return }
+            self.alwaysUpgradeScheduled = true
+            if WoosLog.isValidLevel(level: .trace) {
+                Logger.sdklog.trace("\(LogEvent.v.rawValue) Permission: Always upgrade request scheduled in \(Int(Self.alwaysUpgradeDelay))s")
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + Self.alwaysUpgradeDelay) { [weak self] in
+                guard let self else { return }
+                self.alwaysUpgradeScheduled = false
+                guard self.locationManager?.authorizationStatus == .authorizedWhenInUse else {
+                    if WoosLog.isValidLevel(level: .trace) {
+                        Logger.sdklog.trace("\(LogEvent.v.rawValue) Permission: Always upgrade skipped, status changed while waiting")
+                    }
+                    return
+                }
+                self.locationManager?.requestAlwaysAuthorization()
+            }
+        }
+    }
+
     /// Update Region service delegate
     /// - Parameter delegate: new callback
     func setRegionDelegate(delegate: RegionsServiceDelegate) {
@@ -533,7 +577,6 @@ public class LocationServiceCoreImpl: NSObject,
         // Keep the service session matched to whatever was just granted. Only the
         // CLMonitor backend relies on it, and the API is 18.0+, so the legacy path
         // is untouched.
-        WoosFileLog.shared.append("authorization status \(status.rawValue)")
         if #available(iOS 18.0, *) {
             ServiceSession.shared.update(for: status)
         }
@@ -558,7 +601,6 @@ public class LocationServiceCoreImpl: NSObject,
         // does not restart services that are already running.
         guard !authorizationDecided else { return }
         authorizationDecided = true
-        WoosFileLog.shared.append("authorization granted, starting location services")
         if WoosLog.isValidLevel(level: .trace) {
             Logger.sdklog.trace("\(LogEvent.v.rawValue) trace: Authorization granted, starting location services")
         }
@@ -839,10 +881,6 @@ public class LocationServiceCoreImpl: NSObject,
                 return
             }
         }
-        WoosFileLog.shared.append(String(format: "fix %.6f,%.6f acc=%.0fm appState=%d",
-                                         location.coordinate.latitude, location.coordinate.longitude,
-                                         location.horizontalAccuracy,
-                                         UIApplication.shared.applicationState.rawValue))
         // Save in database
         let locationSaved = Locations.add(locations: locations)
         
