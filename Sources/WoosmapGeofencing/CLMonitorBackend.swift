@@ -283,7 +283,7 @@ internal final class MonitorSession: @unchecked Sendable {
         let condition = CLMonitor.CircularGeographicCondition(center: center, radius: radius)
         await monitor.add(condition,
                           identifier: identifier,
-                          assuming: .unknown)//Self.assumedState(for: identifier))
+                          assuming: Self.assumedState(for: identifier))
         stateLock.withLock {
             persisted[identifier] = CircularGeofence(identifier: identifier,
                                                      center: center,
