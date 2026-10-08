@@ -31,7 +31,7 @@ final class FakeLocationManager: LocationManagerProtocol {
 
 /// Records what the service asked the backend to do.
 final class RecordingBackend: GeofenceMonitoringBackend {
-    var onTransition: ((GeofenceTransition) -> Void)?
+    var onTransition: (@Sendable (GeofenceTransition) -> Void)?
 
     /// `false` presents a `CLLocationManager`-shaped backend, reporting crossings
     /// only. Set it to `true` to present a `CLMonitor`-shaped one, which reports a

@@ -137,11 +137,12 @@ public class LocationServiceCoreImpl: NSObject,
     /// monitoring lives.
     ///
     /// - Note: adopted conditions are seeded like any other, which for POI and
-    ///   custom regions means `.unsatisfied`. On the first launch after an upgrade
-    ///   every region the user is *currently inside* therefore reports an enter
-    ///   they already received under the legacy path. It arrives as an initial
-    ///   determination rather than a crossing, so it is `fromPositionDetection`,
-    ///   but it is still a duplicate for that one launch.
+    ///   custom regions means `.unknown` — CoreLocation resolves the real state and
+    ///   reports it. On the first launch after an upgrade every region the user is
+    ///   *currently inside* therefore reports an enter they already received under
+    ///   the legacy path. It arrives as an initial determination rather than a
+    ///   crossing, so it is `fromPositionDetection`, but it is still a duplicate
+    ///   for that one launch.
     internal func adoptLegacyCircularRegions() {
         guard !monitoringBackend.usesPlatformRegionStore,
               let manager = locationManager else { return }
@@ -737,11 +738,11 @@ public class LocationServiceCoreImpl: NSObject,
     /// Fires the SDK's own "already inside" check after registering a region,
     /// unless the backend reports the initial state itself.
     ///
-    /// `CLMonitor`, seeded with `assuming: .unsatisfied`, emits a genuine enter
-    /// when the user is already inside a newly added condition. Running the manual
-    /// check as well would deliver that enter twice. `CLLocationManager` reports
-    /// only crossings, so under the legacy backend this check remains the only way
-    /// the "already inside" event is produced.
+    /// `CLMonitor`, seeded with `assuming: .unknown`, lets CoreLocation determine the
+    /// real state and emits a genuine enter when the user is already inside a newly
+    /// added condition. Running the manual check as well would deliver that enter
+    /// twice. `CLLocationManager` reports only crossings, so under the legacy backend
+    /// this check remains the only way the "already inside" event is produced.
     internal func checkIfUserIsInRegionUnlessBackendReports(region: CLCircularRegion) {
         guard !monitoringBackend.reportsInitialState else { return }
         checkIfUserIsInRegion(region: region)

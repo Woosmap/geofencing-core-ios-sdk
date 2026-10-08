@@ -80,8 +80,9 @@ final class CLMonitorBackendTests: XCTestCase {
         }
     }
 
-    /// Assuming outside is what lets a genuine "already inside" enter arrive as an
-    /// initial determination rather than being pre-empted.
+    /// Assuming nothing is what lets a genuine "already inside" enter arrive: with
+    /// `.unknown` CoreLocation resolves the real state and reports it, where a
+    /// seeded guess would pre-empt the determination.
     func test_poiAndCustomGeofences_areSeededUnknown() throws {
         guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
         XCTAssertEqual(MonitorSession.assumedState(for: "poi<id>store-A<id>"), .unknown)
