@@ -43,29 +43,43 @@ public class LocationServiceCoreImpl: NSObject,
     /// Visit service callback
     public weak var visitDelegate: VisitServiceDelegate?
 
+    /// Whether the user has answered the location prompt during this process, so the
+    /// first-authorization start in `startServicesIfNewlyAuthorized` runs only once.
+    private var authorizationDecided = false
+
     /// Performs circular-region monitoring.
     ///
     /// Every circular **write** — start and stop — goes through here so the
     /// implementation can be swapped for `CLMonitor` later. Beacons bypass it and
     /// keep calling `locationManager` directly; see `stopMonitoring(_:)`.
     ///
-    /// **Reads are deliberately still direct.** `monitoredRegions` is consulted in
-    /// place by `setRegionDelegate`, `stopMonitoringCurrentRegions`,
-    /// `startMonitoringCurrentRegions`, `addRegion(identifier:center:radius:)`,
-    /// `removeRegion(identifier:)`, `removeRegion(center:)`, `removeRegions(type:)`,
-    /// `removeOldPOIRegions` and `checkIfPositionIsInsideGeofencingRegions`.
-    ///
-    /// Those reads cannot move behind `monitoredCircularIdentifiers` without
-    /// changing behaviour, which this phase must not do: `removeRegions(type:)` and
-    /// `removeOldPOIRegions` currently sweep *beacons* out of `monitoredRegions`
-    /// too, and a circular-only view would silently stop doing that. Deciding what
-    /// the sweeps should mean belongs with the `CLMonitor` backend, which has no
-    /// beacon registrations at all.
+    /// **Reads go through `monitoredRegionsUnified`**, which answers circular
+    /// regions from this backend and unions the non-circular ones still held by
+    /// `CLLocationManager`. That union is what let the reads move: the sweeps in
+    /// `removeRegions(type:)` and `removeOldPOIRegions` clear *beacons* as well as
+    /// circles, and a circular-only view would have silently stopped doing that.
     ///
     /// - Note: assigning a replacement re-wires `onTransition` via `didSet`, so a
     ///   backend installed by a later phase or a test can never end up event-less.
     internal var monitoringBackend: GeofenceMonitoringBackend = LegacyRegionBackend(locationManager: { nil }) {
         didSet { wireMonitoringBackend() }
+    }
+
+    /// Chooses the monitoring implementation for the running OS.
+    ///
+    /// Core still ships below iOS 17, so the legacy `CLCircularRegion` path has to
+    /// stay as the fallback. This is the only place the choice is made.
+    ///
+    /// The exact floor is whatever the manifests say and is deliberately not
+    /// repeated here — this comment has already drifted twice as they moved. All
+    /// this decision needs is that the floor is below 17.2, which it is.
+    private static func makeMonitoringBackend(
+        locationManager: @escaping () -> LocationManagerProtocol?
+    ) -> GeofenceMonitoringBackend {
+        if #available(iOS 17.2, *) {
+            return CLMonitorBackend()
+        }
+        return LegacyRegionBackend(locationManager: locationManager)
     }
 
     /// Points the current backend's transition hook back at this service.
@@ -84,12 +98,106 @@ public class LocationServiceCoreImpl: NSObject,
         self.locationManager = locationManger
         // Eager, not lazy: `lazy var` has no synchronisation, and this service is
         // reachable from any thread (public region APIs, CoreLocation callbacks).
-        self.monitoringBackend = LegacyRegionBackend(locationManager: { [weak self] in self?.locationManager })
+        self.monitoringBackend = Self.makeMonitoringBackend { [weak self] in self?.locationManager }
         // Swift does not run `didSet` for assignments made inside an initialiser,
         // so the hook has to be wired explicitly here as well.
         wireMonitoringBackend()
         initLocationManager()
+        adoptLegacyCircularRegions()
         
+    }
+
+    /// Moves circular regions registered by a previous SDK release into the
+    /// active backend.
+    ///
+    /// `CLLocationManager` region monitoring outlives an app update: the
+    /// registrations live in the location daemon, keyed to the bundle id, and
+    /// persist until something stops them or the app is deleted. An app upgrading
+    /// from a release that called `startMonitoring(for:)` therefore starts up with
+    /// regions iOS still holds and `CLMonitor` has never heard of.
+    ///
+    /// Left alone those are worse than useless. They keep waking the app; their
+    /// events arrive at `reportPlatformEvent`, which the `CLMonitor` backend
+    /// discards; they are invisible to `monitoredRegionsUnified`, so nothing
+    /// counts, lists or tears them down; and `stopMonitoring` cannot reach them
+    /// either, because it routes circular regions to a backend whose store never
+    /// had them. Short of deleting the app there is no way back.
+    ///
+    /// Custom geofences are what this really rescues. A POI is re-derived by the
+    /// next Search API refresh, but `addRegion` keeps no record of its own, so a
+    /// custom region existed *only* in `CLLocationManager` — without this it would
+    /// quietly stop reporting and could never be removed.
+    ///
+    /// Position-grid cells are adopted rather than filtered out: once they are in
+    /// the backend, `stopMonitoringCurrentRegions()` tears them down on the next
+    /// refresh, which is where that policy already lives.
+    ///
+    /// Idempotent — the pass leaves no circular region on the manager, so a later
+    /// call finds nothing. Beacons are left alone, since that is still where their
+    /// monitoring lives.
+    ///
+    /// - Note: adopted conditions are seeded like any other, which for POI and
+    ///   custom regions means `.unknown` — CoreLocation resolves the real state and
+    ///   reports it. On the first launch after an upgrade every region the user is
+    ///   *currently inside* therefore reports an enter they already received under
+    ///   the legacy path. It arrives as an initial determination rather than a
+    ///   crossing, so it is `fromPositionDetection`, but it is still a duplicate
+    ///   for that one launch.
+    internal func adoptLegacyCircularRegions() {
+        guard !monitoringBackend.usesPlatformRegionStore,
+              let manager = locationManager else { return }
+        // Snapshot first: `stopMonitoring(for:)` mutates the set being read.
+        //
+        // Position-grid cells are deliberately excluded. They are ephemeral — the
+        // next sweep tears the grid down and rebuilds it around a fresh fix — so
+        // there is nothing to rescue. Adopting them also carries a defect: a
+        // `position_radius…` ring is seeded `.satisfied` on the premise that the
+        // device is inside it by construction, which holds for a grid built around
+        // the current fix and not for one inherited from wherever the previous
+        // install last swept. Upgrade after the user has moved, and CoreLocation
+        // resolves the real state, disagrees with the seed and emits an exit the
+        // user never walked. Harmless today — `logTransition` drops position-typed
+        // regions, so it reaches no log and no delegate — but it is a wasted event
+        // and the premise behind the seed is simply false for an adopted ring.
+        //
+        // Still stopped on the manager below, so the legacy grid does not linger.
+        let legacy = manager.monitoredRegions.compactMap { $0 as? CLCircularRegion }
+        guard !legacy.isEmpty else { return }
+
+        var adopted = 0
+        var discardedGridCells = 0
+        for region in legacy {
+            switch getRegionType(identifier: region.identifier) {
+            case .custom, .poi:
+                monitoringBackend.start(identifier: region.identifier,
+                                        center: region.center,
+                                        radius: region.radius)
+                manager.stopMonitoring(for: region)
+                adopted += 1
+            case .position:
+                // Ephemeral and rebuilt on the next sweep; see the note above.
+                manager.stopMonitoring(for: region)
+                discardedGridCells += 1
+            default:
+                // Someone else's region. `CLLocationManager.monitoredRegions` is
+                // per-app, not per-manager, so a geofence registered by the host app
+                // or another SDK shows up here too. Taking it would stop it on its
+                // owner's behalf and leave it mute: an unrecognised identifier is
+                // neither `custom` nor `poi`, so `logTransition` forwards nothing and
+                // its events would reach no delegate while still occupying one of
+                // iOS's 20 slots. `setProtectedRegionSlot` exists precisely so
+                // integrators can reserve capacity for these — confiscating them
+                // here would contradict that. Left alone.
+                break
+            }
+        }
+
+        if WoosLog.isValidLevel(level: .info) {
+            // No `#available(iOS 14)` branch: the deployment floor is 15.0, so the
+            // `WoosLog` fallback the older call sites carry is unreachable here.
+            let foreign = legacy.count - adopted - discardedGridCells
+            Logger.sdklog.info("\(LogEvent.i.rawValue) Adopted \(adopted) region(s) left by a previous SDK version, discarded \(discardedGridCells) stale position-grid cell(s), left \(foreign) region(s) belonging to someone else")
+        }
     }
     
     /// Interrnal location manager
@@ -121,9 +229,31 @@ public class LocationServiceCoreImpl: NSObject,
             }
         }
         
-        myLocationManager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
-        myLocationManager.distanceFilter = 10
-        myLocationManager.pausesLocationUpdatesAutomatically = true
+        // Settings differ by backend. The CLMonitor path (17.2+) needs updates to
+        // keep flowing, because it has no delegate callback to restart them.
+        if #available(iOS 18.0, *) {
+            ServiceSession.shared.update(for: myLocationManager.authorizationStatus)
+        }
+        if #available(iOS 17.2, *) {
+            // `BestForNavigation` is for turn-by-turn with the screen on; its power
+            // draw makes the system keener to pause a background app.
+            myLocationManager.desiredAccuracy = kCLLocationAccuracyBest
+            // A 10 m floor discards the short movements that cross a 140 m grid
+            // circle near its edge.
+            myLocationManager.distanceFilter = kCLDistanceFilterNone
+            // The important one. With automatic pausing on, iOS stops updates once
+            // it decides the device is stationary and **never resumes on its own** —
+            // the only recovery is an explicit stop/start, and there is no delegate
+            // callback here to trigger one. That is the mechanism behind a single
+            // stored fix followed by silence until some other wake-up intervenes.
+            myLocationManager.pausesLocationUpdatesAutomatically = false
+        } else {
+            // Legacy region monitoring is woken by `didEnterRegion`/`didExitRegion`,
+            // which restart the cycle, so pausing is recoverable there. Left as is.
+            myLocationManager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
+            myLocationManager.distanceFilter = 10
+            myLocationManager.pausesLocationUpdatesAutomatically = true
+        }
         myLocationManager.showsBackgroundLocationIndicator = true
         myLocationManager.delegate = self
         if visitEnable {
@@ -132,20 +262,41 @@ public class LocationServiceCoreImpl: NSObject,
     }
     
     /// Authorization request for location service
+    /// Asks for the authorization background monitoring needs. Idempotent — this
+    /// runs on every start.
+    ///
+    /// `.authorizedWhenInUse` is the case that matters. **iOS never grants "Always"
+    /// on a first ask**: requesting it while `.notDetermined` shows the ordinary
+    /// when-in-use prompt, with no Always option. The only route to Always is to ask
+    /// *again* once when-in-use is held, which moves the app into provisional always
+    /// and lets iOS raise its own retrospective prompt after real background use.
+    ///
+    /// Guarding solely on `.notDetermined`, as this did, meant an app that reached
+    /// when-in-use by any other route — a map view calling
+    /// `requestWhenInUseAuthorization()` first, say — could never be upgraded, and
+    /// silently stayed foreground-only forever.
     func requestAuthorization () {
-        if CLLocationManager.authorizationStatus() == .notDetermined {
-            locationManager?.requestAlwaysAuthorization()
-        }
-        else{
-            if (CLLocationManager.authorizationStatus() == .denied){
-                if(WoosLog.isValidLevel(level: .warn)){
-                    if #available(iOS 14.0, *) {
-                        Logger.sdklog.warning("\(LogEvent.w.rawValue) Permission: Location permission not granted")
-                    } else {
-                        WoosLog.warning("Permission: Location permission not granted")
-                    }
-                }
+        // No manager means the service was never initialised, or has been torn down.
+        // There is nothing to ask with, and the `?? .notDetermined` this replaced
+        // reported that state as "the user has not answered yet", which is a
+        // different thing and would have logged a misleading permission warning.
+        guard let myLocationManager = self.locationManager else {
+            if WoosLog.isValidLevel(level: .trace) {
+                Logger.sdklog.trace("\(LogEvent.v.rawValue) Permission: No location manager, authorization request skipped")
             }
+            return
+        }
+        switch myLocationManager.authorizationStatus {
+        case .notDetermined, .authorizedWhenInUse:
+            // A repeat call, once Always is granted or the prompt already shown, is
+            // a no-op, which is what makes this safe to run on every start.
+            myLocationManager.requestAlwaysAuthorization()
+        case .denied, .restricted:
+            if WoosLog.isValidLevel(level: .warn) {
+                Logger.sdklog.warning("\(LogEvent.w.rawValue) Permission: Location permission not granted")
+            }
+        default:
+            break
         }
     }
     
@@ -153,24 +304,33 @@ public class LocationServiceCoreImpl: NSObject,
     /// - Parameter delegate: new callback
     func setRegionDelegate(delegate: RegionsServiceDelegate) {
         self.regionDelegate = delegate
-        guard let monitoredRegions = locationManager?.monitoredRegions else { return }
+        let monitoredRegions = monitoredRegionsUnified
         delegate.updateRegions(regions: monitoredRegions)
     }
     
     /// Start Locaton service to receive new location update
     public func startUpdatingLocation() {
         self.requestAuthorization()
+        // Same reason as `requestAuthorization`: with no manager there is nothing to
+        // start, and the "Starting Location service" trace below would otherwise
+        // report a start that never happened.
+        guard let myLocationManager = self.locationManager else {
+            if WoosLog.isValidLevel(level: .trace) {
+                Logger.sdklog.trace("\(LogEvent.v.rawValue) trace: No location manager, location service not started")
+            }
+            return
+        }
         if Thread.isMainThread {
-            self.locationManager?.startUpdatingLocation()
+            myLocationManager.startUpdatingLocation()
             if visitEnable {
-                self.locationManager?.startMonitoringVisits()
+                myLocationManager.startMonitoringVisits()
             }
         }
         else{
             Task { @MainActor in
-                self.locationManager?.startUpdatingLocation()
+                myLocationManager.startUpdatingLocation()
                 if visitEnable {
-                    self.locationManager?.startMonitoringVisits()
+                    myLocationManager.startMonitoringVisits()
                 }
             }
         }
@@ -230,6 +390,40 @@ public class LocationServiceCoreImpl: NSObject,
         }
     }
     
+    /// Every region the SDK is monitoring, as `CLRegion`, regardless of which
+    /// backend holds it.
+    ///
+    /// Circular geofences come from the monitoring backend and are **synthesised**
+    /// into `CLCircularRegion`; beacons are read from `CLLocationManager`, which is
+    /// still where their monitoring lives. Under the legacy backend this returns
+    /// exactly what `locationManager.monitoredRegions` did.
+    ///
+    /// Reconstruction is lossless for this SDK: `notifyOnEntry`, `notifyOnExit` and
+    /// `notifyEntryStateOnDisplay` are never customised anywhere in Sources, so a
+    /// region built from identifier, centre and radius is equivalent to the original.
+    internal var monitoredRegionsUnified: Set<CLRegion> {
+        var regions = Set<CLRegion>()
+        for geofence in monitoringBackend.monitoredGeofences {
+            regions.insert(makeCircularRegion(from: geofence))
+        }
+        for region in locationManager?.monitoredRegions ?? [] where !(region is CLCircularRegion) {
+            regions.insert(region)
+        }
+        return regions
+    }
+
+    /// Rebuilds a `CLCircularRegion` for the public API.
+    ///
+    /// `CLCircularRegion` is soft-deprecated from iOS 17, but it is still the type
+    /// in `RegionsServiceDelegate.updateRegions(regions:)` and in the public
+    /// `LocationService` protocol, so it must keep being constructible here.
+    /// Isolated to this one function so the deprecation has a single home.
+    private func makeCircularRegion(from geofence: CircularGeofence) -> CLCircularRegion {
+        CLCircularRegion(center: geofence.center,   // NOSONAR - public API requires CLRegion; see doc comment
+                         radius: geofence.radius,
+                         identifier: geofence.identifier)
+    }
+
     /// Stops monitoring `region`.
     ///
     /// Circular regions go through the monitoring backend; beacons stay on
@@ -246,7 +440,7 @@ public class LocationServiceCoreImpl: NSObject,
 
     /// Stop mnitoring region
     public func stopMonitoringCurrentRegions() {
-        guard let monitoredRegions = locationManager?.monitoredRegions else { return }
+        let monitoredRegions = monitoredRegionsUnified
         for region in monitoredRegions {
             if getRegionType(identifier: region.identifier) == RegionType.position {
                 self.stopMonitoring(region)
@@ -273,7 +467,7 @@ public class LocationServiceCoreImpl: NSObject,
                 self.locationManager?.startMonitoring(for: region)
             }
         }
-        guard let monitoredRegions = locationManager?.monitoredRegions else { return }
+        let monitoredRegions = monitoredRegionsUnified
         self.regionDelegate?.updateRegions(regions: monitoredRegions)
     }
     
@@ -373,6 +567,38 @@ public class LocationServiceCoreImpl: NSObject,
                 WoosLog.info("trace: Location manager status \(status.rawValue)")
             }
         }
+        // Keep the service session matched to whatever was just granted. Only the
+        // CLMonitor backend relies on it, and the API is 18.0+, so the legacy path
+        // is untouched.
+        if #available(iOS 18.0, *) {
+            ServiceSession.shared.update(for: status)
+        }
+        startServicesIfNewlyAuthorized(status)
+    }
+
+    /// Starts the services that were skipped while authorization was undecided.
+    ///
+    /// On a first run every start path runs before the user has answered the prompt:
+    /// the status is still `.notDetermined`, so an integrator guarding its own
+    /// `startUpdatingLocation` on the status skips it, and nothing re-runs once the
+    /// answer arrives. The app then stays inert until it is next backgrounded or
+    /// relaunched, which reads as "geofencing does nothing on the first day".
+    ///
+    /// Acting here closes that gap: this is the one callback that fires with the
+    /// user's decision. Both starts are idempotent — passive tracking already calls
+    /// `startUpdatingLocation` on every cycle — so a redundant call costs nothing.
+    private func startServicesIfNewlyAuthorized(_ status: CLAuthorizationStatus) {
+        guard trackingEnable else { return }
+        guard status == .authorizedAlways || status == .authorizedWhenInUse else { return }
+        // `authorizationDecided` latches, so the upgrade from when-in-use to always
+        // does not restart services that are already running.
+        guard !authorizationDecided else { return }
+        authorizationDecided = true
+        if WoosLog.isValidLevel(level: .trace) {
+            Logger.sdklog.trace("\(LogEvent.v.rawValue) trace: Authorization granted, starting location services")
+        }
+        startUpdatingLocation()
+        startMonitoringSignificantLocationChanges()
     }
     
     /// Handle all error callback in case of something wrong in service
@@ -424,11 +650,39 @@ public class LocationServiceCoreImpl: NSObject,
                                       radius: transition.radius,
                                       identifier: transition.identifier)
         // An initial state is a position determination, not a crossing, which is
-        // exactly what `fromPositionDetection` means. The legacy backend never
-        // sets it, so this is `false` until a CLMonitor backend lands.
+        // exactly what `fromPositionDetection` means.
         logTransition(region: region,
                       didEnter: transition.didEnter,
                       fromPositionDetection: transition.initialState)
+
+        // A region event is a trigger, not a verdict: this restarts location
+        // updates so the position sweep can evaluate a fresh fix, and rebuilds the
+        // grid. The legacy path has always done this from
+        // `handlePlatformRegionEvent`; without it, passive tracking on iOS 17.2+
+        // lost the grid-driven wake-up entirely, because `logTransition` drops
+        // position-typed regions and continuous updates stop after each fix.
+        //
+        // An earlier attempt at this was reverted after an end-to-end run went
+        // from three events to one. That measurement predated the registry-restore
+        // fix, which was dropping every replayed event at `publish`. Re-run on the
+        // same scenario afterwards, the comparison inverts: two events without this
+        // call, three with it, and location updates restart five times rather than
+        // three.
+        //
+        // Crossings only. `handleRegionChange` tears down every monitored region
+        // and restarts location updates and significant-change monitoring — an
+        // expensive cycle. POI and custom conditions are seeded `.unknown`, so each
+        // registration produces a determination, and a Search API refresh that
+        // registers N of them would otherwise cost N teardown/restart cycles, each
+        // one removing the conditions the refresh had just added.
+        //
+        // This gate is only safe because `lastStates` is now seeded from the
+        // persisted records when the monitor opens. Before that, a fresh process
+        // had no last state for anything, so the crossing that relaunched the app
+        // arrived flagged initial — and gating here would have skipped the restart
+        // in exactly the case the call exists for.
+        guard !transition.initialState else { return }
+        self.handleRegionChange()
     }
 
     /// Records a transition for the region types that produce events. Position
@@ -448,7 +702,7 @@ public class LocationServiceCoreImpl: NSObject,
     ///   - radius: area
     /// - Returns: status
     open func addRegion(identifier: String, center: CLLocationCoordinate2D, radius: CLLocationDistance) -> (isCreate: Bool, identifier: String) {
-        guard let monitoredRegions = locationManager?.monitoredRegions else { return (false, "") }
+        let monitoredRegions = monitoredRegionsUnified
         
         var nbrCustomGeofence = 0
         for region in monitoredRegions {
@@ -461,7 +715,7 @@ public class LocationServiceCoreImpl: NSObject,
         }
         let id = RegionType.custom.rawValue + "<id>" + identifier
         monitoringBackend.start(identifier: id, center: center, radius: radius)
-        checkIfUserIsInRegion(region: CLCircularRegion(center: center, radius: radius, identifier: id ))
+        checkIfUserIsInRegionUnlessBackendReports(region: CLCircularRegion(center: center, radius: radius, identifier: id ))
         return (true, RegionType.custom.rawValue + "<id>" + identifier)
     }
     
@@ -469,7 +723,7 @@ public class LocationServiceCoreImpl: NSObject,
     /// Remove circular region
     /// - Parameter identifier: ID
     public func removeRegion(identifier: String) {
-        guard let monitoredRegions = locationManager?.monitoredRegions else { return }
+        let monitoredRegions = monitoredRegionsUnified
         for region in monitoredRegions {
             if (region.identifier == identifier) {
                 self.stopMonitoring(region)
@@ -497,7 +751,7 @@ public class LocationServiceCoreImpl: NSObject,
     /// Remove circular region form monitoring
     /// - Parameter center: center point
     public func removeRegion(center: CLLocationCoordinate2D) {
-        guard let monitoredRegions = locationManager?.monitoredRegions else { return }
+        let monitoredRegions = monitoredRegionsUnified
         for region in monitoredRegions {
             if let circularRegion = region as? CLCircularRegion{
                 let latRegion = circularRegion.center.latitude
@@ -513,7 +767,7 @@ public class LocationServiceCoreImpl: NSObject,
     /// Remove circular region form monitoring
     /// - Parameter type: Type
     public func removeRegions(type: RegionType) {
-        guard let monitoredRegions = locationManager?.monitoredRegions else { return }
+        let monitoredRegions = monitoredRegionsUnified
         if RegionType.none == type {
             for region in monitoredRegions {
                 if !region.identifier.contains(RegionType.position.rawValue) {
@@ -531,6 +785,19 @@ public class LocationServiceCoreImpl: NSObject,
     }
     
     
+    /// Fires the SDK's own "already inside" check after registering a region,
+    /// unless the backend reports the initial state itself.
+    ///
+    /// `CLMonitor`, seeded with `assuming: .unknown`, lets CoreLocation determine the
+    /// real state and emits a genuine enter when the user is already inside a newly
+    /// added condition. Running the manual check as well would deliver that enter
+    /// twice. `CLLocationManager` reports only crossings, so under the legacy backend
+    /// this check remains the only way the "already inside" event is produced.
+    internal func checkIfUserIsInRegionUnlessBackendReports(region: CLCircularRegion) {
+        guard !monitoringBackend.reportsInitialState else { return }
+        checkIfUserIsInRegion(region: region)
+    }
+
     /// Check user is in region
     /// - Parameter region: region info
     open func checkIfUserIsInRegion(region: CLCircularRegion) {
@@ -564,7 +831,7 @@ public class LocationServiceCoreImpl: NSObject,
         if(UIApplication.shared.applicationState == .background){
             return
         }
-        guard let monitoredRegions = locationManager?.monitoredRegions else { return }
+        let monitoredRegions = monitoredRegionsUnified
         self.regionDelegate?.updateRegions(regions: monitoredRegions)
     }
     
@@ -572,22 +839,32 @@ public class LocationServiceCoreImpl: NSObject,
     /// - Parameter visit: Visit Info
     func updateVisit(visit: CLVisit) {
         guard let delegate = self.visitDelegate else {
+            if WoosLog.isValidLevel(level: .trace) {
+                Logger.sdklog.trace("\(LogEvent.v.rawValue) Event: Visit dropped, no visitDelegate set")
+            }
             return
         }
-        if visit.horizontalAccuracy < accuracyVisitFilter {
-            detectVisitInZOIClassified(visit: visit)
-            let visitRecorded = Visits.add(visit: visit)
-            if visitRecorded.visitId != nil {
-                delegate.processVisit(visit: visitRecorded)
-                if(WoosLog.isValidLevel(level: .info)){
-                    if #available(iOS 14.0, *) {
-                        Logger.sdklog.info("\(LogEvent.d.rawValue) Event: Visit recorded at \(visitRecorded.visitId ?? "-")")
-                    } else {
-                        WoosLog.info("Event: Visit recored at \(visitRecorded.visitId ?? "-")")
-                    }
-                }
-                handleVisitEvent(visit: visitRecorded)
+        // `accuracyVisitFilter` defaults to 50 m and CoreLocation regularly reports
+        // visits well above that, so a silent drop here reads as "visits never fire".
+        guard visit.horizontalAccuracy < accuracyVisitFilter else {
+            if WoosLog.isValidLevel(level: .trace) {
+                let detail = "accuracy \(visit.horizontalAccuracy) m is at or over accuracyVisitFilter \(accuracyVisitFilter) m"
+                Logger.sdklog.trace("\(LogEvent.v.rawValue) Event: Visit dropped, \(detail)")
             }
+            return
+        }
+        detectVisitInZOIClassified(visit: visit)
+        let visitRecorded = Visits.add(visit: visit)
+        if visitRecorded.visitId != nil {
+            delegate.processVisit(visit: visitRecorded)
+            if(WoosLog.isValidLevel(level: .info)){
+                if #available(iOS 14.0, *) {
+                    Logger.sdklog.info("\(LogEvent.d.rawValue) Event: Visit recorded at \(visitRecorded.visitId ?? "-")")
+                } else {
+                    WoosLog.info("Event: Visit recored at \(visitRecorded.visitId ?? "-")")
+                }
+            }
+            handleVisitEvent(visit: visitRecorded)
         }
     }
     
@@ -839,7 +1116,7 @@ public class LocationServiceCoreImpl: NSObject,
     /// Remove old poi for given region
     /// - Parameter newPOIS: poi info
     open func removeOldPOIRegions(newPOIS: [POI]) {
-        guard let monitoredRegions = locationManager?.monitoredRegions else { return }
+        let monitoredRegions = monitoredRegionsUnified
         for region in monitoredRegions {
             var exist = false
             for poi in newPOIS {
@@ -1007,6 +1284,7 @@ public class LocationServiceCoreImpl: NSObject,
     
     /// Handle Region Changes
     func handleRegionChange() {
+        RegionChangeCounter.shared.increment()   // temporary, #167
         self.lastRegionUpdate = Date()
         self.stopMonitoringCurrentRegions()
         self.startUpdatingLocation()
@@ -1031,7 +1309,7 @@ public class LocationServiceCoreImpl: NSObject,
     /// Test that Position Is Inside Geofencing Regions
     /// - Parameter location: location center
     public func checkIfPositionIsInsideGeofencingRegions(location: CLLocation) {
-        guard let monitoredRegions = locationManager?.monitoredRegions else { return }
+        let monitoredRegions = monitoredRegionsUnified
         for region in monitoredRegions {
             if (!region.identifier.contains(RegionType.position.rawValue)) {
                 if let circularRegion = region  as? CLCircularRegion {
