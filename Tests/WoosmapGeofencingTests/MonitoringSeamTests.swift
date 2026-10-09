@@ -287,6 +287,49 @@ final class MonitoringSeamTests: XCTestCase {
                        "the legacy backend's own regions must survive")
     }
 
+    /// Position-grid cells are ephemeral: the next sweep rebuilds the grid around a
+    /// fresh fix, so there is nothing to rescue. Carrying one over also carries a
+    /// false premise — a `position_radius…` ring is seeded `.satisfied` because the
+    /// device is inside it by construction, which does not hold for a ring centred
+    /// on wherever the previous install last swept. They are dropped, not adopted,
+    /// but still taken off the manager so the stale grid does not linger.
+    func test_adoption_discardsStalePositionGridCells() {
+        manager.startMonitoring(for: CLCircularRegion(center: anchor, radius: 200,
+                                                      identifier: "position_radius 200.0"))
+        manager.startMonitoring(for: CLCircularRegion(center: anchor, radius: 140,
+                                                      identifier: "position_translation n"))
+        manager.startMonitoring(for: CLCircularRegion(center: anchor, radius: 100,
+                                                      identifier: "poi<id>store-A<id>"))
+
+        service.adoptLegacyCircularRegions()
+
+        XCTAssertEqual(backend.started.map { $0.identifier }, ["poi<id>store-A<id>"],
+                       "only the POI is worth rescuing")
+        XCTAssertTrue(manager.monitoredRegions.isEmpty,
+                      "the grid cells are still stopped, so the legacy grid does not linger")
+    }
+
+    /// `CLLocationManager.monitoredRegions` is per-app, not per-manager, so a
+    /// geofence registered by the host app or another SDK is visible here too.
+    /// Adopting one would stop it on its owner's behalf and leave it mute: an
+    /// unrecognised identifier is neither `custom` nor `poi`, so `logTransition`
+    /// forwards nothing and its events would reach no delegate while still holding
+    /// one of iOS's 20 slots. `setProtectedRegionSlot` exists so integrators can
+    /// reserve room for these, which confiscating them would contradict.
+    func test_adoption_leavesThirdPartyRegionsAlone() {
+        manager.startMonitoring(for: CLCircularRegion(center: anchor, radius: 250,
+                                                      identifier: "AcmeSDK-depot-42"))
+        manager.startMonitoring(for: CLCircularRegion(center: anchor, radius: 100,
+                                                      identifier: "poi<id>store-A<id>"))
+
+        service.adoptLegacyCircularRegions()
+
+        XCTAssertEqual(backend.started.map { $0.identifier }, ["poi<id>store-A<id>"],
+                       "only the SDK's own region is taken")
+        XCTAssertEqual(manager.monitoredRegions.map { $0.identifier }, ["AcmeSDK-depot-42"],
+                       "the third party's region is still monitored by its owner")
+    }
+
     /// It runs on every launch, not only the first one after an upgrade.
     func test_adoption_isIdempotent() {
         manager.startMonitoring(for: CLCircularRegion(center: anchor, radius: 100,

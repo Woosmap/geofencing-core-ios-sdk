@@ -71,7 +71,11 @@ public class Locations {
             let location = locations.last!
             // create Location ID
             let locationId = UUID().uuidString
-             let details = "Status \(UIApplication.shared.applicationState.rawValue), accuracy=\(location.horizontalAccuracy), Speed=\(location.speed)"
+             // `restarts` and `launch` are temporary validation instrumentation for the
+             // `handleRegionChange` gate (#167). `restarts` counts region-change cycles
+             // in this process; `launch` distinguishes one process from the next, since
+             // both counters reset on relaunch. Remove both once the gate is measured.
+             let details = "Status \(UIApplication.shared.applicationState.rawValue), accuracy=\(location.horizontalAccuracy), Speed=\(location.speed), restarts=\(RegionChangeCounter.shared.count), launch=\(RegionChangeCounter.shared.launchId)"
             let entry = Location(locationId: locationId, latitude: location.coordinate.latitude, longitude: location.coordinate.longitude, dateCaptured: Date(), descriptionToSave:details )
             //Save in Core DB
             let newRec:LocationDB = try entry.dbEntity()

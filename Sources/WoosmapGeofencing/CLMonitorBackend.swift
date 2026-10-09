@@ -258,6 +258,22 @@ internal final class MonitorSession: @unchecked Sendable {
     /// distinguish the two for us.
     private var lastStates: [String: CLMonitor.Event.State] = [:]
 
+    /// States of regions removed but possibly about to be re-added, with the
+    /// geometry they described. Bounded by `retiredLimit`, oldest dropped first:
+    /// a region that never comes back must not pin its state forever.
+    private var retiredStates: [String: (state: CLMonitor.Event.State, geofence: CircularGeofence)] = [:] {
+        didSet {
+            guard retiredStates.count > Self.retiredLimit else { return }
+            for key in retiredStates.keys.prefix(retiredStates.count - Self.retiredLimit) {
+                retiredStates[key] = nil
+            }
+        }
+    }
+
+    /// Comfortably above the 20 conditions iOS will monitor, so a full refresh
+    /// never evicts a state it is about to restore.
+    private static let retiredLimit = 64
+
     /// CoreLocation has been observed delivering one event twice, milliseconds
     /// apart, with an identical date and state. Both must match, and arrive
     /// inside this window, before anything is dropped: a later crossing carries
@@ -285,6 +301,7 @@ internal final class MonitorSession: @unchecked Sendable {
                           identifier: identifier,
                           assuming: Self.assumedState(for: identifier))
         stateLock.withLock {
+            restoreRetiredState(for: identifier, center: center, radius: radius)
             persisted[identifier] = CircularGeofence(identifier: identifier,
                                                      center: center,
                                                      radius: radius)
@@ -334,8 +351,8 @@ internal final class MonitorSession: @unchecked Sendable {
         let monitor = await activeMonitor()
         await monitor.remove(identifier)
         stateLock.withLock {
+            retire(identifier)
             persisted[identifier] = nil
-            lastStates[identifier] = nil
             lastHandled[identifier] = nil
         }
     }
@@ -354,11 +371,59 @@ internal final class MonitorSession: @unchecked Sendable {
     @discardableResult
     func forget(identifier: String) -> Bool {
         stateLock.withLock {
+            retire(identifier)
             let known = persisted.removeValue(forKey: identifier) != nil
-            lastStates[identifier] = nil
             lastHandled[identifier] = nil
             return known
         }
+    }
+
+    /// Moves an identifier's last known state aside instead of dropping it, tagged
+    /// with the geometry it described.
+    ///
+    /// A refresh is a remove followed immediately by an add of the same region, and
+    /// from here it is indistinguishable from a genuine removal. Dropping the state
+    /// made the re-registered region's next event look like a first determination,
+    /// which is why nearly every event in a field capture carried
+    /// `fromPositionDetection = 1` even for regions crossed repeatedly: the grid is
+    /// torn down and rebuilt on every location cycle.
+    ///
+    /// Caller holds `stateLock`.
+    private func retire(_ identifier: String) {
+        guard let state = lastStates.removeValue(forKey: identifier) else { return }
+        guard let geofence = persisted[identifier] else { return }
+        retiredStates[identifier] = (state, geofence)
+    }
+
+    /// Restores a retired state when the same region comes back unchanged.
+    ///
+    /// The geometry must match. A grid translation keeps its identifier while its
+    /// centre moves with the user, so carrying a state across that would describe
+    /// the wrong circle. Same identifier *and* same circle is a refresh; anything
+    /// else is a new region and genuinely has no prior state.
+    ///
+    /// Caller holds `stateLock`.
+    private func restoreRetiredState(for identifier: String,
+                                     center: CLLocationCoordinate2D,
+                                     radius: CLLocationDistance) {
+        guard let retired = retiredStates.removeValue(forKey: identifier) else { return }
+        lastStates[identifier] = Self.stateCarriedAcrossRefresh(retired: retired,
+                                                                center: center,
+                                                                radius: radius)
+    }
+
+    /// The rule itself, free of any stored state so a test can drive it directly —
+    /// the same reason `decide` is exposed. Returns the state to carry over, or nil
+    /// when the region coming back is not the one the state described.
+    internal static func stateCarriedAcrossRefresh(
+        retired: (state: CLMonitor.Event.State, geofence: CircularGeofence),
+        center: CLLocationCoordinate2D,
+        radius: CLLocationDistance
+    ) -> CLMonitor.Event.State? {
+        guard retired.geofence.radius == radius,
+              retired.geofence.center.latitude == center.latitude,
+              retired.geofence.center.longitude == center.longitude else { return nil }
+        return retired.state
     }
 
     /// Geometry for a condition `CLMonitor` holds, whether or not this process
@@ -375,8 +440,24 @@ internal final class MonitorSession: @unchecked Sendable {
     ///
     /// `record(for:)` carries the `CLMonitor.CircularGeographicCondition`, and so
     /// the centre and radius, which the event itself does not.
-    private static func restoredConditions(from monitor: CLMonitor) async -> [String: CircularGeofence] {
+    /// Reads back the geometry *and* the last state CoreLocation holds for every
+    /// condition that outlived the process.
+    ///
+    /// The states matter as much as the geometry. `decide` calls an event initial
+    /// when `lastStates` has no entry, and `lastStates` is only ever written when an
+    /// event arrives — so in a fresh process every condition's first event was
+    /// reported as an initial determination, including the crossing that relaunched
+    /// the app. That mislabels a real crossing as a position determination
+    /// (`fromPositionDetection`), and it makes `isInitial` useless as a signal for
+    /// anything downstream to branch on.
+    ///
+    /// Only determinate states are carried over. A record sitting at `.unknown` or
+    /// `.unmonitored` has nothing resolved behind it, so its next event genuinely is
+    /// the first determination and must still read as initial.
+    private static func restoredConditions(from monitor: CLMonitor) async
+        -> (geofences: [String: CircularGeofence], states: [String: CLMonitor.Event.State]) {
         var restored: [String: CircularGeofence] = [:]
+        var states: [String: CLMonitor.Event.State] = [:]
         for identifier in await monitor.identifiers {
             guard let record = await monitor.record(for: identifier),
                   let circle = record.condition as? CLMonitor.CircularGeographicCondition else {
@@ -385,8 +466,14 @@ internal final class MonitorSession: @unchecked Sendable {
             restored[identifier] = CircularGeofence(identifier: identifier,
                                                     center: circle.center,
                                                     radius: circle.radius)
+            switch record.lastEvent.state {
+            case .satisfied, .unsatisfied:
+                states[identifier] = record.lastEvent.state
+            default:
+                break
+            }
         }
-        return restored
+        return (restored, states)
     }
 
     private func activeMonitor() async -> CLMonitor {
@@ -425,7 +512,11 @@ internal final class MonitorSession: @unchecked Sendable {
             // A concurrent caller may have installed it while we awaited.
             if let existing = monitor { return existing }
             monitor = opened
-            persisted = restored
+            persisted = restored.geofences
+            // Seeded before `consume` starts, for the same reason the geometry is:
+            // CoreLocation replays states within milliseconds of the monitor
+            // opening, and a seed that lands afterwards has already lost the race.
+            lastStates = restored.states
             // Draining must start now and stay up: CoreLocation stops monitoring
             // a condition when an event is pending for it and no monitor is open
             // to receive it.

@@ -80,6 +80,59 @@ final class CLMonitorBackendTests: XCTestCase {
         }
     }
 
+    /// A refresh is a remove followed by an add of the same region, which from the
+    /// session's point of view is indistinguishable from a genuine removal. Dropping
+    /// the remembered state there made every re-registered region's next event look
+    /// like a first determination — the reason a field capture showed
+    /// `fromPositionDetection = 1` on 26 of 28 events, including regions crossed
+    /// five times.
+    ///
+    /// Driven through the pure retire/restore pair rather than `add`/`remove`, for
+    /// the same reason `decide` exists: those open a real `CLMonitor` against a real
+    /// on-disk store, which is slow and leaves state behind between runs.
+    func test_refreshedGeofence_keepsItsLastState() throws {
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
+        let fence = CircularGeofence(identifier: "poi<id>store-A<id>",
+                                     center: CLLocationCoordinate2D(latitude: 43.6109, longitude: 3.8772),
+                                     radius: 150)
+
+        let carried = MonitorSession.stateCarriedAcrossRefresh(retired: (.satisfied, fence),
+                                                               center: fence.center,
+                                                               radius: fence.radius)
+
+        XCTAssertEqual(carried, .satisfied,
+                       "the same circle coming back is a refresh, not a new region")
+    }
+
+    /// A grid translation keeps its identifier while its centre moves with the user,
+    /// so a state carried across that move would describe the wrong circle.
+    func test_geofenceMovedToANewCentre_isTreatedAsNew() throws {
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
+        let fence = CircularGeofence(identifier: "position_translation n",
+                                     center: CLLocationCoordinate2D(latitude: 43.6109, longitude: 3.8772),
+                                     radius: 140)
+
+        let carried = MonitorSession.stateCarriedAcrossRefresh(
+            retired: (.unsatisfied, fence),
+            center: CLLocationCoordinate2D(latitude: 43.6200, longitude: 3.8900),
+            radius: 140)
+
+        XCTAssertNil(carried, "a circle somewhere else has no prior state to inherit")
+    }
+
+    /// Same centre, different radius — a POI whose configured radius changed. The
+    /// circle is not the one the state described.
+    func test_geofenceResized_isTreatedAsNew() throws {
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
+        let fence = CircularGeofence(identifier: "poi<id>store-A<id>",
+                                     center: CLLocationCoordinate2D(latitude: 43.6109, longitude: 3.8772),
+                                     radius: 150)
+
+        XCTAssertNil(MonitorSession.stateCarriedAcrossRefresh(retired: (.satisfied, fence),
+                                                              center: fence.center,
+                                                              radius: 300))
+    }
+
     /// Assuming nothing is what lets a genuine "already inside" enter arrive: with
     /// `.unknown` CoreLocation resolves the real state and reports it, where a
     /// seeded guess would pre-empt the determination.

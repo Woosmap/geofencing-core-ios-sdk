@@ -147,20 +147,56 @@ public class LocationServiceCoreImpl: NSObject,
         guard !monitoringBackend.usesPlatformRegionStore,
               let manager = locationManager else { return }
         // Snapshot first: `stopMonitoring(for:)` mutates the set being read.
+        //
+        // Position-grid cells are deliberately excluded. They are ephemeral — the
+        // next sweep tears the grid down and rebuilds it around a fresh fix — so
+        // there is nothing to rescue. Adopting them also carries a defect: a
+        // `position_radius…` ring is seeded `.satisfied` on the premise that the
+        // device is inside it by construction, which holds for a grid built around
+        // the current fix and not for one inherited from wherever the previous
+        // install last swept. Upgrade after the user has moved, and CoreLocation
+        // resolves the real state, disagrees with the seed and emits an exit the
+        // user never walked. Harmless today — `logTransition` drops position-typed
+        // regions, so it reaches no log and no delegate — but it is a wasted event
+        // and the premise behind the seed is simply false for an adopted ring.
+        //
+        // Still stopped on the manager below, so the legacy grid does not linger.
         let legacy = manager.monitoredRegions.compactMap { $0 as? CLCircularRegion }
         guard !legacy.isEmpty else { return }
 
+        var adopted = 0
+        var discardedGridCells = 0
         for region in legacy {
-            monitoringBackend.start(identifier: region.identifier,
-                                    center: region.center,
-                                    radius: region.radius)
-            manager.stopMonitoring(for: region)
+            switch getRegionType(identifier: region.identifier) {
+            case .custom, .poi:
+                monitoringBackend.start(identifier: region.identifier,
+                                        center: region.center,
+                                        radius: region.radius)
+                manager.stopMonitoring(for: region)
+                adopted += 1
+            case .position:
+                // Ephemeral and rebuilt on the next sweep; see the note above.
+                manager.stopMonitoring(for: region)
+                discardedGridCells += 1
+            default:
+                // Someone else's region. `CLLocationManager.monitoredRegions` is
+                // per-app, not per-manager, so a geofence registered by the host app
+                // or another SDK shows up here too. Taking it would stop it on its
+                // owner's behalf and leave it mute: an unrecognised identifier is
+                // neither `custom` nor `poi`, so `logTransition` forwards nothing and
+                // its events would reach no delegate while still occupying one of
+                // iOS's 20 slots. `setProtectedRegionSlot` exists precisely so
+                // integrators can reserve capacity for these — confiscating them
+                // here would contradict that. Left alone.
+                break
+            }
         }
 
         if WoosLog.isValidLevel(level: .info) {
             // No `#available(iOS 14)` branch: the deployment floor is 15.0, so the
             // `WoosLog` fallback the older call sites carry is unreachable here.
-            Logger.sdklog.info("\(LogEvent.i.rawValue) Adopted \(legacy.count) region(s) left by a previous SDK version")
+            let foreign = legacy.count - adopted - discardedGridCells
+            Logger.sdklog.info("\(LogEvent.i.rawValue) Adopted \(adopted) region(s) left by a previous SDK version, discarded \(discardedGridCells) stale position-grid cell(s), left \(foreign) region(s) belonging to someone else")
         }
     }
     
@@ -632,6 +668,20 @@ public class LocationServiceCoreImpl: NSObject,
         // same scenario afterwards, the comparison inverts: two events without this
         // call, three with it, and location updates restart five times rather than
         // three.
+        //
+        // Crossings only. `handleRegionChange` tears down every monitored region
+        // and restarts location updates and significant-change monitoring — an
+        // expensive cycle. POI and custom conditions are seeded `.unknown`, so each
+        // registration produces a determination, and a Search API refresh that
+        // registers N of them would otherwise cost N teardown/restart cycles, each
+        // one removing the conditions the refresh had just added.
+        //
+        // This gate is only safe because `lastStates` is now seeded from the
+        // persisted records when the monitor opens. Before that, a fresh process
+        // had no last state for anything, so the crossing that relaunched the app
+        // arrived flagged initial — and gating here would have skipped the restart
+        // in exactly the case the call exists for.
+        guard !transition.initialState else { return }
         self.handleRegionChange()
     }
 
@@ -1234,6 +1284,7 @@ public class LocationServiceCoreImpl: NSObject,
     
     /// Handle Region Changes
     func handleRegionChange() {
+        RegionChangeCounter.shared.increment()   // temporary, #167
         self.lastRegionUpdate = Date()
         self.stopMonitoringCurrentRegions()
         self.startUpdatingLocation()
