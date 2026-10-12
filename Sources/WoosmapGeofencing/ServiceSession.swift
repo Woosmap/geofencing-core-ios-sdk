@@ -22,13 +22,32 @@ import CoreLocation
 import Foundation
 import os
 
-@available(iOS 18.0, *)
+//  The class carries no `@available` annotation and stores nothing typed to a
+//  CoreLocation symbol from iOS 18. Both are deliberate, and the second is the
+//  reason for the first.
+//
+//  `@available` is a compile-time guard; it does not stop the Objective-C runtime
+//  from realizing a Swift class. Anything that walks the class list — XCTest,
+//  crash reporters, analytics and DI frameworks all do — forces metadata
+//  completion for every class in the process, and completing this one meant
+//  resolving `CLServiceSession.AuthorizationRequirement?`. That is an enum, so its
+//  layout cannot be known without its metadata, and below iOS 18 the accessor
+//  returns null: `EXC_BAD_ACCESS` at launch, on every version from the 15.0 floor
+//  to 17.x. It was found by running the suite on an iOS 17.0 simulator, where the
+//  test runner segfaulted before a single test ran.
+//
+//  Storing the two values as `Any?` keeps the unavailable types out of the class
+//  layout entirely. Method signatures may still name them — only stored properties
+//  drive metadata completion — so the gating moves to the methods, where it costs
+//  nothing.
 internal final class ServiceSession: @unchecked Sendable {
 
     internal static let shared = ServiceSession()
 
-    private var session: CLServiceSession?
-    private var requirement: CLServiceSession.AuthorizationRequirement?
+    /// `CLServiceSession?` and `CLServiceSession.AuthorizationRequirement?` boxed
+    /// as `Any?`. See the note above the class before giving these real types.
+    private var sessionBox: Any?
+    private var requirementBox: Any?
     private var diagnosticsTask: Task<Void, Never>?
     private let lock = NSLock()
 
@@ -41,6 +60,7 @@ internal final class ServiceSession: @unchecked Sendable {
     /// The requirement tracks what was *granted*, not what the SDK wants. Asking
     /// for `.always` while only When In Use is held puts the session into a
     /// permanently denied state instead of working at the level available.
+    @available(iOS 18.0, *)
     internal func update(for status: CLAuthorizationStatus) {
         let wanted: CLServiceSession.AuthorizationRequirement?
         switch status {
@@ -50,12 +70,20 @@ internal final class ServiceSession: @unchecked Sendable {
         }
 
         let shouldOpen: Bool = lock.withLock {
-            guard wanted != requirement else { return false }
+            let current = requirementBox as? CLServiceSession.AuthorizationRequirement
+            guard wanted != current else { return false }
             diagnosticsTask?.cancel()
             diagnosticsTask = nil
-            session?.invalidate()
-            session = nil
-            requirement = wanted
+            (sessionBox as? CLServiceSession)?.invalidate()
+            sessionBox = nil
+            // Assigned through the binding rather than straight from the optional:
+            // putting an `Optional` into an `Any?` boxes the `.none` itself, which
+            // is a non-nil `Any` holding nothing.
+            if let wanted {
+                requirementBox = wanted
+            } else {
+                requirementBox = nil
+            }
             return true
         }
         guard shouldOpen else { return }
@@ -70,7 +98,7 @@ internal final class ServiceSession: @unchecked Sendable {
         let opened = CLServiceSession(authorization: wanted)
         let task = Task { await Self.consume(opened.diagnostics) }
         lock.withLock {
-            session = opened
+            sessionBox = opened
             diagnosticsTask = task
         }
         if WoosLog.isValidLevel(level: .info) {
@@ -78,6 +106,7 @@ internal final class ServiceSession: @unchecked Sendable {
         }
     }
 
+    @available(iOS 18.0, *)
     private static func consume(_ diagnostics: CLServiceSession.Diagnostics) async {
         do {
             for try await diagnostic in diagnostics {
@@ -96,6 +125,7 @@ internal final class ServiceSession: @unchecked Sendable {
 
     /// Every reason CoreLocation gives for suspending the session, or nil when
     /// none are set — the healthy case.
+    @available(iOS 18.0, *)
     private static func flags(in diagnostic: CLServiceSession.Diagnostic) -> String? {
         let set = [
             ("authDenied", diagnostic.authorizationDenied),
