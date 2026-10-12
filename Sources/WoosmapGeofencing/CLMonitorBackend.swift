@@ -35,7 +35,10 @@ internal enum MonitorStateDecision: Equatable {
     /// A real transition. `isInitial` marks a determination rather than a crossing.
     case transition(didEnter: Bool, isInitial: Bool)
     /// The condition is no longer monitored; the identifier is now untracked.
-    case forget
+    ///
+    /// `systemDropped` marks one CoreLocation dropped on its own — a condition
+    /// limit, an authorization change — rather than one answering our `remove()`.
+    case forget(systemDropped: Bool)
     /// State could not be determined; nothing to report and nothing forgotten.
     case undetermined
 }
@@ -82,6 +85,12 @@ internal final class CLMonitorBackend: GeofenceMonitoringBackend {
         session = MonitorSession.shared(named: monitorName)
         session.addObserver(observerToken) { [weak self] identifier, didEnter, isInitial in
             self?.publish(identifier: identifier, didEnter: didEnter, isInitial: isInitial)
+        }
+        // A condition CoreLocation dropped on its own is gone from its store but
+        // still in this registry, and the registry wins in `monitoredGeofences`.
+        session.addDropObserver(observerToken) { [weak self] identifier in
+            guard let backend = self else { return }
+            backend.lock.withLock { backend.registry[identifier] = nil }
         }
         enqueue { await $0.open() }
     }
@@ -238,8 +247,19 @@ internal final class MonitorSession: @unchecked Sendable {
         stateLock.withLock { observers[token] = handler }
     }
 
+    /// Subscribers told when CoreLocation drops a condition by itself, so each
+    /// backend can clear its own mirror. Keyed by the same token as `observers`.
+    private var dropObservers: [UUID: (String) -> Void] = [:]
+
+    func addDropObserver(_ token: UUID, _ handler: @escaping (String) -> Void) {
+        stateLock.withLock { dropObservers[token] = handler }
+    }
+
     func removeObserver(_ token: UUID) {
-        stateLock.withLock { observers[token] = nil }
+        stateLock.withLock {
+            observers[token] = nil
+            dropObservers[token] = nil
+        }
     }
 
     private var monitor: CLMonitor?
@@ -297,11 +317,26 @@ internal final class MonitorSession: @unchecked Sendable {
     func add(identifier: String, center: CLLocationCoordinate2D, radius: CLLocationDistance) async {
         let monitor = await activeMonitor()
         let condition = CLMonitor.CircularGeographicCondition(center: center, radius: radius)
-        await monitor.add(condition,
-                          identifier: identifier,
-                          assuming: Self.assumedState(for: identifier))
+        let assumed = Self.assumedState(for: identifier)
+        await monitor.add(condition, identifier: identifier, assuming: assumed)
+        recordRegistration(identifier: identifier, center: center, radius: radius, assuming: assumed)
+    }
+
+    /// Everything `add` does to this object's own state once CoreLocation holds
+    /// the condition.
+    ///
+    /// Split out for the same reason as `decide`: the path through `add` cannot be
+    /// reached from a test. It awaits a real `CLMonitor`, and CoreLocation answers
+    /// every condition in the simulator with `conditionUnsupported` — so the
+    /// bookkeeping that decides whether a later crossing reads as a crossing has no
+    /// reachable test unless it lives here.
+    internal func recordRegistration(identifier: String,
+                                     center: CLLocationCoordinate2D,
+                                     radius: CLLocationDistance,
+                                     assuming assumed: CLMonitor.Event.State) {
         stateLock.withLock {
             restoreRetiredState(for: identifier, center: center, radius: radius)
+            seedLastState(for: identifier, assuming: assumed)
             persisted[identifier] = CircularGeofence(identifier: identifier,
                                                      center: center,
                                                      radius: radius)
@@ -412,6 +447,39 @@ internal final class MonitorSession: @unchecked Sendable {
                                                                 radius: radius)
     }
 
+    /// Records a determinate seed as the region's last known state.
+    ///
+    /// `assuming:` tells CoreLocation what we believe, and it stays silent when it
+    /// agrees — so a correct assumption produces no event, and `lastStates` would
+    /// never learn the state the condition was registered in. `decide` reads an
+    /// absent entry as "first determination", so the *next* event, which is a real
+    /// crossing, arrived flagged initial and `handle(transition:)` dropped it.
+    ///
+    /// Concentric rings are the case that bit: seeded `.satisfied` and silent, so
+    /// walking out of one never restarted location updates — the passive-tracking
+    /// wake-up the gate exists to allow. Grid translations seeded `.unsatisfied`
+    /// had the mirror-image hole on entry.
+    ///
+    /// `.unknown` is deliberately not seeded. It is an admission that nothing is
+    /// resolved, it always produces an event, and that event genuinely is the first
+    /// determination — which is what POI and custom circles want.
+    ///
+    /// A restored state wins: it describes what CoreLocation actually resolved,
+    /// while the seed is only what we assumed.
+    ///
+    /// Caller holds `stateLock`.
+    private func seedLastState(for identifier: String, assuming assumed: CLMonitor.Event.State) {
+        guard lastStates[identifier] == nil else { return }
+        guard Self.seedIsDeterminate(assumed) else { return }
+        lastStates[identifier] = assumed
+    }
+
+    /// Whether a seed asserts a resolved state, and so is worth remembering.
+    /// Free of stored state so a test can drive it directly.
+    internal static func seedIsDeterminate(_ assumed: CLMonitor.Event.State) -> Bool {
+        assumed == .satisfied || assumed == .unsatisfied
+    }
+
     /// The rule itself, free of any stored state so a test can drive it directly —
     /// the same reason `decide` is exposed. Returns the state to carry over, or nil
     /// when the region coming back is not the one the state described.
@@ -444,10 +512,9 @@ internal final class MonitorSession: @unchecked Sendable {
     /// condition that outlived the process.
     ///
     /// The states matter as much as the geometry. `decide` calls an event initial
-    /// when `lastStates` has no entry, and `lastStates` is only ever written when an
-    /// event arrives — so in a fresh process every condition's first event was
-    /// reported as an initial determination, including the crossing that relaunched
-    /// the app. That mislabels a real crossing as a position determination
+    /// when `lastStates` has no entry — so before this, a fresh process reported
+    /// every condition's first event as an initial determination, including the
+    /// crossing that relaunched the app. That mislabels a real crossing as a position determination
     /// (`fromPositionDetection`), and it makes `isInitial` useless as a signal for
     /// anything downstream to branch on.
     ///
@@ -588,8 +655,15 @@ internal final class MonitorSession: @unchecked Sendable {
         switch decide(identifier: event.identifier, state: event.state, eventDate: event.date) {
         case .duplicate, .undetermined:
             return
-        case .forget:
-            logStoppedMonitoring(event)
+        case .forget(let systemDropped):
+            logStoppedMonitoring(event, systemDropped: systemDropped)
+            guard systemDropped else { return }
+            // `stop` already cleared the registry for a removal we asked for;
+            // this one nobody asked for, so the backend mirror still holds it.
+            let dropHandlers = stateLock.withLock { Array(dropObservers.values) }
+            for handler in dropHandlers {
+                handler(event.identifier)
+            }
         case .transition(let didEnter, let isInitial):
             let handlers = stateLock.withLock { Array(observers.values) }
             for handler in handlers {
@@ -649,7 +723,19 @@ internal final class MonitorSession: @unchecked Sendable {
                 // alone churns 13 identifiers on every location update.
                 lastStates[identifier] = nil
                 lastHandled[identifier] = nil
-                return .forget
+                // Whose removal was this? Before iOS 18 the event carries no
+                // reason, but the mirror answers it on every version: `stop`
+                // clears `persisted` synchronously through `forget`, before
+                // `remove` is even enqueued. An identifier still present here
+                // was therefore dropped by CoreLocation, not by us.
+                //
+                // Dropping it from `persisted` is the point, not just the
+                // signal. Past the active-monitoring cap the mirror otherwise
+                // keeps claiming conditions CoreLocation has let go, and
+                // `monitoredGeofences`, the custom-region budget and the sweeps
+                // all read that.
+                let systemDropped = persisted.removeValue(forKey: identifier) != nil
+                return .forget(systemDropped: systemDropped)
             }
         }
     }
@@ -660,17 +746,17 @@ internal final class MonitorSession: @unchecked Sendable {
     /// decided by itself — from iOS 18 the event carries the reason, which is the
     /// only way to see a condition limit or authorization problem now that there
     /// is no `monitoringDidFailFor` delegate callback.
-    private func logStoppedMonitoring(_ event: CLMonitor.Event) {
+    private func logStoppedMonitoring(_ event: CLMonitor.Event, systemDropped: Bool) {
         let reasons = Self.diagnosticReasons(for: event)
-        guard WoosLog.isValidLevel(level: reasons == nil ? .trace : .warn) else { return }
-        let detail = reasons.map { "CoreLocation stopped monitoring \(event.identifier): \($0)" }
-            ?? "stopped monitoring \(event.identifier) (expected after remove)"
-        // `Logger` unconditionally: see the note in `consume(from:)`.
-        if reasons == nil {
-            Logger.sdklog.trace("\(LogEvent.v.rawValue) \(detail)")
-        } else {
-            Logger.sdklog.warning("\(LogEvent.w.rawValue) \(detail)")
+        guard systemDropped || reasons != nil else {
+            guard WoosLog.isValidLevel(level: .trace) else { return }
+            // `Logger` unconditionally: see the note in `consume(from:)`.
+            Logger.sdklog.trace("\(LogEvent.v.rawValue) stopped monitoring \(event.identifier) (expected after remove)")
+            return
         }
+        guard WoosLog.isValidLevel(level: .warn) else { return }
+        let detail = reasons ?? "no reason reported, which iOS only supplies from 18.0"
+        Logger.sdklog.warning("\(LogEvent.w.rawValue) CoreLocation stopped monitoring \(event.identifier): \(detail)")
     }
 
     /// Why CoreLocation stopped monitoring, when it says. `nil` means it gave no

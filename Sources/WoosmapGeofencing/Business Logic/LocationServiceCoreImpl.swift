@@ -185,9 +185,10 @@ public class LocationServiceCoreImpl: NSObject,
                 // owner's behalf and leave it mute: an unrecognised identifier is
                 // neither `custom` nor `poi`, so `logTransition` forwards nothing and
                 // its events would reach no delegate while still occupying one of
-                // iOS's 20 slots. `setProtectedRegionSlot` exists precisely so
-                // integrators can reserve capacity for these — confiscating them
-                // here would contradict that. Left alone.
+                // iOS's 20 slots. Leaving it alone is also what lets a build layered
+                // on top of core offer integrators a way to reserve slots for their
+                // own regions: confiscating them here would contradict any such
+                // reservation. Left alone.
                 break
             }
         }
@@ -287,10 +288,27 @@ public class LocationServiceCoreImpl: NSObject,
             return
         }
         switch myLocationManager.authorizationStatus {
-        case .notDetermined, .authorizedWhenInUse:
-            // A repeat call, once Always is granted or the prompt already shown, is
-            // a no-op, which is what makes this safe to run on every start.
-            myLocationManager.requestAlwaysAuthorization()
+        // `allowsBackgroundLocationUpdates` is set in `initLocationManager`, and only
+        // when the host app declares `location` in `UIBackgroundModes` — so it reads
+        // as "this app asked to work in the background". An app that did not ask is
+        // not promoted to Always on its behalf: the SDK requests no more than the
+        // app declared it can use, and the heavier prompt stays the integrator's
+        // decision to make.
+        //
+        // A repeat call is a no-op once the prompt has been shown, which is what
+        // makes this safe to run from every start path.
+        case .notDetermined:
+            if myLocationManager.allowsBackgroundLocationUpdates {
+                myLocationManager.requestAlwaysAuthorization()
+            } else {
+                myLocationManager.requestWhenInUseAuthorization()
+            }
+        case .authorizedWhenInUse:
+            // Nothing to ask for without the background mode: when-in-use is
+            // already held, and Always is more than the app declared it needs.
+            if myLocationManager.allowsBackgroundLocationUpdates {
+                myLocationManager.requestAlwaysAuthorization()
+            }
         case .denied, .restricted:
             if WoosLog.isValidLevel(level: .warn) {
                 Logger.sdklog.warning("\(LogEvent.w.rawValue) Permission: Location permission not granted")
@@ -676,11 +694,13 @@ public class LocationServiceCoreImpl: NSObject,
         // registers N of them would otherwise cost N teardown/restart cycles, each
         // one removing the conditions the refresh had just added.
         //
-        // This gate is only safe because `lastStates` is now seeded from the
-        // persisted records when the monitor opens. Before that, a fresh process
-        // had no last state for anything, so the crossing that relaunched the app
-        // arrived flagged initial — and gating here would have skipped the restart
-        // in exactly the case the call exists for.
+        // This gate is only safe because every condition reaches `decide` with a
+        // last state already known: restored from the persisted records when the
+        // monitor opens, and seeded from the registration assumption in
+        // `MonitorSession.add` for the determinate cases that would otherwise stay
+        // silent. Miss either half and a real crossing arrives flagged initial and
+        // is dropped here — which is exactly the restart the call exists for. The
+        // seeding half was missing once already, and it cost the grid wake-up.
         guard !transition.initialState else { return }
         self.handleRegionChange()
     }

@@ -229,7 +229,8 @@ final class CLMonitorBackendTests: XCTestCase {
                        .transition(didEnter: false, isInitial: true))
         XCTAssertEqual(session.decide(identifier: "poi<id>a<id>", state: .unmonitored,
                                       eventDate: base.addingTimeInterval(1)),
-                       .forget)
+                       .forget(systemDropped: false),
+                       "nothing was ever registered, so the mirror holds no claim to drop")
         XCTAssertEqual(session.decide(identifier: "poi<id>a<id>", state: .satisfied,
                                       eventDate: base.addingTimeInterval(2)),
                        .transition(didEnter: true, isInitial: true),
@@ -385,5 +386,122 @@ final class CLMonitorBackendTests: XCTestCase {
 
         wait(for: [nothingDelivered], timeout: 0.5)
         XCTAssertEqual(received, 0)
+    }
+
+    // MARK: - Registration seeding
+
+    /// The regression this guards: a condition whose assumption CoreLocation
+    /// agrees with never produces an event, so `lastStates` stayed empty and the
+    /// *next* event — a real crossing — read as a first determination. With the
+    /// `initialState` gate in `handle(transition:)` that silently dropped the grid
+    /// wake-up, which is the whole reason the call is wired.
+    func test_concentricRingIsSeededSoWalkingOutReadsAsACrossing() throws {
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
+        let session = MonitorSession.shared(named: uniqueName("SeedRing"))
+        let ring = "position_radius200"
+        XCTAssertEqual(MonitorSession.assumedState(for: ring), .satisfied,
+                       "precondition: rings are seeded satisfied and so stay silent")
+
+        session.recordRegistration(identifier: ring, center: anchor, radius: 200,
+                                   assuming: MonitorSession.assumedState(for: ring))
+
+        XCTAssertEqual(session.decide(identifier: ring, state: .unsatisfied, eventDate: Date()),
+                       .transition(didEnter: false, isInitial: false),
+                       "leaving a ring is a crossing, not a first determination")
+    }
+
+    /// Mirror image: translation cells are seeded `.unsatisfied`, so the silent
+    /// case is entry rather than exit.
+    func test_gridTranslationIsSeededSoWalkingInReadsAsACrossing() throws {
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
+        let session = MonitorSession.shared(named: uniqueName("SeedGrid"))
+        let cell = "position<id>ne<id>"
+        XCTAssertEqual(MonitorSession.assumedState(for: cell), .unsatisfied)
+
+        session.recordRegistration(identifier: cell, center: anchor, radius: 140,
+                                   assuming: MonitorSession.assumedState(for: cell))
+
+        XCTAssertEqual(session.decide(identifier: cell, state: .satisfied, eventDate: Date()),
+                       .transition(didEnter: true, isInitial: false))
+    }
+
+    /// `.unknown` must stay unseeded. It asserts nothing, always produces an
+    /// event, and that event genuinely is the first determination — which is what
+    /// POI and custom circles rely on to learn whether the user is already inside.
+    func test_poiIsNotSeededSoItsFirstEventIsStillAnInitialDetermination() throws {
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
+        let session = MonitorSession.shared(named: uniqueName("SeedPOI"))
+        let poi = "poi<id>bakery<id>"
+        XCTAssertEqual(MonitorSession.assumedState(for: poi), .unknown)
+
+        session.recordRegistration(identifier: poi, center: anchor, radius: 150,
+                                   assuming: MonitorSession.assumedState(for: poi))
+
+        XCTAssertEqual(session.decide(identifier: poi, state: .satisfied, eventDate: Date()),
+                       .transition(didEnter: true, isInitial: true))
+    }
+
+    /// A state carried across a refresh describes what CoreLocation actually
+    /// resolved; the seed is only what we assumed. The restored one wins.
+    func test_restoredStateOutranksTheRegistrationSeed() throws {
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
+        let session = MonitorSession.shared(named: uniqueName("SeedRestore"))
+        let ring = "position_radius200"
+
+        session.recordRegistration(identifier: ring, center: anchor, radius: 200,
+                                   assuming: MonitorSession.assumedState(for: ring))
+        // The user leaves, so the resolved state disagrees with the seed.
+        _ = session.decide(identifier: ring, state: .unsatisfied, eventDate: Date())
+        // A refresh: `stop` retires the state, the identical circle comes back.
+        session.forget(identifier: ring)
+        session.recordRegistration(identifier: ring, center: anchor, radius: 200,
+                                   assuming: MonitorSession.assumedState(for: ring))
+
+        XCTAssertEqual(session.decide(identifier: ring, state: .satisfied,
+                                      eventDate: Date().addingTimeInterval(1)),
+                       .transition(didEnter: true, isInitial: false),
+                       "re-entering is a crossing: the restored .unsatisfied must beat the .satisfied seed")
+    }
+
+    func test_seedIsDeterminateOnlyForResolvedStates() throws {
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
+        XCTAssertTrue(MonitorSession.seedIsDeterminate(.satisfied))
+        XCTAssertTrue(MonitorSession.seedIsDeterminate(.unsatisfied))
+        XCTAssertFalse(MonitorSession.seedIsDeterminate(.unknown))
+        XCTAssertFalse(MonitorSession.seedIsDeterminate(.unmonitored))
+    }
+
+    // MARK: - Conditions CoreLocation drops by itself
+
+    /// Before iOS 18 the event carries no reason, so a dropped condition was
+    /// logged as "expected after remove" and left in the mirror. Past the
+    /// active-monitoring cap that makes `monitoredGeofences` claim conditions
+    /// CoreLocation no longer holds, which the custom-region budget reads.
+    func test_unmonitoredForAStillRegisteredConditionIsASystemDrop() throws {
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
+        let session = MonitorSession.shared(named: uniqueName("Dropped"))
+        let poi = "poi<id>dropped<id>"
+        session.recordRegistration(identifier: poi, center: anchor, radius: 150,
+                                   assuming: MonitorSession.assumedState(for: poi))
+
+        XCTAssertEqual(session.decide(identifier: poi, state: .unmonitored, eventDate: Date()),
+                       .forget(systemDropped: true),
+                       "we never asked for this removal: the mirror still held the condition")
+        XCTAssertFalse(session.knownGeofences().contains { $0.identifier == poi },
+                       "a condition CoreLocation let go must not stay in the mirror")
+    }
+
+    /// The counterpart: `stop` clears the mirror synchronously through `forget`,
+    /// before `remove` is even enqueued, so our own removals stay routine.
+    func test_unmonitoredAfterOurOwnStopIsNotASystemDrop() throws {
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
+        let session = MonitorSession.shared(named: uniqueName("OurStop"))
+        let poi = "poi<id>ours<id>"
+        session.recordRegistration(identifier: poi, center: anchor, radius: 150,
+                                   assuming: MonitorSession.assumedState(for: poi))
+        session.forget(identifier: poi)
+
+        XCTAssertEqual(session.decide(identifier: poi, state: .unmonitored, eventDate: Date()),
+                       .forget(systemDropped: false))
     }
 }

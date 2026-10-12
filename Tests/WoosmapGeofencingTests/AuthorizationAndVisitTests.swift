@@ -34,21 +34,48 @@ final class AuthorizationTests: XCTestCase {
 
     // MARK: - requestAuthorization
 
-    /// Nothing has been asked yet, so ask.
-    func test_requestAuthorization_asksWhenUndecided() {
+    /// Nothing has been asked yet, and the host app declared the background mode,
+    /// so ask for the authorization that mode needs.
+    func test_requestAuthorization_asksForAlwaysWhenBackgroundUpdatesAreAllowed() {
         manager.stubbedAuthorizationStatus = .notDetermined
+        manager.stubbedAllowsBackgroundLocationUpdates = true
         service.requestAuthorization()
         XCTAssertEqual(manager.alwaysAuthorizationRequests, 1)
+        XCTAssertEqual(manager.whenInUseAuthorizationRequests, 0)
+    }
+
+    /// Without the background mode, Always is more than the app can use, so the
+    /// SDK asks only for when-in-use rather than putting the heavier prompt in
+    /// front of the user on the integrator's behalf.
+    func test_requestAuthorization_asksOnlyForWhenInUseWithoutBackgroundUpdates() {
+        manager.stubbedAuthorizationStatus = .notDetermined
+        manager.stubbedAllowsBackgroundLocationUpdates = false
+        service.requestAuthorization()
+        XCTAssertEqual(manager.whenInUseAuthorizationRequests, 1)
+        XCTAssertEqual(manager.alwaysAuthorizationRequests, 0)
     }
 
     /// The escalation: an app holding when-in-use is asked to upgrade. iOS never
     /// grants Always on a first ask, so this is the only route to it — and it is
     /// also the SDK asking on the integrator's behalf, which is why it is pinned
     /// here rather than left implicit.
-    func test_requestAuthorization_escalatesFromWhenInUse() {
+    func test_requestAuthorization_escalatesFromWhenInUseWhenBackgroundUpdatesAreAllowed() {
         manager.stubbedAuthorizationStatus = .authorizedWhenInUse
+        manager.stubbedAllowsBackgroundLocationUpdates = true
         service.requestAuthorization()
         XCTAssertEqual(manager.alwaysAuthorizationRequests, 1)
+    }
+
+    /// The escalation is gated on the background mode. An app that never asked
+    /// for background location gets no upgrade prompt from the SDK — it already
+    /// holds everything it declared it can use.
+    func test_requestAuthorization_doesNotEscalateWithoutBackgroundUpdates() {
+        manager.stubbedAuthorizationStatus = .authorizedWhenInUse
+        manager.stubbedAllowsBackgroundLocationUpdates = false
+        service.requestAuthorization()
+        XCTAssertEqual(manager.alwaysAuthorizationRequests, 0)
+        XCTAssertEqual(manager.whenInUseAuthorizationRequests, 0,
+                       "already held: asking again would be noise")
     }
 
     /// Already granted. Asking again would be noise.

@@ -28,12 +28,23 @@ final class FakeLocationManager: LocationManagerProtocol {
     var stubbedAuthorizationStatus: CLAuthorizationStatus = .notDetermined
     override var authorizationStatus: CLAuthorizationStatus { stubbedAuthorizationStatus }
 
+    /// Whether the host app declared the background location mode. The real
+    /// setter raises when the entitlement is absent, which it is in a test
+    /// bundle, so it is stubbed rather than set.
+    var stubbedAllowsBackgroundLocationUpdates = false
+    override var allowsBackgroundLocationUpdates: Bool {
+        get { stubbedAllowsBackgroundLocationUpdates }
+        set { stubbedAllowsBackgroundLocationUpdates = newValue }
+    }
+
     private(set) var alwaysAuthorizationRequests = 0
+    private(set) var whenInUseAuthorizationRequests = 0
     private(set) var startUpdatingCalls = 0
     private(set) var stopUpdatingCalls = 0
     private(set) var significantChangeStarts = 0
 
     override func requestAlwaysAuthorization() { alwaysAuthorizationRequests += 1 }
+    override func requestWhenInUseAuthorization() { whenInUseAuthorizationRequests += 1 }
     override func startUpdatingLocation() { startUpdatingCalls += 1 }
     override func stopUpdatingLocation() { stopUpdatingCalls += 1 }
     override func startMonitoringSignificantLocationChanges() { significantChangeStarts += 1 }
