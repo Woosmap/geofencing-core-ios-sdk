@@ -61,11 +61,6 @@ internal final class CLMonitorBackend: GeofenceMonitoringBackend {
     /// synchronous reads can be answered without awaiting `CLMonitor`.
     private var registry: [String: CircularGeofence] = [:]
 
-    /// Tail of the serial chain, so `start` and `stop` for one identifier are
-    /// applied in the order they were requested. Bare `Task {}` would not
-    /// guarantee that.
-    private var pendingWork: Task<Void, Never>?
-
     private var transitionHandler: (@Sendable (GeofenceTransition) -> Void)?
 
     var onTransition: (@Sendable (GeofenceTransition) -> Void)? {
@@ -149,15 +144,11 @@ internal final class CLMonitorBackend: GeofenceMonitoringBackend {
 
     /// Appends to the serial chain. Each unit of work awaits its predecessor, so
     /// ordering matches the call order even though `CLMonitor` is async.
+    /// Defers to the session's chain. The ordering guarantee has to span every
+    /// backend sharing a monitor name, and the unlock reconcile, so it cannot
+    /// live here — see `MonitorSession.enqueue`.
     private func enqueue(_ work: @escaping @Sendable (MonitorSession) async -> Void) {
-        lock.withLock {
-            let previous = pendingWork
-            let session = self.session
-            pendingWork = Task {
-                await previous?.value
-                await work(session)
-            }
-        }
+        session.enqueue(work)
     }
 
     /// Resolves the geometry an event needs, then hands the transition to the
@@ -336,6 +327,29 @@ internal final class MonitorSession: @unchecked Sendable {
     private var unlockReconcileArmed = false
 
     private let stateLock = NSLock()
+
+    /// Tail of the serial chain, so every mutation of the monitor is applied in
+    /// the order it was requested. Bare `Task {}` would not guarantee that.
+    private var pendingWork: Task<Void, Never>?
+
+    /// Serialises every mutation of the monitor.
+    ///
+    /// The chain belongs here rather than on the backend because this object is
+    /// what owns the `CLMonitor`: backends sharing a monitor name share one
+    /// session, and the unlock reconcile is driven by a notification rather than
+    /// by any backend at all. A per-backend chain left those paths unordered
+    /// against each other, so a `stop` could land between the reconcile's read of
+    /// the store and its re-add, and the resurrected condition would outlive the
+    /// removal meant to have killed it.
+    internal func enqueue(_ work: @escaping @Sendable (MonitorSession) async -> Void) {
+        stateLock.withLock {
+            let previous = pendingWork
+            pendingWork = Task { [self] in
+                await previous?.value
+                await work(self)
+            }
+        }
+    }
 
     private init(monitorName: String) {
         self.monitorName = monitorName
@@ -631,6 +645,10 @@ internal final class MonitorSession: @unchecked Sendable {
         let live = Set(await monitor.identifiers)
         let known = knownGeofences()
         for fence in known where !live.contains(fence.identifier) {
+            // `stop` clears the mirror synchronously, so anything stopped since the
+            // snapshot above has already left `persisted`. Re-reading it here keeps
+            // a reconcile from re-adding a region the caller has since dropped.
+            guard stateLock.withLock({ persisted[fence.identifier] != nil }) else { continue }
             await add(identifier: fence.identifier, center: fence.center, radius: fence.radius)
             if WoosLog.isValidLevel(level: .info) {
                 Logger.sdklog.info("\(LogEvent.i.rawValue) Re-added \(fence.identifier, privacy: .public) after unlock")
@@ -653,17 +671,15 @@ internal final class MonitorSession: @unchecked Sendable {
         // any thread, and `queue: .main` already delivers on the main queue, so the
         // `Task { @MainActor }` wrapper this replaced bought nothing.
         //
-        // The handler binds a strong local before starting its Task. Referring to the
-        // weak optional from inside the Task captures the enclosing closure's
-        // variable, which Swift 6 rejects as a concurrent reference to captured
-        // state; a plain `let` has no such problem.
+        // The reconcile goes on the serial chain rather than into a bare `Task`,
+        // so it cannot interleave with an `add` or `remove` already requested.
+        // `enqueue` only builds the task, so there is nothing to await here.
         NotificationCenter.default.addObserver(
             forName: UIApplication.protectedDataDidBecomeAvailableNotification,
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            guard let session = self else { return }
-            Task { await session.reconcile() }
+            self?.enqueue { await $0.reconcile() }
         }
         #endif
     }

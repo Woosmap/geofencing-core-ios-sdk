@@ -1304,7 +1304,6 @@ public class LocationServiceCoreImpl: NSObject,
     
     /// Handle Region Changes
     func handleRegionChange() {
-        RegionChangeCounter.shared.increment()   // temporary, #167
         self.lastRegionUpdate = Date()
         self.stopMonitoringCurrentRegions()
         self.startUpdatingLocation()
