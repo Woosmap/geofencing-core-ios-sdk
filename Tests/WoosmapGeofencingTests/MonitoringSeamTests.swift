@@ -314,8 +314,9 @@ final class MonitoringSeamTests: XCTestCase {
     /// Adopting one would stop it on its owner's behalf and leave it mute: an
     /// unrecognised identifier is neither `custom` nor `poi`, so `logTransition`
     /// forwards nothing and its events would reach no delegate while still holding
-    /// one of iOS's 20 slots. `setProtectedRegionSlot` exists so integrators can
-    /// reserve room for these, which confiscating them would contradict.
+    /// one of iOS's 20 slots. Leaving it alone is also what lets a build layered on
+    /// top of core offer integrators a way to reserve slots for their own regions,
+    /// which confiscating them would contradict.
     func test_adoption_leavesThirdPartyRegionsAlone() {
         manager.startMonitoring(for: CLCircularRegion(center: anchor, radius: 250,
                                                       identifier: "AcmeSDK-depot-42"))
