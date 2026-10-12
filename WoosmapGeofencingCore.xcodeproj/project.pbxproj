@@ -32,6 +32,7 @@
 		5FCC17020004000000000001 /* GeofenceMonitoringBackendTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FCC17010004000000000001 /* GeofenceMonitoringBackendTests.swift */; };
 		5FCC17020008000000000001 /* CLMonitorBackendTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FCC17010008000000000001 /* CLMonitorBackendTests.swift */; };
 		5FCC17020008000000000002 /* MonitoringSeamTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FCC17010008000000000002 /* MonitoringSeamTests.swift */; };
+		5FCC17040008000000000002 /* AuthorizationAndVisitTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FCC17030008000000000002 /* AuthorizationAndVisitTests.swift */; };
 		5F84E5A32E378BDB00F04234 /* OpeningHoursChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F84E5A22E378BDB00F04234 /* OpeningHoursChecker.swift */; };
 		5FB3E7A32872F2BE0035653E /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FB3E7A22872F2BE0035653E /* LocationService.swift */; };
 		5FB3E7A52872F3170035653E /* LocationServiceCoreImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FB3E7A42872F3170035653E /* LocationServiceCoreImpl.swift */; };
@@ -114,6 +115,7 @@
 		5FCC17010004000000000001 /* GeofenceMonitoringBackendTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeofenceMonitoringBackendTests.swift; sourceTree = "<group>"; };
 		5FCC17010008000000000001 /* CLMonitorBackendTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CLMonitorBackendTests.swift; sourceTree = "<group>"; };
 		5FCC17010008000000000002 /* MonitoringSeamTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitoringSeamTests.swift; sourceTree = "<group>"; };
+		5FCC17030008000000000002 /* AuthorizationAndVisitTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthorizationAndVisitTests.swift; sourceTree = "<group>"; };
 		5F84E5A22E378BDB00F04234 /* OpeningHoursChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpeningHoursChecker.swift; sourceTree = "<group>"; };
 		5FB3E7A22872F2BE0035653E /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
 		5FB3E7A42872F3170035653E /* LocationServiceCoreImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationServiceCoreImpl.swift; sourceTree = "<group>"; };
@@ -350,6 +352,7 @@
 				5FCC17010004000000000001 /* GeofenceMonitoringBackendTests.swift */,
 				5FCC17010008000000000001 /* CLMonitorBackendTests.swift */,
 				5FCC17010008000000000002 /* MonitoringSeamTests.swift */,
+				5FCC17030008000000000002 /* AuthorizationAndVisitTests.swift */,
 			);
 			name = WoosmapGeofencingTests;
 			path = Tests/WoosmapGeofencingTests;
@@ -527,6 +530,7 @@
 				5FCC17020004000000000001 /* GeofenceMonitoringBackendTests.swift in Sources */,
 				5FCC17020008000000000001 /* CLMonitorBackendTests.swift in Sources */,
 				5FCC17020008000000000002 /* MonitoringSeamTests.swift in Sources */,
+				5FCC17040008000000000002 /* AuthorizationAndVisitTests.swift in Sources */,
 				A262B9C824E29ADF00EB621F /* FIGMMCreatorTests.swift in Sources */,
 				A2DDC91B25C86B0C00C90486 /* DatabaseTests.swift in Sources */,
 				A262B9C924E29ADF00EB621F /* ZoiQualifierTests.swift in Sources */,

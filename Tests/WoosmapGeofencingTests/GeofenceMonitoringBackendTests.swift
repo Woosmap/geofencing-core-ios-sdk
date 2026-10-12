@@ -21,12 +21,23 @@ final class FakeLocationManager: LocationManagerProtocol {
     override var monitoredRegions: Set<CLRegion> { regions }
     override func startMonitoring(for region: CLRegion) { regions.insert(region) }
     override func stopMonitoring(for region: CLRegion) { regions.remove(region) }
-    override func requestAlwaysAuthorization() {}
-    override func startUpdatingLocation() {}
-    override func stopUpdatingLocation() {}
-    override func startMonitoringSignificantLocationChanges() {}
-    override func stopMonitoringSignificantLocationChanges() {}
     override func startMonitoringVisits() {}
+
+    /// Drives the authorization branches. `CLLocationManager.authorizationStatus`
+    /// reflects the host process, which a test cannot change.
+    var stubbedAuthorizationStatus: CLAuthorizationStatus = .notDetermined
+    override var authorizationStatus: CLAuthorizationStatus { stubbedAuthorizationStatus }
+
+    private(set) var alwaysAuthorizationRequests = 0
+    private(set) var startUpdatingCalls = 0
+    private(set) var stopUpdatingCalls = 0
+    private(set) var significantChangeStarts = 0
+
+    override func requestAlwaysAuthorization() { alwaysAuthorizationRequests += 1 }
+    override func startUpdatingLocation() { startUpdatingCalls += 1 }
+    override func stopUpdatingLocation() { stopUpdatingCalls += 1 }
+    override func startMonitoringSignificantLocationChanges() { significantChangeStarts += 1 }
+    override func stopMonitoringSignificantLocationChanges() {}
 }
 
 /// Records what the service asked the backend to do.
