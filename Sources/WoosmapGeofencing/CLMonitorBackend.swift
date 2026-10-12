@@ -281,13 +281,44 @@ internal final class MonitorSession: @unchecked Sendable {
     /// States of regions removed but possibly about to be re-added, with the
     /// geometry they described. Bounded by `retiredLimit`, oldest dropped first:
     /// a region that never comes back must not pin its state forever.
-    private var retiredStates: [String: (state: CLMonitor.Event.State, geofence: CircularGeofence)] = [:] {
-        didSet {
-            guard retiredStates.count > Self.retiredLimit else { return }
-            for key in retiredStates.keys.prefix(retiredStates.count - Self.retiredLimit) {
-                retiredStates[key] = nil
-            }
+    private var retiredStates: [String: (state: CLMonitor.Event.State, geofence: CircularGeofence)] = [:]
+
+    /// Retirement order, oldest first.
+    ///
+    /// A `Dictionary`'s own key order is arbitrary, so evicting its first keys
+    /// dropped whichever entries happened to hash early — it honoured the bound
+    /// but not the policy, and could discard a state a refresh was about to claim
+    /// while keeping one retired long ago. Order has to be tracked explicitly.
+    ///
+    /// An array, not an ordered-set type: `retiredLimit` is 64, so the linear
+    /// scans here are cheaper than the bookkeeping to avoid them.
+    private var retiredOrder: [String] = []
+
+    /// Records a retirement and enforces the bound, newest at the back.
+    ///
+    /// Caller holds `stateLock`.
+    private func storeRetired(_ identifier: String,
+                              state: CLMonitor.Event.State,
+                              geofence: CircularGeofence) {
+        retiredStates[identifier] = (state, geofence)
+        // Re-retiring an identifier makes it the freshest again, so it moves to
+        // the back rather than keeping its original place.
+        retiredOrder.removeAll { $0 == identifier }
+        retiredOrder.append(identifier)
+        while retiredStates.count > Self.retiredLimit, let oldest = retiredOrder.first {
+            retiredOrder.removeFirst()
+            retiredStates[oldest] = nil
         }
+    }
+
+    /// Takes a retirement out of the store, keeping the order list in step.
+    ///
+    /// Caller holds `stateLock`.
+    private func takeRetired(_ identifier: String)
+        -> (state: CLMonitor.Event.State, geofence: CircularGeofence)? {
+        guard let retired = retiredStates.removeValue(forKey: identifier) else { return nil }
+        retiredOrder.removeAll { $0 == identifier }
+        return retired
     }
 
     /// Comfortably above the 20 conditions iOS will monitor, so a full refresh
@@ -427,7 +458,7 @@ internal final class MonitorSession: @unchecked Sendable {
     private func retire(_ identifier: String) {
         guard let state = lastStates.removeValue(forKey: identifier) else { return }
         guard let geofence = persisted[identifier] else { return }
-        retiredStates[identifier] = (state, geofence)
+        storeRetired(identifier, state: state, geofence: geofence)
     }
 
     /// Restores a retired state when the same region comes back unchanged.
@@ -441,7 +472,7 @@ internal final class MonitorSession: @unchecked Sendable {
     private func restoreRetiredState(for identifier: String,
                                      center: CLLocationCoordinate2D,
                                      radius: CLLocationDistance) {
-        guard let retired = retiredStates.removeValue(forKey: identifier) else { return }
+        guard let retired = takeRetired(identifier) else { return }
         lastStates[identifier] = Self.stateCarriedAcrossRefresh(retired: retired,
                                                                 center: center,
                                                                 radius: radius)

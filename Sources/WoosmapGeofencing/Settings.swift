@@ -14,8 +14,18 @@ public var trackingEnable = false
 private var _WoosmapAPIKey: String = ""
 
 /// Shows enough of a credential to identify it and not enough to use it.
+///
+/// Eight characters are revealed, so the key has to be long enough that those
+/// eight are a small part of it. A Woosmap key is a 36-character UUID, where
+/// this leaves roughly a fifth visible — enough to tell two keys apart in a log.
+/// Below the minimum nothing is shown at all: revealing two thirds of a short
+/// key would identify it by handing most of it over.
+private let woosmapMaskMinimumLength = 20
+
 internal func woosmapMaskedKey(_ key: String) -> String {
-    guard key.count > 8 else { return key.isEmpty ? "(empty)" : "(set)" }
+    guard key.count >= woosmapMaskMinimumLength else {
+        return key.isEmpty ? "(empty)" : "(set)"
+    }
     return "\(key.prefix(4))…\(key.suffix(4))"
 }
 public var WoosmapAPIKey: String {

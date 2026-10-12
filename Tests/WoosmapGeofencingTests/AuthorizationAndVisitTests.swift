@@ -180,6 +180,16 @@ final class MaskedKeyTests: XCTestCase {
         XCTAssertEqual(woosmapMaskedKey(""), "(empty)")
         XCTAssertEqual(woosmapMaskedKey("abc123"), "(set)")
     }
+
+    /// The gap the threshold closes: eight revealed characters are a fifth of a
+    /// real 36-character key, but two thirds of a 12-character one. Anything that
+    /// short is withheld entirely rather than mostly handed over.
+    func test_maskedKey_withholdsAKeyShortEnoughToBeMostlyRevealed() {
+        XCTAssertEqual(woosmapMaskedKey("abcdefghijkl"), "(set)", "12 characters is under the minimum")
+        XCTAssertEqual(woosmapMaskedKey(String(repeating: "a", count: 19)), "(set)")
+        XCTAssertEqual(woosmapMaskedKey(String(repeating: "a", count: 20)), "aaaa…aaaa",
+                       "at the minimum, eight of twenty is a proportion worth trading for identifiability")
+    }
 }
 
 final class VisitGuardTests: XCTestCase, VisitServiceDelegate {

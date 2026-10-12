@@ -369,7 +369,6 @@ final class CLMonitorBackendTests: XCTestCase {
         guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
         let backend = makeBackend("Unknown")
         var received = 0
-        backend.onTransition = { _ in received += 1 }
 
         // Inverted rather than a plain assertion: `publish` delivers via
         // `DispatchQueue.main.async`, so checking a counter synchronously would
@@ -503,5 +502,46 @@ final class CLMonitorBackendTests: XCTestCase {
 
         XCTAssertEqual(session.decide(identifier: poi, state: .unmonitored, eventDate: Date()),
                        .forget(systemDropped: false))
+    }
+
+    // MARK: - Retired-state eviction
+
+    /// The bound always held; the policy did not. Eviction walked a
+    /// `Dictionary`'s keys, whose order is arbitrary, so it could drop a state a
+    /// refresh was about to claim and keep one retired long ago.
+    ///
+    /// POI identifiers are the probe because they are assumed `.unknown` and so
+    /// are never seeded at registration — whether their last state comes back is
+    /// then entirely down to the retirement store.
+    func test_retiredStateEvictionDropsTheOldestFirst() throws {
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
+        let session = MonitorSession.shared(named: uniqueName("Evict"))
+        let total = 65  // one past `retiredLimit`
+        func identifier(_ index: Int) -> String { "poi<id>evict\(index)<id>" }
+
+        func registerResolveAndRetire(_ id: String) {
+            session.recordRegistration(identifier: id, center: anchor, radius: 100,
+                                       assuming: MonitorSession.assumedState(for: id))
+            _ = session.decide(identifier: id, state: .satisfied, eventDate: Date())
+            session.forget(identifier: id)
+        }
+
+        for index in 0..<total {
+            registerResolveAndRetire(identifier(index))
+        }
+
+        let oldest = identifier(0)
+        session.recordRegistration(identifier: oldest, center: anchor, radius: 100,
+                                   assuming: MonitorSession.assumedState(for: oldest))
+        XCTAssertEqual(session.decide(identifier: oldest, state: .satisfied, eventDate: Date()),
+                       .transition(didEnter: true, isInitial: true),
+                       "the oldest retirement is the one the bound should have dropped")
+
+        let newest = identifier(total - 1)
+        session.recordRegistration(identifier: newest, center: anchor, radius: 100,
+                                   assuming: MonitorSession.assumedState(for: newest))
+        XCTAssertEqual(session.decide(identifier: newest, state: .satisfied, eventDate: Date()),
+                       .transition(didEnter: true, isInitial: false),
+                       "the most recent retirement must survive to be claimed by its refresh")
     }
 }
