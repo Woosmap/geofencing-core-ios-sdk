@@ -246,6 +246,37 @@ final class GeofenceMonitoringBackendTests: XCTestCase {
         XCTAssertNotNil(recorder.onTransition, "and its hook was wired on assignment")
     }
 
+    /// One crossing must restart the services once.
+    ///
+    /// On the legacy backend `reportPlatformEvent` reaches `handle(transition:)`
+    /// synchronously, and that calls `handleRegionChange()`. While
+    /// `handlePlatformRegionEvent` called it again afterwards, every crossing on
+    /// iOS 15.0 to 17.1 ran the cycle twice: the grid torn down, then a second
+    /// teardown against an empty set, and two service restarts.
+    ///
+    /// No test could see it, because none counted restarts — they asserted the
+    /// transition arrived, not how much work it caused. The device captures could
+    /// not see it either: all of them were on 17.2+, where `CLMonitor` owns the
+    /// events and this path is never reached.
+    func test_legacyCrossing_restartsTheServicesExactlyOnce() {
+        let manager = FakeLocationManager()
+        manager.stubbedAuthorizationStatus = .authorizedAlways
+        let service = LocationServiceCoreImpl(locationManger: manager)
+        service.monitoringBackend = LegacyRegionBackend(locationManager: { manager })
+        trackingEnable = true
+        defer { trackingEnable = false }
+
+        let before = (manager.significantChangeStarts, manager.startUpdatingCalls)
+        service.locationManager(CLLocationManager(),
+                                didEnterRegion: CLCircularRegion(center: anchor, radius: 100,
+                                                                 identifier: "poi<id>bakery<id>"))
+
+        XCTAssertEqual(manager.significantChangeStarts - before.0, 1,
+                       "one crossing, one significant-change restart")
+        XCTAssertEqual(manager.startUpdatingCalls - before.1, 1,
+                       "and one location-update restart")
+    }
+
     // MARK: - Fixture
 
     private func makeServiceWithRecordingBackend() -> (LocationServiceCoreImpl, RecordingBackend) {

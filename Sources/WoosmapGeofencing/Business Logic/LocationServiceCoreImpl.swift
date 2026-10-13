@@ -651,11 +651,24 @@ public class LocationServiceCoreImpl: NSObject,
             return
         }
         if let circular = region as? CLCircularRegion {
+            // No `handleRegionChange()` here. `reportPlatformEvent` reaches
+            // `handle(transition:)` synchronously on the legacy backend, and that is
+            // where the restart is triggered — for both backends, so the cycle has one
+            // owner rather than one per path.
+            //
+            // It used to be called here as well, which on iOS 15.0 to 17.1 ran the whole
+            // cycle twice for every crossing: the grid torn down, then thirteen no-op
+            // `stopMonitoring` calls against an already-empty set, and two
+            // `startUpdatingLocation` / `startMonitoringSignificantLocationChanges`
+            // pairs. Invisible in the field captures because every device run was on
+            // 17.2+, where `CLMonitor` owns the events and this method is never reached.
             monitoringBackend.reportPlatformEvent(region: circular, didEnter: didEnter)
         } else {
+            // Beacons never go through the backend seam, so nothing else triggers the
+            // restart for them and the call stays on this path.
             logTransition(region: region, didEnter: didEnter, fromPositionDetection: false)
+            self.handleRegionChange()
         }
-        self.handleRegionChange()
     }
 
     /// Sink for `monitoringBackend.onTransition`.
