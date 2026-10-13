@@ -128,13 +128,18 @@ public class LocationServiceCoreImpl: NSObject,
     /// custom region existed *only* in `CLLocationManager` — without this it would
     /// quietly stop reporting and could never be removed.
     ///
-    /// Position-grid cells are adopted rather than filtered out: once they are in
-    /// the backend, `stopMonitoringCurrentRegions()` tears them down on the next
-    /// refresh, which is where that policy already lives.
+    /// Position-grid cells are stopped and discarded rather than adopted. They
+    /// describe where the user was when the old build last took a fix, and the next
+    /// sweep rebuilds the grid around the current one — so adopting them would
+    /// register a ring the user may already have left, and a stale ring that reports
+    /// an exit spends a monitoring slot to say something untrue. Stopping them
+    /// directly costs nothing, because nothing re-derives them from the manager.
     ///
-    /// Idempotent — the pass leaves no circular region on the manager, so a later
-    /// call finds nothing. Beacons are left alone, since that is still where their
-    /// monitoring lives.
+    /// Idempotent — the pass leaves none of *the SDK's own* circular regions on the
+    /// manager, so a later call finds nothing of its own to do. Regions belonging to
+    /// the host app or another SDK stay where they are and are seen again on every
+    /// pass, which is intended: they are not ours to move. Beacons are likewise left
+    /// alone, since that is still where their monitoring lives.
     ///
     /// - Note: adopted conditions are seeded like any other, which for POI and
     ///   custom regions means `.unknown` — CoreLocation resolves the real state and
@@ -175,7 +180,8 @@ public class LocationServiceCoreImpl: NSObject,
                 manager.stopMonitoring(for: region)
                 adopted += 1
             case .position:
-                // Ephemeral and rebuilt on the next sweep; see the note above.
+                // Stale by construction: centred on the previous build's last fix,
+                // and the next sweep rebuilds the grid around the current one.
                 manager.stopMonitoring(for: region)
                 discardedGridCells += 1
             default:
