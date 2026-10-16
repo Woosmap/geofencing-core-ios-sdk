@@ -21,18 +21,51 @@ final class FakeLocationManager: LocationManagerProtocol {
     override var monitoredRegions: Set<CLRegion> { regions }
     override func startMonitoring(for region: CLRegion) { regions.insert(region) }
     override func stopMonitoring(for region: CLRegion) { regions.remove(region) }
-    override func requestAlwaysAuthorization() {}
-    override func startUpdatingLocation() {}
-    override func stopUpdatingLocation() {}
-    override func startMonitoringSignificantLocationChanges() {}
-    override func stopMonitoringSignificantLocationChanges() {}
     override func startMonitoringVisits() {}
+
+    /// Drives the authorization branches. `CLLocationManager.authorizationStatus`
+    /// reflects the host process, which a test cannot change.
+    var stubbedAuthorizationStatus: CLAuthorizationStatus = .notDetermined
+    override var authorizationStatus: CLAuthorizationStatus { stubbedAuthorizationStatus }
+
+    /// Whether the host app declared the background location mode. The real
+    /// setter raises when the entitlement is absent, which it is in a test
+    /// bundle, so it is stubbed rather than set.
+    var stubbedAllowsBackgroundLocationUpdates = false
+    override var allowsBackgroundLocationUpdates: Bool {
+        get { stubbedAllowsBackgroundLocationUpdates }
+        set { stubbedAllowsBackgroundLocationUpdates = newValue }
+    }
+
+    private(set) var alwaysAuthorizationRequests = 0
+    private(set) var whenInUseAuthorizationRequests = 0
+    private(set) var startUpdatingCalls = 0
+    private(set) var stopUpdatingCalls = 0
+    private(set) var significantChangeStarts = 0
+
+    override func requestAlwaysAuthorization() { alwaysAuthorizationRequests += 1 }
+    override func requestWhenInUseAuthorization() { whenInUseAuthorizationRequests += 1 }
+    override func startUpdatingLocation() { startUpdatingCalls += 1 }
+    override func stopUpdatingLocation() { stopUpdatingCalls += 1 }
+    override func startMonitoringSignificantLocationChanges() { significantChangeStarts += 1 }
+    override func stopMonitoringSignificantLocationChanges() {}
 }
 
 /// Records what the service asked the backend to do.
 final class RecordingBackend: GeofenceMonitoringBackend {
-    var onTransition: ((GeofenceTransition) -> Void)?
-    var monitoredCircularIdentifiers: Set<String> = []
+    var onTransition: (@Sendable (GeofenceTransition) -> Void)?
+
+    /// `false` presents a `CLLocationManager`-shaped backend, reporting crossings
+    /// only. Set it to `true` to present a `CLMonitor`-shaped one, which reports a
+    /// region's initial state itself. Settable rather than two doubles, so there
+    /// is one recorder to keep in step with the protocol.
+    var reportsInitialState = false
+
+    /// `false` presents a backend with its own store, the shape that has legacy
+    /// regions to adopt. `true` presents a `CLLocationManager`-backed one.
+    var usesPlatformRegionStore = false
+
+    var monitoredGeofences: [CircularGeofence] = []
 
     private(set) var started: [(identifier: String, center: CLLocationCoordinate2D, radius: CLLocationDistance)] = []
     private(set) var stopped: [String] = []
@@ -174,8 +207,12 @@ final class GeofenceMonitoringBackendTests: XCTestCase {
 
     func test_removeRegion_stopsThroughTheBackend() {
         let (service, recorder) = makeServiceWithRecordingBackend()
-        let region = CLCircularRegion(center: anchor, radius: 100, identifier: "custom<id>my-zone")
-        service.locationManager?.startMonitoring(for: region)
+        // Seeded on the backend, not the location manager: the backend is now the
+        // source of truth for circular regions, so poking one into the manager
+        // would be invisible to the service.
+        recorder.monitoredGeofences = [
+            CircularGeofence(identifier: "custom<id>my-zone", center: anchor, radius: 100)
+        ]
 
         service.removeRegion(identifier: "custom<id>my-zone")
 
@@ -207,6 +244,37 @@ final class GeofenceMonitoringBackendTests: XCTestCase {
         XCTAssertEqual(recorder.reported.count, 1, "the event reached the installed backend")
         XCTAssertEqual(recorder.reported.first?.didEnter, true)
         XCTAssertNotNil(recorder.onTransition, "and its hook was wired on assignment")
+    }
+
+    /// One crossing must restart the services once.
+    ///
+    /// On the legacy backend `reportPlatformEvent` reaches `handle(transition:)`
+    /// synchronously, and that calls `handleRegionChange()`. While
+    /// `handlePlatformRegionEvent` called it again afterwards, every crossing on
+    /// iOS 15.0 to 17.1 ran the cycle twice: the grid torn down, then a second
+    /// teardown against an empty set, and two service restarts.
+    ///
+    /// No test could see it, because none counted restarts — they asserted the
+    /// transition arrived, not how much work it caused. The device captures could
+    /// not see it either: all of them were on 17.2+, where `CLMonitor` owns the
+    /// events and this path is never reached.
+    func test_legacyCrossing_restartsTheServicesExactlyOnce() {
+        let manager = FakeLocationManager()
+        manager.stubbedAuthorizationStatus = .authorizedAlways
+        let service = LocationServiceCoreImpl(locationManger: manager)
+        service.monitoringBackend = LegacyRegionBackend(locationManager: { manager })
+        trackingEnable = true
+        defer { trackingEnable = false }
+
+        let before = (manager.significantChangeStarts, manager.startUpdatingCalls)
+        service.locationManager(CLLocationManager(),
+                                didEnterRegion: CLCircularRegion(center: anchor, radius: 100,
+                                                                 identifier: "poi<id>bakery<id>"))
+
+        XCTAssertEqual(manager.significantChangeStarts - before.0, 1,
+                       "one crossing, one significant-change restart")
+        XCTAssertEqual(manager.startUpdatingCalls - before.1, 1,
+                       "and one location-update restart")
     }
 
     // MARK: - Fixture
