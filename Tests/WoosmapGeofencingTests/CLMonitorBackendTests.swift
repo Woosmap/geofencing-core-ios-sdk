@@ -544,4 +544,49 @@ final class CLMonitorBackendTests: XCTestCase {
                        .transition(didEnter: true, isInitial: false),
                        "the most recent retirement must survive to be claimed by its refresh")
     }
+
+    // MARK: - Recovering a store that was locked at open
+
+    private func fence(_ identifier: String, radius: CLLocationDistance = 100) -> CircularGeofence {
+        CircularGeofence(identifier: identifier, center: anchor, radius: radius)
+    }
+
+    /// The case the unlock observer exists for, and the one it used to miss.
+    ///
+    /// `persisted` is filled by `restoredConditions` at open. If protected data was
+    /// unavailable then, `record(for:)` yields nothing and the mirror is empty — so a
+    /// reconcile that only walked the mirror had nothing to walk. Custom geofences are
+    /// the real loss, since nothing else re-derives them, and `publish` drops every
+    /// event for a condition whose geometry it cannot resolve.
+    func test_mergeRecovered_fillsAMirrorThatWasEmptyAtOpen() throws {
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
+        var persisted: [String: CircularGeofence] = [:]
+        var states: [String: CLMonitor.Event.State] = [:]
+        let recovered = (geofences: ["custom<id>my-zone": fence("custom<id>my-zone"),
+                                     "poi<id>store-A<id>": fence("poi<id>store-A<id>")],
+                         states: ["custom<id>my-zone": CLMonitor.Event.State.satisfied])
+
+        let regained = MonitorSession.mergeRecovered(recovered, into: &persisted, states: &states)
+
+        XCTAssertEqual(Set(regained), ["custom<id>my-zone", "poi<id>store-A<id>"])
+        XCTAssertEqual(persisted.count, 2)
+        XCTAssertEqual(states["custom<id>my-zone"], .satisfied)
+    }
+
+    /// A re-read is never more current than what this process already holds, so it
+    /// fills gaps and nothing else. Overwriting would discard a registration made since
+    /// the open, and a `lastStates` entry written by an event that has already arrived.
+    func test_mergeRecovered_doesNotOverwriteWhatTheProcessAlreadyKnows() throws {
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
+        var persisted = ["custom<id>my-zone": fence("custom<id>my-zone", radius: 250)]
+        var states: [String: CLMonitor.Event.State] = ["custom<id>my-zone": .unsatisfied]
+        let recovered = (geofences: ["custom<id>my-zone": fence("custom<id>my-zone", radius: 100)],
+                         states: ["custom<id>my-zone": CLMonitor.Event.State.satisfied])
+
+        let regained = MonitorSession.mergeRecovered(recovered, into: &persisted, states: &states)
+
+        XCTAssertTrue(regained.isEmpty, "nothing was missing, so nothing was regained")
+        XCTAssertEqual(persisted["custom<id>my-zone"]?.radius, 250, "the live registration wins")
+        XCTAssertEqual(states["custom<id>my-zone"], .unsatisfied, "a state seen since the open wins")
+    }
 }

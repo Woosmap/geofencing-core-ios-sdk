@@ -437,6 +437,33 @@ internal final class MonitorSession: @unchecked Sendable {
         }
     }
 
+    /// Folds conditions from a later read of the store into the mirror, without
+    /// overwriting anything the process already knows. Returns the identifiers it
+    /// regained, for logging and for the test.
+    ///
+    /// Only absent identifiers are taken. Anything already in `persisted` was either
+    /// restored at open or registered by this process, and either way it is at least as
+    /// current as a re-read; the same holds for `lastStates`, where an entry may have
+    /// been written by an event that has arrived since.
+    ///
+    /// Pure and `static` so the locked-open-to-unlocked path can be tested without a
+    /// real `CLMonitor` — which the simulator refuses every condition on anyway.
+    internal static func mergeRecovered(
+        _ recovered: (geofences: [String: CircularGeofence], states: [String: CLMonitor.Event.State]),
+        into persisted: inout [String: CircularGeofence],
+        states lastStates: inout [String: CLMonitor.Event.State]
+    ) -> [String] {
+        var regained: [String] = []
+        for (identifier, geofence) in recovered.geofences where persisted[identifier] == nil {
+            persisted[identifier] = geofence
+            regained.append(identifier)
+        }
+        for (identifier, state) in recovered.states where lastStates[identifier] == nil {
+            lastStates[identifier] = state
+        }
+        return regained
+    }
+
     /// Circular conditions `CLMonitor` already held when this process opened it.
     ///
     /// `CLMonitor`'s condition store is persistent, so after a relaunch it knows
@@ -642,6 +669,27 @@ internal final class MonitorSession: @unchecked Sendable {
     /// unreadable are the case this recovers.
     private func reconcile() async {
         let monitor = await activeMonitor()
+
+        // Re-read the store before anything else. `persisted` is filled by
+        // `restoredConditions` at open, and if that open happened while protected data
+        // was unavailable — the case this observer exists for — `record(for:)` yielded
+        // nothing and the mirror is empty. The loop below would then iterate an empty
+        // collection and recover nothing, in precisely the situation it was written for.
+        //
+        // The re-read fixes two different halves. Identifiers recovered here are by
+        // definition still live, so they do not need re-adding; what they need is to be
+        // back in the mirror, because `publish` resolves an event's geometry from it and
+        // was dropping every event for a condition it could not find. The loop that
+        // follows handles the other half — known to us, no longer live — which is what
+        // actually needs re-registering.
+        let recovered = await Self.restoredConditions(from: monitor)
+        let regained: [String] = stateLock.withLock {
+            Self.mergeRecovered(recovered, into: &persisted, states: &lastStates)
+        }
+        if !regained.isEmpty, WoosLog.isValidLevel(level: .info) {
+            Logger.sdklog.info("\(LogEvent.i.rawValue) Recovered \(regained.count) condition(s) from the store after unlock")
+        }
+
         let live = Set(await monitor.identifiers)
         let known = knownGeofences()
         for fence in known where !live.contains(fence.identifier) {
