@@ -172,7 +172,7 @@ public class LocationServiceCoreImpl: NSObject,
         var adopted = 0
         var discardedGridCells = 0
         for region in legacy {
-            switch getRegionType(identifier: region.identifier) {
+            switch Self.adoptableRegionType(of: region.identifier) {
             case .custom, .poi:
                 monitoringBackend.start(identifier: region.identifier,
                                         center: region.center,
@@ -185,7 +185,7 @@ public class LocationServiceCoreImpl: NSObject,
                 manager.stopMonitoring(for: region)
                 discardedGridCells += 1
             default:
-                // Someone else's region. `CLLocationManager.monitoredRegions` is
+                // Someone else's region — `.none` from the classifier above. `CLLocationManager.monitoredRegions` is
                 // per-app, not per-manager, so a geofence registered by the host app
                 // or another SDK shows up here too. Taking it would stop it on its
                 // owner's behalf and leave it mute: an unrecognised identifier is
@@ -1333,6 +1333,41 @@ public class LocationServiceCoreImpl: NSObject,
     /// Region Type
     /// - Parameter identifier: ID
     /// - Returns: Region Type
+    /// The region type an identifier claims, decided on the exact grammar the SDK
+    /// writes rather than on a substring match. `.none` means it is not ours.
+    ///
+    /// Returns `RegionType` rather than `RegionType?`: the enum already has a `.none`
+    /// case for "unrecognised", and wrapping it in an `Optional` would put two
+    /// different `.none`s in scope — in an `Optional<RegionType>` switch, `case .none`
+    /// binds to `Optional.none`, not to the region type. Same return type as
+    /// `getRegionType`, for the same meaning.
+    ///
+    /// `getRegionType` tests with `String.contains`, which is fine for regions the SDK
+    /// created but dangerous when applied to `CLLocationManager.monitoredRegions`,
+    /// which is per-app and therefore full of other people's geofences. The word
+    /// "waypoint" contains "poi", so a host region called `host-waypoint-home`
+    /// classified as a Woosmap POI: adoption would stop the integrator's registration,
+    /// take the region over, and then crash on its first event, because `Regions.add`
+    /// indexes `components(separatedBy: "<id>")[1]` on an identifier that has no
+    /// delimiter.
+    ///
+    /// Kept separate from `getRegionType` on purpose. That one is public and every
+    /// other caller passes an identifier the SDK wrote, where `contains` is harmless;
+    /// tightening it would change behaviour for callers that are not in danger.
+    internal static func adoptableRegionType(of identifier: String) -> RegionType {
+        if identifier.hasPrefix(RegionType.poi.rawValue + "<id>") { return .poi }
+        if identifier.hasPrefix(RegionType.custom.rawValue + "<id>") { return .custom }
+        // Rings are `position_radius …`; translations are `position_translation …`,
+        // except the one `RegionGenerator` has built without the underscore since 2022.
+        let grid = RegionType.position.rawValue
+        if identifier.hasPrefix(grid + "_radius")
+            || identifier.hasPrefix(grid + "_translation")
+            || identifier.hasPrefix(grid + "translation") {
+            return .position
+        }
+        return RegionType.none
+    }
+
     public func getRegionType(identifier: String) -> RegionType {
         if identifier.contains(RegionType.position.rawValue) {
             return RegionType.position

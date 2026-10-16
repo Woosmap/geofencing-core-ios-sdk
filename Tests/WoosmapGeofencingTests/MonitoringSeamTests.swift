@@ -331,6 +331,57 @@ final class MonitoringSeamTests: XCTestCase {
                        "the third party's region is still monitored by its owner")
     }
 
+    /// The case the test above could never have caught: a foreign identifier that
+    /// *contains* one of the type words.
+    ///
+    /// `getRegionType` matches with `String.contains`, and "waypoint" contains "poi".
+    /// A host region called `host-waypoint-home` therefore classified as a Woosmap POI,
+    /// so adoption stopped the integrator's registration and took the region over —
+    /// and the first event on it crashed, because `Regions.add` indexes
+    /// `components(separatedBy: "<id>")[1]` on an identifier with no delimiter.
+    ///
+    /// `AcmeSDK-depot-42` contains none of the type words, so it exercised only the
+    /// easy half of the rule and passed with the bug wide open.
+    func test_adoption_leavesForeignRegionsWhoseNamesContainTypeWords() {
+        let foreign = ["host-waypoint-home", "acme-custom-zone", "repositioning-dock"]
+        for identifier in foreign {
+            manager.startMonitoring(for: CLCircularRegion(center: anchor, radius: 250,
+                                                          identifier: identifier))
+        }
+        manager.startMonitoring(for: CLCircularRegion(center: anchor, radius: 100,
+                                                      identifier: "poi<id>store-A<id>"))
+
+        service.adoptLegacyCircularRegions()
+
+        XCTAssertEqual(backend.started.map { $0.identifier }, ["poi<id>store-A<id>"],
+                       "a name merely containing poi, custom or position is not ours")
+        XCTAssertEqual(Set(manager.monitoredRegions.map { $0.identifier }), Set(foreign),
+                       "every foreign region is left with its owner")
+    }
+
+    /// The rule on its own, including the grid identifier `RegionGenerator` has built
+    /// without the underscore since 2022.
+    func test_adoptableRegionType_matchesOnGrammarNotSubstrings() {
+        let ours: [(String, RegionType)] = [
+            ("poi<id>store-A<id>", .poi),
+            ("custom<id>my-zone", .custom),
+            ("position_radius 200.0", .position),
+            ("position_translation nw", .position),
+            ("positiontranslation e", .position),
+        ]
+        for (identifier, expected) in ours {
+            XCTAssertEqual(LocationServiceCoreImpl.adoptableRegionType(of: identifier), expected, identifier)
+        }
+
+        for identifier in ["host-waypoint-home", "acme-custom-zone", "repositioning-dock",
+                           "AcmeSDK-depot-42", "poi-without-delimiter", "customer-site-3"] {
+            // `RegionType.none` spelled out: a bare `.none` here would be read as
+            // `Optional.none`, which is the ambiguity this return type avoids.
+            XCTAssertEqual(LocationServiceCoreImpl.adoptableRegionType(of: identifier),
+                           RegionType.none, identifier)
+        }
+    }
+
     /// It runs on every launch, not only the first one after an upgrade.
     func test_adoption_isIdempotent() {
         manager.startMonitoring(for: CLCircularRegion(center: anchor, radius: 100,
