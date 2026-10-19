@@ -326,6 +326,24 @@ internal final class MonitorSession: @unchecked Sendable {
     /// Guards against adding the unlock observer more than once.
     private var unlockReconcileArmed = false
 
+    /// Removals we have asked for and not yet seen acknowledged, counted per
+    /// identifier.
+    ///
+    /// A `.unmonitored` event is CoreLocation acknowledging that a condition stopped,
+    /// but it arrives on the event stream rather than as the return of `remove`, so it
+    /// can land after the same identifier has been registered again. A refresh is
+    /// exactly that shape — `stop` then `start` of one identifier — and the position
+    /// grid does it for 13 identifiers on every location update.
+    ///
+    /// Counted rather than a `Set`, because a quick stop/start/stop leaves two acks
+    /// outstanding for one identifier and collapsing them would make the second look
+    /// like a system drop.
+    ///
+    /// An ack that never arrives leaves a count behind, which at worst makes one later
+    /// system drop read as ours. That direction is the safe one: we decline to evict a
+    /// condition rather than evicting one CoreLocation is still monitoring.
+    private var pendingRemovalAcks: [String: Int] = [:]
+
     private let stateLock = NSLock()
 
     /// Tail of the serial chain, so every mutation of the monitor is applied in
@@ -481,6 +499,11 @@ internal final class MonitorSession: @unchecked Sendable {
             retire(identifier)
             let known = persisted.removeValue(forKey: identifier) != nil
             lastHandled[identifier] = nil
+            // Only when we actually held it. A `stop` for something we never
+            // registered produces no `remove`, so no acknowledgement is coming.
+            if known {
+                pendingRemovalAcks[identifier, default: 0] += 1
+            }
             return known
         }
     }
@@ -816,21 +839,45 @@ internal final class MonitorSession: @unchecked Sendable {
                 // constantly, so that is a live path, not a corner case.
                 // It also keeps these dictionaries bounded: the position grid
                 // alone churns 13 identifiers on every location update.
+                //
+                // Whose removal was this? `forget` counts every removal we ask
+                // for, so an acknowledgement with a count outstanding is ours and
+                // one without is CoreLocation acting on its own.
+                //
+                // Testing `persisted` alone is not enough, which is what this
+                // replaced. `stop` does clear the mirror synchronously — but a
+                // refresh re-registers the same identifier immediately afterwards,
+                // and if the acknowledgement for the earlier `remove` lands after
+                // that, the mirror holds the entry again and the old test called it
+                // a system drop. It then evicted a live condition: `publish` could
+                // no longer resolve its geometry, so every real crossing was
+                // dropped, and it vanished from `monitoredGeofences` so the sweeps
+                // could not stop it either.
+                if let outstanding = pendingRemovalAcks[identifier] {
+                    if outstanding <= 1 {
+                        pendingRemovalAcks[identifier] = nil
+                    } else {
+                        pendingRemovalAcks[identifier] = outstanding - 1
+                    }
+                    // Re-registered since we asked: this acknowledges the previous
+                    // registration, and the current one is live. Touch nothing.
+                    if persisted[identifier] != nil {
+                        return .undetermined
+                    }
+                    lastStates[identifier] = nil
+                    lastHandled[identifier] = nil
+                    return .forget(systemDropped: false)
+                }
+
+                // Nobody asked for this. Dropping it from the mirror is the point,
+                // not just the signal: past the active-monitoring cap the mirror
+                // otherwise keeps claiming conditions CoreLocation has let go, and
+                // `monitoredGeofences`, the custom-region budget and the sweeps all
+                // read that.
                 lastStates[identifier] = nil
                 lastHandled[identifier] = nil
-                // Whose removal was this? Before iOS 18 the event carries no
-                // reason, but the mirror answers it on every version: `stop`
-                // clears `persisted` synchronously through `forget`, before
-                // `remove` is even enqueued. An identifier still present here
-                // was therefore dropped by CoreLocation, not by us.
-                //
-                // Dropping it from `persisted` is the point, not just the
-                // signal. Past the active-monitoring cap the mirror otherwise
-                // keeps claiming conditions CoreLocation has let go, and
-                // `monitoredGeofences`, the custom-region budget and the sweeps
-                // all read that.
-                let systemDropped = persisted.removeValue(forKey: identifier) != nil
-                return .forget(systemDropped: systemDropped)
+                persisted[identifier] = nil
+                return .forget(systemDropped: true)
             }
         }
     }

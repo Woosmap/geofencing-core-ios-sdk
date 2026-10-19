@@ -229,8 +229,8 @@ final class CLMonitorBackendTests: XCTestCase {
                        .transition(didEnter: false, isInitial: true))
         XCTAssertEqual(session.decide(identifier: "poi<id>a<id>", state: .unmonitored,
                                       eventDate: base.addingTimeInterval(1)),
-                       .forget(systemDropped: false),
-                       "nothing was ever registered, so the mirror holds no claim to drop")
+                       .forget(systemDropped: true),
+                       "no removal of ours was outstanding, so CoreLocation dropped it on its own")
         XCTAssertEqual(session.decide(identifier: "poi<id>a<id>", state: .satisfied,
                                       eventDate: base.addingTimeInterval(2)),
                        .transition(didEnter: true, isInitial: true),
@@ -588,5 +588,55 @@ final class CLMonitorBackendTests: XCTestCase {
         XCTAssertTrue(regained.isEmpty, "nothing was missing, so nothing was regained")
         XCTAssertEqual(persisted["custom<id>my-zone"]?.radius, 250, "the live registration wins")
         XCTAssertEqual(states["custom<id>my-zone"], .unsatisfied, "a state seen since the open wins")
+    }
+
+    /// A refresh is `stop` then `start` of one identifier, and the acknowledgement for
+    /// the stop arrives on the event stream — so it can land after the re-registration.
+    ///
+    /// Deciding "system drop" by whether the mirror still holds the identifier called
+    /// that a drop, and then evicted a live condition: `publish` could no longer resolve
+    /// its geometry, so every real crossing was discarded, and it vanished from
+    /// `monitoredGeofences` so the sweeps could not stop it either. The position grid
+    /// does this for 13 identifiers on every location update.
+    func test_lateRemovalAck_doesNotEvictAConditionThatWasReRegistered() throws {
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
+        let session = MonitorSession.shared(named: uniqueName("LateAck"))
+        let identifier = "position_translation ne"
+        let assumed = MonitorSession.assumedState(for: identifier)
+
+        session.recordRegistration(identifier: identifier, center: anchor, radius: 140,
+                                   assuming: assumed)
+        _ = session.decide(identifier: identifier, state: .satisfied, eventDate: Date())
+        session.forget(identifier: identifier)
+        session.recordRegistration(identifier: identifier, center: anchor, radius: 140,
+                                   assuming: assumed)
+
+        // The acknowledgement for the *first* registration, arriving late.
+        XCTAssertEqual(session.decide(identifier: identifier, state: .unmonitored,
+                                      eventDate: Date().addingTimeInterval(1)),
+                       .undetermined,
+                       "it acknowledges a registration we already replaced")
+        XCTAssertTrue(session.knownGeofences().contains { $0.identifier == identifier },
+                      "the live condition must stay in the mirror")
+
+        XCTAssertEqual(session.decide(identifier: identifier, state: .unsatisfied,
+                                      eventDate: Date().addingTimeInterval(2)),
+                       .transition(didEnter: false, isInitial: false),
+                       "and its next event is still a crossing, not a first determination")
+    }
+
+    /// The counterpart: with no removal of ours outstanding, an `.unmonitored` is
+    /// CoreLocation dropping the condition by itself and the mirror must let it go.
+    func test_unsolicitedUnmonitored_isStillASystemDrop() throws {
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
+        let session = MonitorSession.shared(named: uniqueName("Unsolicited"))
+        let identifier = "poi<id>dropped<id>"
+        session.recordRegistration(identifier: identifier, center: anchor, radius: 150,
+                                   assuming: MonitorSession.assumedState(for: identifier))
+
+        XCTAssertEqual(session.decide(identifier: identifier, state: .unmonitored,
+                                      eventDate: Date()),
+                       .forget(systemDropped: true))
+        XCTAssertFalse(session.knownGeofences().contains { $0.identifier == identifier })
     }
 }
