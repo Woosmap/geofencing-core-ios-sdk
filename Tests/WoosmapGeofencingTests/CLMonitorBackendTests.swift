@@ -498,7 +498,9 @@ final class CLMonitorBackendTests: XCTestCase {
         let poi = "poi<id>ours<id>"
         session.recordRegistration(identifier: poi, center: anchor, radius: 150,
                                    assuming: MonitorSession.assumedState(for: poi))
+        // What `stop` does: clear the mirror, then record that a remove is queued.
         session.forget(identifier: poi)
+        session.expectRemovalAck(poi)
 
         XCTAssertEqual(session.decide(identifier: poi, state: .unmonitored, eventDate: Date()),
                        .forget(systemDropped: false))
@@ -607,7 +609,9 @@ final class CLMonitorBackendTests: XCTestCase {
         session.recordRegistration(identifier: identifier, center: anchor, radius: 140,
                                    assuming: assumed)
         _ = session.decide(identifier: identifier, state: .satisfied, eventDate: Date())
+        // What `stop` does: clear the mirror, then record that a remove is queued.
         session.forget(identifier: identifier)
+        session.expectRemovalAck(identifier)
         session.recordRegistration(identifier: identifier, center: anchor, radius: 140,
                                    assuming: assumed)
 
@@ -638,5 +642,66 @@ final class CLMonitorBackendTests: XCTestCase {
                                       eventDate: Date()),
                        .forget(systemDropped: true))
         XCTAssertFalse(session.knownGeofences().contains { $0.identifier == identifier })
+    }
+
+    /// CoreLocation has been observed delivering one event twice. The acknowledgement
+    /// count is consumed by the first delivery, so without a duplicate marker the
+    /// second looked unsolicited and evicted the condition that had just been
+    /// re-registered — the exact failure the count exists to prevent, reachable by one
+    /// repeated event.
+    func test_repeatedRemovalAck_isDeduplicatedRatherThanTreatedAsASystemDrop() throws {
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
+        let session = MonitorSession.shared(named: uniqueName("DupAck"))
+        let identifier = "position_translation nw"
+        let assumed = MonitorSession.assumedState(for: identifier)
+        let acked = Date()
+
+        session.recordRegistration(identifier: identifier, center: anchor, radius: 140,
+                                   assuming: assumed)
+        session.expectRemovalAck(identifier)
+        session.recordRegistration(identifier: identifier, center: anchor, radius: 140,
+                                   assuming: assumed)
+
+        XCTAssertEqual(session.decide(identifier: identifier, state: .unmonitored, eventDate: acked),
+                       .undetermined)
+        XCTAssertEqual(session.decide(identifier: identifier, state: .unmonitored, eventDate: acked),
+                       .duplicate,
+                       "the repeat is the same delivery, not CoreLocation dropping it")
+        XCTAssertTrue(session.knownGeofences().contains { $0.identifier == identifier },
+                      "and the live condition survives both deliveries")
+    }
+
+    /// An acknowledgement expected for an identifier the mirror never held must still
+    /// be honoured.
+    ///
+    /// `start` writes the backend registry synchronously while `recordRegistration`
+    /// reaches `persisted` later on the chain, so a `start`/`stop`/`start` inside that
+    /// window enqueues a real `remove` for something `forget` never saw. Counting on
+    /// "the mirror held it" missed those, and the later acknowledgement evicted the
+    /// second registration.
+    ///
+    /// This covers the bookkeeping, not the wiring: it calls `expectRemovalAck`
+    /// directly, so it passes whether or not `stop` remembers to. Driving `stop` itself
+    /// would need the enqueued `add` to be guaranteed not to have landed yet, which the
+    /// chain gives no way to arrange — so that one line is covered by inspection.
+    func test_expectedRemovalAckIsHonouredEvenIfTheMirrorNeverHeldIt() throws {
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
+        let session = MonitorSession.shared(named: uniqueName("EarlyStop"))
+        let identifier = "poi<id>early<id>"
+
+        // stop() ran before the first add reached `persisted`: nothing to forget, but a
+        // remove was still queued.
+        XCTAssertFalse(session.forget(identifier: identifier),
+                       "precondition: the mirror does not hold it yet")
+        session.expectRemovalAck(identifier)
+
+        // The second add lands, then the first remove is acknowledged.
+        session.recordRegistration(identifier: identifier, center: anchor, radius: 150,
+                                   assuming: MonitorSession.assumedState(for: identifier))
+
+        XCTAssertEqual(session.decide(identifier: identifier, state: .unmonitored, eventDate: Date()),
+                       .undetermined)
+        XCTAssertTrue(session.knownGeofences().contains { $0.identifier == identifier },
+                      "the live registration must not be evicted by the earlier remove")
     }
 }

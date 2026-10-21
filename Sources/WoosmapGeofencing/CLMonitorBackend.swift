@@ -132,6 +132,14 @@ internal final class CLMonitorBackend: GeofenceMonitoringBackend {
         // custom limit and sweeps called `stop` on it again.
         let wasRestored = session.forget(identifier: identifier)
         guard wasRegistered || wasRestored else { return }
+        // Counted here rather than inside `forget`, because the acknowledgement
+        // follows the `remove` and this is the only place that knows one is being
+        // enqueued. `forget` sees `persisted`, which `start` has not reached yet: it
+        // writes the registry synchronously while `recordRegistration` lands later on
+        // the chain. A `start`/`stop`/`start` inside that window therefore queued a
+        // real `remove` with nothing recorded, and its acknowledgement — arriving
+        // after the second add — read as a system drop and evicted a live condition.
+        session.expectRemovalAck(identifier)
         enqueue { await $0.remove(identifier: identifier) }
     }
 
@@ -344,6 +352,12 @@ internal final class MonitorSession: @unchecked Sendable {
     /// condition rather than evicting one CoreLocation is still monitoring.
     private var pendingRemovalAcks: [String: Int] = [:]
 
+    /// Records that a `remove` has been enqueued and its acknowledgement is still to
+    /// come. Called from `stop`, which is the only place that knows one was queued.
+    func expectRemovalAck(_ identifier: String) {
+        stateLock.withLock { pendingRemovalAcks[identifier, default: 0] += 1 }
+    }
+
     private let stateLock = NSLock()
 
     /// Tail of the serial chain, so every mutation of the monitor is applied in
@@ -499,11 +513,6 @@ internal final class MonitorSession: @unchecked Sendable {
             retire(identifier)
             let known = persisted.removeValue(forKey: identifier) != nil
             lastHandled[identifier] = nil
-            // Only when we actually held it. A `stop` for something we never
-            // registered produces no `remove`, so no acknowledgement is coming.
-            if known {
-                pendingRemovalAcks[identifier, default: 0] += 1
-            }
             return known
         }
     }
@@ -859,13 +868,19 @@ internal final class MonitorSession: @unchecked Sendable {
                     } else {
                         pendingRemovalAcks[identifier] = outstanding - 1
                     }
+                    // Mark it, so a repeat of the same acknowledgement is caught by
+                    // the duplicate guard above rather than falling through. The count
+                    // has just been consumed, so without a marker the second delivery
+                    // would look unsolicited and evict a live condition — which is the
+                    // failure this whole branch exists to prevent.
+                    lastHandled[identifier] = (eventDate, state, now)
+
                     // Re-registered since we asked: this acknowledges the previous
-                    // registration, and the current one is live. Touch nothing.
+                    // registration, and the current one is live. Leave it alone.
                     if persisted[identifier] != nil {
                         return .undetermined
                     }
                     lastStates[identifier] = nil
-                    lastHandled[identifier] = nil
                     return .forget(systemDropped: false)
                 }
 
@@ -875,7 +890,7 @@ internal final class MonitorSession: @unchecked Sendable {
                 // `monitoredGeofences`, the custom-region budget and the sweeps all
                 // read that.
                 lastStates[identifier] = nil
-                lastHandled[identifier] = nil
+                lastHandled[identifier] = (eventDate, state, now)
                 persisted[identifier] = nil
                 return .forget(systemDropped: true)
             }
