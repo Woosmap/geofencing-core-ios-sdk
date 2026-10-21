@@ -819,9 +819,27 @@ internal final class MonitorSession: @unchecked Sendable {
             switch state {
             case .satisfied, .unsatisfied:
                 lastHandled[identifier] = (eventDate, state, now)
-                let isInitial = lastStates[identifier] == nil
+
+                // Three cases, decided by comparing against the previous state rather
+                // than merely testing that one exists.
+                guard let previous = lastStates[identifier] else {
+                    lastStates[identifier] = state
+                    return .transition(didEnter: state == .satisfied, isInitial: true)
+                }
+                guard previous != state else {
+                    // Unchanged. A refresh is a remove and an immediate re-add of the
+                    // same circle, and POI and custom conditions are seeded `.unknown`,
+                    // so CoreLocation is guaranteed to resolve and report them again.
+                    // `restoreRetiredState` has just put the old state back, so asking
+                    // only whether one exists called that a crossing: the gate in
+                    // `handle(transition:)` then let it through and every unchanged
+                    // refresh ran a full teardown and restart.
+                    //
+                    // Nothing happened, so report nothing.
+                    return .undetermined
+                }
                 lastStates[identifier] = state
-                return .transition(didEnter: state == .satisfied, isInitial: isInitial)
+                return .transition(didEnter: state == .satisfied, isInitial: false)
 
             case .unknown:
                 // State not yet resolved. Nothing to report, and the last known

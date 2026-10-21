@@ -539,11 +539,17 @@ final class CLMonitorBackendTests: XCTestCase {
                        .transition(didEnter: true, isInitial: true),
                        "the oldest retirement is the one the bound should have dropped")
 
+        // Probed with the *opposite* state. Each identifier was retired at
+        // `.satisfied`, and an unchanged state now stands down rather than reporting a
+        // crossing — so feeding `.satisfied` here could no longer tell a restored state
+        // from an evicted one. `.unsatisfied` distinguishes them: restored gives a
+        // crossing against the remembered `.satisfied`, evicted gives a first
+        // determination.
         let newest = identifier(total - 1)
         session.recordRegistration(identifier: newest, center: anchor, radius: 100,
                                    assuming: MonitorSession.assumedState(for: newest))
-        XCTAssertEqual(session.decide(identifier: newest, state: .satisfied, eventDate: Date()),
-                       .transition(didEnter: true, isInitial: false),
+        XCTAssertEqual(session.decide(identifier: newest, state: .unsatisfied, eventDate: Date()),
+                       .transition(didEnter: false, isInitial: false),
                        "the most recent retirement must survive to be claimed by its refresh")
     }
 
@@ -703,5 +709,41 @@ final class CLMonitorBackendTests: XCTestCase {
                        .undetermined)
         XCTAssertTrue(session.knownGeofences().contains { $0.identifier == identifier },
                       "the live registration must not be evicted by the earlier remove")
+    }
+
+    /// An unchanged refresh must report nothing.
+    ///
+    /// POI and custom conditions are seeded `.unknown`, so CoreLocation resolves and
+    /// reports them again on every re-registration. `forget` retires the prior state and
+    /// `recordRegistration` restores it for identical geometry — so asking only whether
+    /// a last state *exists* called the re-report a crossing. The gate in
+    /// `handle(transition:)` then let it through, and a stationary refresh ran a full
+    /// teardown and restart of every monitored region.
+    func test_unchangedStateAcrossARefresh_reportsNothing() throws {
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
+        let session = MonitorSession.shared(named: uniqueName("Unchanged"))
+        let poi = "poi<id>stationary<id>"
+        let assumed = MonitorSession.assumedState(for: poi)
+
+        session.recordRegistration(identifier: poi, center: anchor, radius: 150, assuming: assumed)
+        XCTAssertEqual(session.decide(identifier: poi, state: .satisfied, eventDate: Date()),
+                       .transition(didEnter: true, isInitial: true),
+                       "the first determination still reports the user is inside")
+
+        // A refresh: same identifier, same circle, user has not moved.
+        session.forget(identifier: poi)
+        session.expectRemovalAck(poi)
+        session.recordRegistration(identifier: poi, center: anchor, radius: 150, assuming: assumed)
+
+        XCTAssertEqual(session.decide(identifier: poi, state: .satisfied,
+                                      eventDate: Date().addingTimeInterval(60)),
+                       .undetermined,
+                       "nothing changed, so nothing is reported and no restart is triggered")
+
+        // And a genuine crossing afterwards still reports.
+        XCTAssertEqual(session.decide(identifier: poi, state: .unsatisfied,
+                                      eventDate: Date().addingTimeInterval(120)),
+                       .transition(didEnter: false, isInitial: false),
+                       "leaving is still a crossing")
     }
 }
