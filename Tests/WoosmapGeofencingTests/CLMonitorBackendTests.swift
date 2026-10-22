@@ -746,4 +746,40 @@ final class CLMonitorBackendTests: XCTestCase {
                        .transition(didEnter: false, isInitial: false),
                        "leaving is still a crossing")
     }
+
+    // MARK: - Teardown
+
+    /// `stopTracking()` must let go of conditions restored from a previous process, not
+    /// only the ones this process registered.
+    ///
+    /// The mirror is filled asynchronously by the `open()` that `init` enqueues, so a
+    /// cold launch followed promptly by a stop reached the old teardown — a loop over
+    /// the listing — with nothing in it. It stopped nothing, and the restore then
+    /// brought those conditions back, still live and still waking the app after the
+    /// integrator had disabled tracking.
+    ///
+    /// This covers the bookkeeping. The ordering itself — that `stopAll` is queued
+    /// behind `open()` rather than racing it — is a property of the one FIFO chain and
+    /// is covered by inspection: reproducing the race would need the restore held open,
+    /// which the chain gives no way to arrange.
+    func test_forgetAll_dropsRestoredConditionsAsWellAsRegisteredOnes() throws {
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
+        let session = MonitorSession.shared(named: uniqueName("TearDown"))
+        let restored = "custom<id>from-a-previous-launch"
+        let registered = "poi<id>this-launch<id>"
+
+        for identifier in [restored, registered] {
+            session.recordRegistration(identifier: identifier, center: anchor, radius: 150,
+                                       assuming: MonitorSession.assumedState(for: identifier))
+        }
+        _ = session.decide(identifier: registered, state: .satisfied, eventDate: Date())
+
+        let dropped = session.forgetAll()
+
+        XCTAssertEqual(Set(dropped), [restored, registered])
+        XCTAssertTrue(session.knownGeofences().isEmpty, "the mirror keeps nothing back")
+        XCTAssertEqual(session.decide(identifier: registered, state: .satisfied, eventDate: Date()),
+                       .transition(didEnter: true, isInitial: true),
+                       "and no remembered state survives either")
+    }
 }

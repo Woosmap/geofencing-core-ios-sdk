@@ -92,6 +92,14 @@ internal protocol GeofenceMonitoringBackend: AnyObject {
     /// Only the legacy backend needs this, because `CLLocationManagerDelegate` is
     /// implemented by the service rather than by the backend. A `CLMonitor` backend
     /// owns its own event stream and drives `onTransition` directly.
+    /// Stops everything this backend monitors, including conditions it restored from a
+    /// previous process rather than registering itself.
+    ///
+    /// Separate from looping `stop(identifier:)` over a listing, because on a backend
+    /// with an asynchronous store that listing can still be empty. Teardown has to be
+    /// the backend's own operation so it can be ordered behind the work that fills it.
+    func stopAll()
+
     func reportPlatformEvent(region: CLCircularRegion, didEnter: Bool)
 }
 
@@ -149,6 +157,15 @@ internal final class LegacyRegionBackend: GeofenceMonitoringBackend {
     func stop(identifier: String) {
         guard let manager = locationManager() else { return }
         for region in circularRegions(of: manager) where region.identifier == identifier {
+            manager.stopMonitoring(for: region)
+        }
+    }
+
+    /// Nothing is asynchronous here: the manager's set is the whole truth, so this is
+    /// the loop the caller used to do. Beacons are untouched, as with `stop`.
+    func stopAll() {
+        guard let manager = locationManager() else { return }
+        for region in circularRegions(of: manager) {
             manager.stopMonitoring(for: region)
         }
     }

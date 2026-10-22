@@ -143,6 +143,23 @@ internal final class CLMonitorBackend: GeofenceMonitoringBackend {
         enqueue { await $0.remove(identifier: identifier) }
     }
 
+    /// Queued behind whatever is already on the chain — including the `open()` that
+    /// `init` enqueues.
+    ///
+    /// That ordering is the point. `open()` is what reads `CLMonitor`'s persistent store
+    /// and fills the mirror with conditions left by a previous process, and it completes
+    /// asynchronously. A teardown that looped over the mirror instead could run first,
+    /// find it empty, stop nothing, and leave those conditions live — still waking the
+    /// app after the integrator called `stopTracking()`. Going through the chain means
+    /// this cannot start until the restore has finished.
+    ///
+    /// The registry is cleared synchronously too, so a read taken straight after the
+    /// call does not still claim them.
+    func stopAll() {
+        lock.withLock { registry.removeAll() }
+        enqueue { await $0.removeAll() }
+    }
+
     /// Unused on this backend: `CLMonitor` owns its event stream, so nothing
     /// feeds it platform callbacks. Present only to satisfy the protocol, which
     /// the legacy backend needs because the service implements its delegate.
@@ -457,6 +474,37 @@ internal final class MonitorSession: @unchecked Sendable {
         // Every other `position…` identifier is a grid translation.
         if identifier.hasPrefix(RegionType.position.rawValue) { return .unsatisfied }
         return .unknown
+    }
+
+    /// Removes every condition the monitor holds, ours and restored alike.
+    ///
+    /// Reads the identifiers from `CLMonitor` rather than from the mirror: the store is
+    /// the authority on what is being monitored, and the point of this call is to catch
+    /// what the mirror does not know about yet. Everything in it belongs to this SDK —
+    /// the store is keyed by our monitor name — so there is no third party to spare
+    /// here, unlike `CLLocationManager.monitoredRegions`.
+    func removeAll() async {
+        let monitor = await activeMonitor()
+        for identifier in await monitor.identifiers {
+            await monitor.remove(identifier)
+        }
+        forgetAll()
+    }
+
+    /// Drops every mirror entry and returns what was dropped. Separated from
+    /// `removeAll` so the bookkeeping is testable without a real `CLMonitor`.
+    @discardableResult
+    func forgetAll() -> [String] {
+        stateLock.withLock {
+            let dropped = Array(persisted.keys)
+            persisted.removeAll()
+            lastStates.removeAll()
+            lastHandled.removeAll()
+            retiredStates.removeAll()
+            retiredOrder.removeAll()
+            pendingRemovalAcks.removeAll()
+            return dropped
+        }
     }
 
     func remove(identifier: String) async {

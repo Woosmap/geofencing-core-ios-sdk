@@ -79,6 +79,15 @@ final class RecordingBackend: GeofenceMonitoringBackend {
         stopped.append(identifier)
     }
 
+    /// Recorded separately from `stopped`, so a test can tell a teardown that went
+    /// through the backend apart from one that looped identifiers.
+    private(set) var stopAllCalls = 0
+    func stopAll() {
+        stopAllCalls += 1
+        stopped.append(contentsOf: monitoredGeofences.map { $0.identifier })
+        monitoredGeofences.removeAll()
+    }
+
     func reportPlatformEvent(region: CLCircularRegion, didEnter: Bool) {
         reported.append((region.identifier, didEnter))
     }
