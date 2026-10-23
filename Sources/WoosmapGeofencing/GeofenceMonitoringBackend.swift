@@ -10,8 +10,16 @@
 import Foundation
 import CoreLocation
 
+/// A circular geofence as the SDK describes it, independent of whichever
+/// platform API is monitoring it.
+internal struct CircularGeofence {
+    let identifier: String
+    let center: CLLocationCoordinate2D
+    let radius: CLLocationDistance
+}
+
 /// A circular geofence transition observed by a monitoring backend.
-internal struct GeofenceTransition {
+internal struct GeofenceTransition: Sendable {
 
     /// Identifier of the region that was crossed, in the SDK's own
     /// `poi<id>…<id>` / `custom<id>…` / `position…` scheme.
@@ -41,18 +49,34 @@ internal struct GeofenceTransition {
 /// `CLLocationManager` directly, because `CLMonitor` has no beacon equivalent.
 internal protocol GeofenceMonitoringBackend: AnyObject {
 
-    /// Identifiers of every circular region currently monitored.
+    /// Every circular geofence currently monitored, with its geometry.
     ///
     /// Beacon regions are excluded even though they share the `poi<id>…<id>`
     /// identifier scheme.
     ///
-    /// Not yet consumed by `LocationServiceCoreImpl`, which still reads
-    /// `CLLocationManager.monitoredRegions` directly — see the note on
-    /// `monitoringBackend` for why those reads are deliberately deferred.
-    var monitoredCircularIdentifiers: Set<String> { get }
+    /// Carries centre and radius, not just identifiers: callers reconstruct
+    /// `CLCircularRegion` for the public API, test containment, and match by
+    /// centre, none of which an identifier alone supports.
+    var monitoredGeofences: [CircularGeofence] { get }
+
+    /// `true` when the backend reports a region's initial state by itself.
+    ///
+    /// `CLMonitor` does, given a seeded assumption, which makes the SDK's manual
+    /// "already inside" check redundant and a source of duplicate enter events.
+    /// `CLLocationManager` does not — it only reports crossings.
+    var reportsInitialState: Bool { get }
+
+    /// `true` when the backend's circular regions live in `CLLocationManager`'s
+    /// own persistent store, so what the manager reports *is* this backend's state.
+    ///
+    /// `false` means the backend keeps a store of its own — `CLMonitor` does — and
+    /// any circular region the manager still holds was put there by something
+    /// else, in practice an older release of the SDK before an app upgrade. See
+    /// `LocationServiceCoreImpl.adoptLegacyCircularRegions()`.
+    var usesPlatformRegionStore: Bool { get }
 
     /// Invoked for every transition the backend observes.
-    var onTransition: ((GeofenceTransition) -> Void)? { get set }
+    var onTransition: (@Sendable (GeofenceTransition) -> Void)? { get set }
 
     /// Begins monitoring a circular geofence. Replaces any region already
     /// monitored under the same identifier, matching `CLLocationManager`.
@@ -62,6 +86,14 @@ internal protocol GeofenceMonitoringBackend: AnyObject {
     /// sharing the identifier is left alone.
     func stop(identifier: String)
 
+    /// Stops everything this backend monitors, including conditions it restored from a
+    /// previous process rather than registering itself.
+    ///
+    /// Separate from looping `stop(identifier:)` over a listing, because on a backend
+    /// with an asynchronous store that listing can still be empty. Teardown has to be
+    /// the backend's own operation so it can be ordered behind the work that fills it.
+    func stopAll()
+
     /// Feeds a platform-level region event into the backend, which normalises it
     /// and re-emits it through `onTransition`.
     ///
@@ -69,6 +101,14 @@ internal protocol GeofenceMonitoringBackend: AnyObject {
     /// implemented by the service rather than by the backend. A `CLMonitor` backend
     /// owns its own event stream and drives `onTransition` directly.
     func reportPlatformEvent(region: CLCircularRegion, didEnter: Bool)
+}
+
+internal extension GeofenceMonitoringBackend {
+
+    /// Identifiers of every circular region currently monitored.
+    var monitoredCircularIdentifiers: Set<String> {
+        Set(monitoredGeofences.map { $0.identifier })
+    }
 }
 
 /// Monitoring backend that preserves the pre-migration behaviour exactly:
@@ -86,14 +126,23 @@ internal final class LegacyRegionBackend: GeofenceMonitoringBackend {
     /// toggled and by tests installing a fake.
     private let locationManager: () -> LocationManagerProtocol?
 
-    var onTransition: ((GeofenceTransition) -> Void)?
+    /// This backend *is* `CLLocationManager`'s store, so there is nothing to
+    /// adopt and nothing the SDK did not put there itself.
+    let usesPlatformRegionStore = true
+
+    var onTransition: (@Sendable (GeofenceTransition) -> Void)?
 
     init(locationManager: @escaping () -> LocationManagerProtocol?) {
         self.locationManager = locationManager
     }
 
-    var monitoredCircularIdentifiers: Set<String> {
-        Set(circularRegions().map { $0.identifier })
+    /// `CLLocationManager` only ever reports crossings, never an initial state.
+    let reportsInitialState = false
+
+    var monitoredGeofences: [CircularGeofence] {
+        circularRegions().map {
+            CircularGeofence(identifier: $0.identifier, center: $0.center, radius: $0.radius)
+        }
     }
 
     func start(identifier: String, center: CLLocationCoordinate2D, radius: CLLocationDistance) {
@@ -108,6 +157,26 @@ internal final class LegacyRegionBackend: GeofenceMonitoringBackend {
     func stop(identifier: String) {
         guard let manager = locationManager() else { return }
         for region in circularRegions(of: manager) where region.identifier == identifier {
+            manager.stopMonitoring(for: region)
+        }
+    }
+
+    /// Nothing is asynchronous here: the manager's set is the whole truth, so this is
+    /// the loop the caller used to do. Beacons are untouched, as with `stop`.
+    ///
+    /// Filtered on the SDK's own identifier grammar, because
+    /// `CLLocationManager.monitoredRegions` is per-app rather than per-manager: a
+    /// geofence the host app or another SDK registered sits in the same set. An
+    /// unfiltered sweep stopped those too — silently, with no callback to their owner,
+    /// while the caller's own loop had just logged that it was skipping them.
+    ///
+    /// `adoptableRegionType` rather than `getRegionType`, for the same reason adoption
+    /// uses it: a substring match would classify a host region called
+    /// `host-waypoint-home` as ours.
+    func stopAll() {
+        guard let manager = locationManager() else { return }
+        for region in circularRegions(of: manager)
+        where LocationServiceCoreImpl.adoptableRegionType(of: region.identifier) != .none {
             manager.stopMonitoring(for: region)
         }
     }
