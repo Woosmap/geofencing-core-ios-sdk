@@ -172,6 +172,13 @@ public class LocationServiceCoreImpl: NSObject,
         var adopted = 0
         var discardedGridCells = 0
         for region in legacy {
+            // Already a `CLMonitor` condition, surfaced through the legacy view with a
+            // namespace. Adopting one would register a duplicate under the namespaced
+            // identifier and stop the original, so it is skipped explicitly rather than
+            // by the classifier failing to recognise it — which is what used to happen,
+            // and which would break the moment the classifier learned about the prefix.
+            guard !Self.isMonitorNamespaced(region.identifier) else { continue }
+
             switch Self.adoptableRegionType(of: region.identifier) {
             case .custom, .poi:
                 monitoringBackend.start(identifier: region.identifier,
@@ -185,7 +192,9 @@ public class LocationServiceCoreImpl: NSObject,
                 manager.stopMonitoring(for: region)
                 discardedGridCells += 1
             default:
-                // Someone else's region — `.none` from the classifier above. `CLLocationManager.monitoredRegions` is
+                // Someone else's region — `.none` from the classifier above, and not one
+                // of ours arriving namespaced, which the guard above has already taken
+                // out. `CLLocationManager.monitoredRegions` is
                 // per-app, not per-manager, so a geofence registered by the host app
                 // or another SDK shows up here too. Taking it would stop it on its
                 // owner's behalf and leave it mute: an unrecognised identifier is
@@ -1355,17 +1364,37 @@ public class LocationServiceCoreImpl: NSObject,
     /// other caller passes an identifier the SDK wrote, where `contains` is harmless;
     /// tightening it would change behaviour for callers that are not in danger.
     internal static func adoptableRegionType(of identifier: String) -> RegionType {
-        if identifier.hasPrefix(RegionType.poi.rawValue + "<id>") { return .poi }
-        if identifier.hasPrefix(RegionType.custom.rawValue + "<id>") { return .custom }
+        let bare = bareIdentifier(of: identifier)
+        if bare.hasPrefix(RegionType.poi.rawValue + "<id>") { return .poi }
+        if bare.hasPrefix(RegionType.custom.rawValue + "<id>") { return .custom }
         // Rings are `position_radius …`; translations are `position_translation …`,
         // except the one `RegionGenerator` has built without the underscore since 2022.
         let grid = RegionType.position.rawValue
-        if identifier.hasPrefix(grid + "_radius")
-            || identifier.hasPrefix(grid + "_translation")
-            || identifier.hasPrefix(grid + "translation") {
+        if bare.hasPrefix(grid + "_radius")
+            || bare.hasPrefix(grid + "_translation")
+            || bare.hasPrefix(grid + "translation") {
             return .position
         }
         return RegionType.none
+    }
+
+    /// Whether this identifier reached us through `CLLocationManager`'s view of a
+    /// `CLMonitor` condition.
+    ///
+    /// CoreLocation namespaces conditions as `<bundle identifier>::<identifier>` when it
+    /// surfaces them in `monitoredRegions`. Read the same condition back from `CLMonitor`
+    /// and the identifier is unchanged, so the prefix describes the *view*, not the
+    /// region — and its presence is a reliable signal that the condition is already
+    /// monitored by `CLMonitor`.
+    internal static func isMonitorNamespaced(_ identifier: String) -> Bool {
+        identifier.range(of: "::") != nil
+    }
+
+    /// The identifier with any `CLMonitor` namespace removed, so one grammar answers for
+    /// both views.
+    internal static func bareIdentifier(of identifier: String) -> String {
+        guard let separator = identifier.range(of: "::") else { return identifier }
+        return String(identifier[separator.upperBound...])
     }
 
     public func getRegionType(identifier: String) -> RegionType {

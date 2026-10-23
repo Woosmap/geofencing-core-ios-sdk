@@ -431,6 +431,55 @@ final class MonitoringSeamTests: XCTestCase {
 
         XCTAssertTrue(manager.monitoredRegions.isEmpty)
     }
+
+    // MARK: - The CLMonitor namespace in the legacy view
+
+    /// CoreLocation surfaces a `CLMonitor` condition through `monitoredRegions` as
+    /// `<bundle identifier>::<identifier>`; read back from `CLMonitor` it is unchanged.
+    /// One grammar has to answer for both views, so the classifier strips the namespace.
+    func test_adoptableRegionType_readsThroughTheMonitorNamespace() {
+        let cases: [(String, RegionType)] = [
+            ("poi<id>store-A<id>", .poi),
+            ("com.woosmap.app.ClickCollect::poi<id>sam_home", .poi),
+            ("custom<id>my-zone", .custom),
+            ("com.woosmap.app.ClickCollect::custom<id>my-zone", .custom),
+            ("position_radius 200.0", .position),
+            ("com.woosmap.app.ClickCollect::position_radius 200.0", .position),
+        ]
+        for (identifier, expected) in cases {
+            XCTAssertEqual(LocationServiceCoreImpl.adoptableRegionType(of: identifier), expected, identifier)
+        }
+
+        // Still strict about the grammar once the namespace is off: a substring match
+        // would claim the first two.
+        for identifier in ["host-waypoint-home", "com.acme.app::host-waypoint-home",
+                           "acme-custom-zone", "home-arrival"] {
+            XCTAssertEqual(LocationServiceCoreImpl.adoptableRegionType(of: identifier),
+                           RegionType.none, identifier)
+        }
+    }
+
+    /// A namespaced condition is already monitored by `CLMonitor`. Adopting one would
+    /// register a duplicate under the namespaced identifier and stop the original, so the
+    /// pass skips it on the namespace rather than on the classifier failing to match.
+    func test_adoption_skipsConditionsAlreadyHeldByCLMonitor() {
+        let fromAnOlderRelease = CLCircularRegion(center: anchor, radius: 100,
+                                                  identifier: "poi<id>store-A<id>")
+        let alreadyOnCLMonitor = CLCircularRegion(center: anchor, radius: 100,
+                                                  identifier: "com.woosmap.app.ClickCollect::poi<id>sam_home")
+        for region in [fromAnOlderRelease, alreadyOnCLMonitor] {
+            manager.startMonitoring(for: region)
+        }
+
+        service.adoptLegacyCircularRegions()
+
+        XCTAssertEqual(backend.started.map { $0.identifier }, ["poi<id>store-A<id>"],
+                       "only the region left by the older release is taken")
+        XCTAssertEqual(manager.monitoredRegions.map { $0.identifier },
+                       ["com.woosmap.app.ClickCollect::poi<id>sam_home"],
+                       "and the CLMonitor condition is left exactly as it was")
+    }
+
 }
 
 /// Minimal region delegate recorder for these tests.
