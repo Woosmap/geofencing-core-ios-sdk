@@ -392,6 +392,45 @@ final class MonitoringSeamTests: XCTestCase {
 
         XCTAssertEqual(backend.started.count, 1)
     }
+
+    // MARK: - Teardown spares what is not ours
+
+    /// `CLLocationManager.monitoredRegions` is per-app, not per-manager, so a geofence
+    /// the host app registered sits in the same set as the SDK's.
+    ///
+    /// An unfiltered `stopAll` stopped those too — with no callback to their owner, and
+    /// while the caller's own loop had just logged that it was skipping them. The log
+    /// said one thing and the manager did the opposite.
+    func test_legacyStopAll_sparesRegionsTheSDKDidNotRegister() {
+        let legacy = LegacyRegionBackend(locationManager: { [weak self] in self?.manager })
+        let foreign = CLCircularRegion(center: anchor, radius: 50, identifier: "home-arrival")
+        // Contains "poi" inside "waypoint", so a substring match would claim it.
+        let lookalike = CLCircularRegion(center: anchor, radius: 60, identifier: "host-waypoint-home")
+        let ours = CLCircularRegion(center: anchor, radius: 100, identifier: "custom<id>my-zone")
+        for region in [foreign, lookalike, ours] {
+            manager.startMonitoring(for: region)
+        }
+
+        legacy.stopAll()
+
+        XCTAssertEqual(Set(manager.monitoredRegions.map { $0.identifier }),
+                       ["home-arrival", "host-waypoint-home"],
+                       "only the SDK's own region is stopped")
+    }
+
+    /// And it still clears everything that *is* ours, including the grid.
+    func test_legacyStopAll_stopsEveryRegionTheSDKRegistered() {
+        let legacy = LegacyRegionBackend(locationManager: { [weak self] in self?.manager })
+        for identifier in ["custom<id>my-zone", "poi<id>store-A<id>",
+                           "position_radius 200.0", "position_translation nw"] {
+            manager.startMonitoring(for: CLCircularRegion(center: anchor, radius: 100,
+                                                          identifier: identifier))
+        }
+
+        legacy.stopAll()
+
+        XCTAssertTrue(manager.monitoredRegions.isEmpty)
+    }
 }
 
 /// Minimal region delegate recorder for these tests.

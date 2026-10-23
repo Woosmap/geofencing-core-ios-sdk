@@ -163,9 +163,20 @@ internal final class LegacyRegionBackend: GeofenceMonitoringBackend {
 
     /// Nothing is asynchronous here: the manager's set is the whole truth, so this is
     /// the loop the caller used to do. Beacons are untouched, as with `stop`.
+    ///
+    /// Filtered on the SDK's own identifier grammar, because
+    /// `CLLocationManager.monitoredRegions` is per-app rather than per-manager: a
+    /// geofence the host app or another SDK registered sits in the same set. An
+    /// unfiltered sweep stopped those too — silently, with no callback to their owner,
+    /// while the caller's own loop had just logged that it was skipping them.
+    ///
+    /// `adoptableRegionType` rather than `getRegionType`, for the same reason adoption
+    /// uses it: a substring match would classify a host region called
+    /// `host-waypoint-home` as ours.
     func stopAll() {
         guard let manager = locationManager() else { return }
-        for region in circularRegions(of: manager) {
+        for region in circularRegions(of: manager)
+        where LocationServiceCoreImpl.adoptableRegionType(of: region.identifier) != .none {
             manager.stopMonitoring(for: region)
         }
     }
