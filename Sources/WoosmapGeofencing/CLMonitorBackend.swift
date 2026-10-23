@@ -153,8 +153,14 @@ internal final class CLMonitorBackend: GeofenceMonitoringBackend {
     /// app after the integrator called `stopTracking()`. Going through the chain means
     /// this cannot start until the restore has finished.
     ///
-    /// The registry is cleared synchronously too, so a read taken straight after the
-    /// call does not still claim them.
+    /// Only the registry is cleared synchronously — this process's own registrations.
+    /// The session's `persisted` mirror, which holds conditions restored from a previous
+    /// process, is cleared by `removeAll` when the queued work runs. `monitoredGeofences`
+    /// merges both, so between this call and that work it can still report a restored
+    /// condition. Nothing acts on that window today, and clearing `persisted` here would
+    /// be safe — `removeAll` reads identifiers from `CLMonitor` rather than from the
+    /// mirror — but it is a behaviour change rather than a comment fix, so it is written
+    /// down rather than done.
     func stopAll() {
         lock.withLock { registry.removeAll() }
         enqueue { await $0.removeAll() }
