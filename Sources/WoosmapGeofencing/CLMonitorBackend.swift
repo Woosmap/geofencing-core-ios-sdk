@@ -491,16 +491,28 @@ internal final class MonitorSession: @unchecked Sendable {
     /// here, unlike `CLLocationManager.monitoredRegions`.
     func removeAll() async {
         let monitor = await activeMonitor()
-        for identifier in await monitor.identifiers {
+        let identifiers = await monitor.identifiers
+        for identifier in identifiers {
             await monitor.remove(identifier)
         }
-        forgetAll()
+        // Each `remove` above is acknowledged on the event stream, and those
+        // acknowledgements land after this returns. `forgetAll` resets the pending
+        // counts, so they have to be re-recorded for the removals we just asked for —
+        // otherwise every one arrives looking unsolicited, `decide` calls it a system
+        // drop, and `stopTracking()` logs a warning per condition about CoreLocation
+        // stopping something we stopped ourselves.
+        forgetAll(expectingAcksFor: Array(identifiers))
     }
 
     /// Drops every mirror entry and returns what was dropped. Separated from
     /// `removeAll` so the bookkeeping is testable without a real `CLMonitor`.
+    ///
+    /// `expectingAcksFor` re-records pending acknowledgements after the reset, for
+    /// removals that have been asked for and not yet acknowledged. Teardown needs it:
+    /// the acknowledgements for the removals it just issued arrive afterwards, and
+    /// without a count each one reads as CoreLocation dropping a condition on its own.
     @discardableResult
-    func forgetAll() -> [String] {
+    func forgetAll(expectingAcksFor pending: [String] = []) -> [String] {
         stateLock.withLock {
             let dropped = Array(persisted.keys)
             persisted.removeAll()
@@ -509,6 +521,9 @@ internal final class MonitorSession: @unchecked Sendable {
             retiredStates.removeAll()
             retiredOrder.removeAll()
             pendingRemovalAcks.removeAll()
+            for identifier in pending {
+                pendingRemovalAcks[identifier, default: 0] += 1
+            }
             return dropped
         }
     }

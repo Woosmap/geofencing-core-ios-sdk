@@ -782,4 +782,45 @@ final class CLMonitorBackendTests: XCTestCase {
                        .transition(didEnter: true, isInitial: true),
                        "and no remembered state survives either")
     }
+
+    /// Teardown removes every condition, and each removal is acknowledged afterwards on
+    /// the event stream. Those acknowledgements are ours.
+    ///
+    /// `forgetAll` resets the pending counts, so without re-recording them every
+    /// acknowledgement arrived looking unsolicited: `decide` called it a system drop and
+    /// `stopTracking()` logged a warning per condition saying CoreLocation had stopped
+    /// something the SDK stopped itself.
+    func test_teardownAcknowledgements_areNotReportedAsSystemDrops() throws {
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
+        let session = MonitorSession.shared(named: uniqueName("TearAck"))
+        let identifiers = ["poi<id>a<id>", "custom<id>my-zone"]
+        for identifier in identifiers {
+            session.recordRegistration(identifier: identifier, center: anchor, radius: 150,
+                                       assuming: MonitorSession.assumedState(for: identifier))
+        }
+
+        session.forgetAll(expectingAcksFor: identifiers)
+
+        for identifier in identifiers {
+            XCTAssertEqual(session.decide(identifier: identifier, state: .unmonitored,
+                                          eventDate: Date()),
+                           .forget(systemDropped: false),
+                           "we asked for this removal, so it is not CoreLocation acting alone")
+        }
+    }
+
+    /// And a drop that genuinely was not ours still reports as one after a teardown.
+    func test_afterTeardown_anUnsolicitedUnmonitoredIsStillASystemDrop() throws {
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
+        let session = MonitorSession.shared(named: uniqueName("TearAckOther"))
+        session.recordRegistration(identifier: "poi<id>a<id>", center: anchor, radius: 150,
+                                   assuming: MonitorSession.assumedState(for: "poi<id>a<id>"))
+
+        session.forgetAll(expectingAcksFor: ["poi<id>a<id>"])
+
+        XCTAssertEqual(session.decide(identifier: "poi<id>never-removed<id>",
+                                      state: .unmonitored, eventDate: Date()),
+                       .forget(systemDropped: true))
+    }
 }
+
