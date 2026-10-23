@@ -86,12 +86,6 @@ internal protocol GeofenceMonitoringBackend: AnyObject {
     /// sharing the identifier is left alone.
     func stop(identifier: String)
 
-    /// Feeds a platform-level region event into the backend, which normalises it
-    /// and re-emits it through `onTransition`.
-    ///
-    /// Only the legacy backend needs this, because `CLLocationManagerDelegate` is
-    /// implemented by the service rather than by the backend. A `CLMonitor` backend
-    /// owns its own event stream and drives `onTransition` directly.
     /// Stops everything this backend monitors, including conditions it restored from a
     /// previous process rather than registering itself.
     ///
@@ -100,6 +94,12 @@ internal protocol GeofenceMonitoringBackend: AnyObject {
     /// the backend's own operation so it can be ordered behind the work that fills it.
     func stopAll()
 
+    /// Feeds a platform-level region event into the backend, which normalises it
+    /// and re-emits it through `onTransition`.
+    ///
+    /// Only the legacy backend needs this, because `CLLocationManagerDelegate` is
+    /// implemented by the service rather than by the backend. A `CLMonitor` backend
+    /// owns its own event stream and drives `onTransition` directly.
     func reportPlatformEvent(region: CLCircularRegion, didEnter: Bool)
 }
 

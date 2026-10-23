@@ -10,9 +10,11 @@ let package = Package(
     // unbuildable, framework included — and the podspec follows it, so a
     // consumer gets the same answer however it integrates.
     //
-    // The tools version above is 5.10, matching the podspec's `swift_versions`.
-    // It is set by what the sources actually need, not by `.v15` (which only needs
-    // 5.5). Three things set it, and the highest wins:
+    // The tools version above is 5.10. It is deliberately *not* the podspec's
+    // `swift_versions`, which is the Swift language mode — `['5.0']`, the same value the
+    // Xcode project uses — and has nowhere to express a compiler floor. This one is the
+    // compiler floor, set by what the sources actually need rather than by `.v15` (which
+    // only needs 5.5). Three things set it, and the highest wins:
     //   - `CLMonitor` exists only in the iOS 17 SDK, so nothing below Xcode 15 builds.
     //   - `CLServiceSession` and the iOS 18 `CLMonitor.Event` diagnostic flags need the
     //     iOS 18 SDK, so nothing below Xcode 16 builds — the `@available` guards on

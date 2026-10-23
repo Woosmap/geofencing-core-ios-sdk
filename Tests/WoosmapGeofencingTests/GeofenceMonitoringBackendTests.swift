@@ -286,6 +286,73 @@ final class GeofenceMonitoringBackendTests: XCTestCase {
                        "and one location-update restart")
     }
 
+    /// The gate in `handle(transition:)`, on the backend that actually has initial
+    /// states to gate.
+    ///
+    /// Its own comment says missing either half of the seeding silently kills the grid
+    /// wake-up, and it is what stops a Search API refresh registering N conditions from
+    /// running N teardown cycles. `test_legacyCrossing_restartsTheServicesExactlyOnce`
+    /// covers the legacy path, where `initialState` is hardcoded false and the gate is
+    /// therefore inert — so nothing covered the branch that matters.
+    func test_initialDeterminationFromTheBackend_doesNotRestartServices() {
+        let manager = FakeLocationManager()
+        manager.stubbedAuthorizationStatus = .authorizedAlways
+        let service = LocationServiceCoreImpl(locationManger: manager)
+        let backend = RecordingBackend()
+        backend.reportsInitialState = true
+        service.monitoringBackend = backend
+        trackingEnable = true
+        defer { trackingEnable = false }
+
+        let before = (manager.significantChangeStarts, manager.startUpdatingCalls)
+        backend.onTransition?(GeofenceTransition(identifier: "poi<id>bakery<id>",
+                                                 center: anchor, radius: 150,
+                                                 didEnter: true, initialState: true))
+
+        XCTAssertEqual(manager.significantChangeStarts - before.0, 0,
+                       "a determination is CoreLocation reporting where we already were")
+        XCTAssertEqual(manager.startUpdatingCalls - before.1, 0)
+    }
+
+    /// And a real crossing on the same backend restarts exactly once — so the gate is
+    /// not simply refusing everything.
+    func test_crossingFromTheBackend_restartsServicesExactlyOnce() {
+        let manager = FakeLocationManager()
+        manager.stubbedAuthorizationStatus = .authorizedAlways
+        let service = LocationServiceCoreImpl(locationManger: manager)
+        let backend = RecordingBackend()
+        backend.reportsInitialState = true
+        service.monitoringBackend = backend
+        trackingEnable = true
+        defer { trackingEnable = false }
+
+        let before = (manager.significantChangeStarts, manager.startUpdatingCalls)
+        backend.onTransition?(GeofenceTransition(identifier: "poi<id>bakery<id>",
+                                                 center: anchor, radius: 150,
+                                                 didEnter: false, initialState: false))
+
+        XCTAssertEqual(manager.significantChangeStarts - before.0, 1)
+        XCTAssertEqual(manager.startUpdatingCalls - before.1, 1)
+    }
+
+    /// `stopAllCalls` exists so a test can tell a teardown that went through the backend
+    /// apart from one that looped identifiers. Asserting it here keeps the counter from
+    /// being dead weight on core's own recorder.
+    func test_recordingBackend_stopAllClearsWhatItHeld() {
+        let backend = RecordingBackend()
+        backend.monitoredGeofences = [
+            CircularGeofence(identifier: "poi<id>a<id>", center: anchor, radius: 100),
+            CircularGeofence(identifier: "custom<id>my-zone", center: anchor, radius: 100),
+        ]
+
+        backend.stopAll()
+
+        XCTAssertEqual(backend.stopAllCalls, 1)
+        XCTAssertEqual(Set(backend.stopped), ["poi<id>a<id>", "custom<id>my-zone"])
+        XCTAssertTrue(backend.monitoredGeofences.isEmpty)
+    }
+
+
     // MARK: - Fixture
 
     private func makeServiceWithRecordingBackend() -> (LocationServiceCoreImpl, RecordingBackend) {

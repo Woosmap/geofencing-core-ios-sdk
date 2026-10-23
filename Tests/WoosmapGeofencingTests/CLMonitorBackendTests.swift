@@ -822,5 +822,34 @@ final class CLMonitorBackendTests: XCTestCase {
                                       state: .unmonitored, eventDate: Date()),
                        .forget(systemDropped: true))
     }
+
+    /// `stopAll` has to clear both mirrors synchronously, or a read taken straight after
+    /// it still reports what is being torn down.
+    ///
+    /// `monitoredGeofences` merges the backend registry with the session's `persisted`.
+    /// Clearing only the registry left every condition restored from a previous process
+    /// visible until the queued removal landed — the same window `stop(identifier:)`
+    /// already closes by calling `session.forget` synchronously.
+    func test_stopAll_clearsTheSessionMirrorSynchronously() throws {
+        guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
+        let name = uniqueName("StopAllSync")
+        let backend = CLMonitorBackend(monitorName: name)
+        let session = MonitorSession.shared(named: name)
+
+        // Stands in for a condition restored from a previous process: in the session's
+        // mirror, never registered through this backend.
+        session.recordRegistration(identifier: "custom<id>from-a-previous-launch",
+                                   center: anchor, radius: 100,
+                                   assuming: MonitorSession.assumedState(for: "custom<id>from-a-previous-launch"))
+        backend.start(identifier: "poi<id>this-launch<id>", center: anchor, radius: 150)
+
+        XCTAssertFalse(backend.monitoredGeofences.isEmpty, "precondition: both are visible")
+
+        backend.stopAll()
+
+        XCTAssertTrue(backend.monitoredGeofences.isEmpty,
+                      "a read straight after teardown must not still claim them")
+    }
 }
+
 

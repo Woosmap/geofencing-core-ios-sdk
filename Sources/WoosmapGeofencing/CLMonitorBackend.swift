@@ -146,6 +146,12 @@ internal final class CLMonitorBackend: GeofenceMonitoringBackend {
     /// Queued behind whatever is already on the chain — including the `open()` that
     /// `init` enqueues.
     ///
+    /// Called from the enterprise SDK's `_stopAllMonitoring`, not from core's. Core's own
+    /// teardown stops the position grid and leaves it there, which is the behaviour it
+    /// has always had; the enterprise manager is the one that tears the whole monitored
+    /// set down on `stopTracking()`. So this is part of the seam for a caller above core
+    /// rather than dead weight, and core keeping its lighter teardown is deliberate.
+    ///
     /// That ordering is the point. `open()` is what reads `CLMonitor`'s persistent store
     /// and fills the mirror with conditions left by a previous process, and it completes
     /// asynchronously. A teardown that looped over the mirror instead could run first,
@@ -153,17 +159,20 @@ internal final class CLMonitorBackend: GeofenceMonitoringBackend {
     /// app after the integrator called `stopTracking()`. Going through the chain means
     /// this cannot start until the restore has finished.
     ///
-    /// Only the registry is cleared synchronously — this process's own registrations.
-    /// The session's `persisted` mirror, which holds conditions restored from a previous
-    /// process, is cleared by `removeAll` when the queued work runs. `monitoredGeofences`
-    /// merges both, so between this call and that work it can still report a restored
-    /// condition. Nothing acts on that window today, and clearing `persisted` here would
-    /// be safe — `removeAll` reads identifiers from `CLMonitor` rather than from the
-    /// mirror — but it is a behaviour change rather than a comment fix, so it is written
-    /// down rather than done.
+    /// Both mirrors are cleared synchronously, so a read taken straight after this call
+    /// reports nothing: the backend registry here, and the session's `persisted` through
+    /// `forgetAll`. `monitoredGeofences` merges the two, so clearing only one left it
+    /// still reporting every condition restored from a previous process until the queued
+    /// work landed — which is the same window `stop(identifier:)` already closes by
+    /// calling `session.forget` synchronously.
+    ///
+    /// Safe to clear before the removals run, because `removeAll` reads the identifiers
+    /// to remove from `CLMonitor` itself rather than from the mirror. It takes the
+    /// identifiers `forgetAll` reports so their acknowledgements are still expected.
     func stopAll() {
         lock.withLock { registry.removeAll() }
-        enqueue { await $0.removeAll() }
+        let dropped = session.forgetAll()
+        enqueue { await $0.removeAll(alreadyForgotten: dropped) }
     }
 
     /// Unused on this backend: `CLMonitor` owns its event stream, so nothing
@@ -489,9 +498,9 @@ internal final class MonitorSession: @unchecked Sendable {
     /// what the mirror does not know about yet. Everything in it belongs to this SDK —
     /// the store is keyed by our monitor name — so there is no third party to spare
     /// here, unlike `CLLocationManager.monitoredRegions`.
-    func removeAll() async {
+    func removeAll(alreadyForgotten: [String] = []) async {
         let monitor = await activeMonitor()
-        let identifiers = await monitor.identifiers
+        let identifiers = Set(await monitor.identifiers).union(alreadyForgotten)
         for identifier in identifiers {
             await monitor.remove(identifier)
         }
