@@ -711,10 +711,12 @@ final class CLMonitorBackendTests: XCTestCase {
                       "the live registration must not be evicted by the earlier remove")
     }
 
-    /// UNDER INVESTIGATION — asserts the behaviour `28b8630` changed and this branch
-    /// has restored while a device capture confirms the cause of a wake-up regression.
-    ///
     /// An unchanged refresh reports a crossing, not nothing.
+    ///
+    /// It looks like it should stand down — nothing happened to the region — but that
+    /// transition is what reaches `handleRegionChange()` and restarts location updates.
+    /// Suppressing it cost background wake-ups on device. The duplicate row it would
+    /// otherwise produce is dropped by `addRegionLogTransition` instead.
     ///
     /// POI and custom conditions are seeded `.unknown`, so CoreLocation resolves and
     /// reports them again on every re-registration. `forget` retires the prior state and
