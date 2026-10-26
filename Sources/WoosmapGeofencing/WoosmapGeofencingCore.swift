@@ -293,7 +293,13 @@ import CoreLocation
         }
     }
     
-    /// _stopAllMonitoring
+    /// Core's teardown: stop updates, drop the position grid, release the manager.
+    ///
+    /// Deliberately lighter than the enterprise manager's, which also calls
+    /// `monitoringBackend.stopAll()` to let go of conditions `CLMonitor` restored from a
+    /// previous process. Core has never torn the full monitored set down here, and
+    /// changing that is a behaviour change for core's own consumers rather than a fix —
+    /// so the seam exposes `stopAll()` and core does not call it.
     func _stopAllMonitoring() {
         self.locationService.stopUpdatingLocation()
         self.locationService.stopMonitoringCurrentRegions()
