@@ -461,15 +461,37 @@ internal final class MonitorSession: @unchecked Sendable {
                                      center: CLLocationCoordinate2D,
                                      radius: CLLocationDistance,
                                      assuming assumed: CLMonitor.Event.State) {
-        stateLock.withLock {
+        let resulting = stateLock.withLock { () -> CLMonitor.Event.State? in
             restoreRetiredState(for: identifier, center: center, radius: radius)
             seedLastState(for: identifier, assuming: assumed)
             persisted[identifier] = CircularGeofence(identifier: identifier,
                                                      center: center,
                                                      radius: radius)
+            return lastStates[identifier]
         }
+        // Whether a re-registration kept its state is the whole question behind the
+        // background wake-up work, and nothing in `RegionDB` records it: position
+        // regions never reach the database, and a POI row shows only the outcome.
+        #if DEBUG
+        WoosFileLog.append(level: "REG",
+                           message: "\(identifier) assuming=\(Self.describe(assumed)) lastState=\(Self.describe(resulting))")
+        #endif
     }
 
+    #if DEBUG
+    /// `CLMonitor.Event.State` comes from an Objective-C `NS_ENUM`, so the default
+    /// description is a raw value. Debug builds only.
+    internal static func describe(_ state: CLMonitor.Event.State?) -> String {
+        switch state {
+        case .none: return "none"
+        case .some(.satisfied): return "satisfied"
+        case .some(.unsatisfied): return "unsatisfied"
+        case .some(.unknown): return "unknown"
+        case .some(.unmonitored): return "unmonitored"
+        @unknown default: return "other"
+        }
+    }
+    #endif
 
     /// Prefix of the position grid's concentric rings.
     ///
@@ -876,7 +898,16 @@ internal final class MonitorSession: @unchecked Sendable {
     }
 
     private func handle(_ event: CLMonitor.Event) {
-        switch decide(identifier: event.identifier, state: event.state, eventDate: event.date) {
+        let decision = decide(identifier: event.identifier, state: event.state, eventDate: event.date)
+        // `isInitial` is what reaches the database as `fromPositionDetection`, and a
+        // row only ever appears once the Enterprise filters have passed. Recording
+        // the decision here shows the ones that were dropped on the way, including
+        // every position region, which never reaches `RegionDB` at all.
+        #if DEBUG
+        WoosFileLog.append(level: "EVT",
+                           message: "\(event.identifier) state=\(Self.describe(event.state)) -> \(decision)")
+        #endif
+        switch decision {
         case .duplicate, .undetermined:
             return
         case .forget(let systemDropped):
