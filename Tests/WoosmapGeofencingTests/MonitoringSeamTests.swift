@@ -480,6 +480,56 @@ final class MonitoringSeamTests: XCTestCase {
                        "and the CLMonitor condition is left exactly as it was")
     }
 
+
+    // MARK: - A wake-only transition restarts without reporting
+
+    /// The case that made the plain-crossing version wrong.
+    ///
+    /// `addRegionLogTransition` suppresses a duplicate only while the previous
+    /// `RegionDB` row still exists, and `DataCleaner` deletes those on
+    /// `didBecomeActive()` while the session keeps `lastStates` in memory. With the row
+    /// gone, an unchanged refresh reported as an ordinary crossing took the no-prior-row
+    /// branch and fired `didEnterPOIRegion` for a boundary nobody crossed.
+    ///
+    /// The flag makes it independent of what is in the database.
+    func test_wakeOnlyTransition_reportsNothingEvenWithNoPriorRow() {
+        let delegate = RegionRecorder()
+        service.regionDelegate = delegate
+        manager.stubbedAuthorizationStatus = .authorizedAlways
+        trackingEnable = true
+        defer { trackingEnable = false }
+        Regions.deleteAll()   // the cleaner has been through
+
+        let before = manager.significantChangeStarts
+        backend.onTransition?(GeofenceTransition(identifier: "poi<id>bakery<id>",
+                                                 center: anchor, radius: 150,
+                                                 didEnter: true, initialState: false,
+                                                 isWakeOnly: true))
+
+        XCTAssertTrue(delegate.entered.isEmpty,
+                      "no crossing happened, so the delegate hears nothing")
+        XCTAssertTrue(Regions.getAll().isEmpty, "and nothing is written to RegionDB")
+        XCTAssertEqual(manager.significantChangeStarts - before, 1,
+                       "but the services still restart, which is the point of it")
+    }
+
+    /// A real crossing on the same path still reports, so the flag is not simply
+    /// silencing everything.
+    func test_ordinaryTransition_stillReportsWithNoPriorRow() {
+        let delegate = RegionRecorder()
+        service.regionDelegate = delegate
+        manager.stubbedAuthorizationStatus = .authorizedAlways
+        trackingEnable = true
+        defer { trackingEnable = false }
+        Regions.deleteAll()
+
+        backend.onTransition?(GeofenceTransition(identifier: "poi<id>bakery<id>",
+                                                 center: anchor, radius: 150,
+                                                 didEnter: true, initialState: false))
+
+        XCTAssertEqual(delegate.entered.count, 1)
+    }
+
 }
 
 /// Minimal region delegate recorder for these tests.

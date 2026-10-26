@@ -697,9 +697,14 @@ public class LocationServiceCoreImpl: NSObject,
                                       identifier: transition.identifier)
         // An initial state is a position determination, not a crossing, which is
         // exactly what `fromPositionDetection` means.
-        logTransition(region: region,
-                      didEnter: transition.didEnter,
-                      fromPositionDetection: transition.initialState)
+        // A wake-only transition exists to restart the services, nothing more: the
+        // region's state has not changed, so logging it would record a crossing that
+        // did not happen and tell the delegate about it.
+        if !transition.isWakeOnly {
+            logTransition(region: region,
+                          didEnter: transition.didEnter,
+                          fromPositionDetection: transition.initialState)
+        }
 
         // A region event is a trigger, not a verdict: this restarts location
         // updates so the position sweep can evaluate a fresh fix, and rebuilds the

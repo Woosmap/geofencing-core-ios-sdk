@@ -711,12 +711,11 @@ final class CLMonitorBackendTests: XCTestCase {
                       "the live registration must not be evicted by the earlier remove")
     }
 
-    /// An unchanged refresh reports a crossing, not nothing.
+    /// An unchanged refresh is neither a crossing nor nothing.
     ///
-    /// It looks like it should stand down — nothing happened to the region — but that
-    /// transition is what reaches `handleRegionChange()` and restarts location updates.
-    /// Suppressing it cost background wake-ups on device. The duplicate row it would
-    /// otherwise produce is dropped by `addRegionLogTransition` instead.
+    /// Standing down cost background wake-ups on device, because that report is what
+    /// reaches `handleRegionChange()`. Reporting it as a crossing records one that did
+    /// not happen. `.wakeOnly` is the third answer: restart, report nothing.
     ///
     /// POI and custom conditions are seeded `.unknown`, so CoreLocation resolves and
     /// reports them again on every re-registration. `forget` retires the prior state and
@@ -724,7 +723,7 @@ final class CLMonitorBackendTests: XCTestCase {
     /// a last state *exists* called the re-report a crossing. The gate in
     /// `handle(transition:)` then let it through, and a stationary refresh ran a full
     /// teardown and restart of every monitored region.
-    func test_unchangedStateAcrossARefresh_reportsACrossing() throws {
+    func test_unchangedStateAcrossARefresh_wakesWithoutReporting() throws {
         guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
         let session = MonitorSession.shared(named: uniqueName("Unchanged"))
         let poi = "poi<id>stationary<id>"
@@ -742,9 +741,8 @@ final class CLMonitorBackendTests: XCTestCase {
 
         XCTAssertEqual(session.decide(identifier: poi, state: .satisfied,
                                       eventDate: Date().addingTimeInterval(60)),
-                       .transition(didEnter: true, isInitial: false),
-                       "reaches handle(transition:) as a crossing, which is what restarts "
-                       + "location updates — the duplicate row is stopped downstream")
+                       .wakeOnly(didEnter: true),
+                       "restarts the services without reporting a crossing")
 
         // And a genuine crossing afterwards still reports.
         XCTAssertEqual(session.decide(identifier: poi, state: .unsatisfied,
