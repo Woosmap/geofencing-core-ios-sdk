@@ -898,26 +898,29 @@ internal final class MonitorSession: @unchecked Sendable {
             case .satisfied, .unsatisfied:
                 lastHandled[identifier] = (eventDate, state, now)
 
-                // Three cases, decided by comparing against the previous state rather
-                // than merely testing that one exists.
-                guard let previous = lastStates[identifier] else {
-                    lastStates[identifier] = state
-                    return .transition(didEnter: state == .satisfied, isInitial: true)
-                }
-                guard previous != state else {
-                    // Unchanged. A refresh is a remove and an immediate re-add of the
-                    // same circle, and POI and custom conditions are seeded `.unknown`,
-                    // so CoreLocation is guaranteed to resolve and report them again.
-                    // `restoreRetiredState` has just put the old state back, so asking
-                    // only whether one exists called that a crossing: the gate in
-                    // `handle(transition:)` then let it through and every unchanged
-                    // refresh ran a full teardown and restart.
-                    //
-                    // Nothing happened, so report nothing.
-                    return .undetermined
-                }
+                // UNDER INVESTIGATION — reverts the unchanged-state rule from `28b8630`.
+                //
+                // That change returned `.undetermined` when a refresh re-reported the
+                // state a region already had, on the grounds that nothing happened. It
+                // was right that nothing happened to the *region*, but those reports
+                // were also the thing driving the wake-up loop: they reached
+                // `handle(transition:)` as non-initial, passed the gate, and ran
+                // `handleRegionChange()`, which restarts location updates and
+                // significant-change monitoring.
+                //
+                // A 26 October device capture on a build carrying that rule shows the
+                // cost: 5 fixes in 47 minutes with 1 in background, against 15 fixes
+                // with 12 in background on 22 October, and `handleRegionChange()`
+                // reached once in the whole capture because 12 of 13 events were
+                // initial determinations and the gate dropped them.
+                //
+                // Restored to presence-only while that is confirmed on device. The
+                // duplicate row and delegate callback the rule was meant to stop are
+                // already prevented downstream by `addRegionLogTransition`, which drops
+                // an event whose `didEnter` matches the last stored row.
+                let isInitial = lastStates[identifier] == nil
                 lastStates[identifier] = state
-                return .transition(didEnter: state == .satisfied, isInitial: false)
+                return .transition(didEnter: state == .satisfied, isInitial: isInitial)
 
             case .unknown:
                 // State not yet resolved. Nothing to report, and the last known

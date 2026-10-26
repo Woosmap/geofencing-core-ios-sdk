@@ -711,7 +711,10 @@ final class CLMonitorBackendTests: XCTestCase {
                       "the live registration must not be evicted by the earlier remove")
     }
 
-    /// An unchanged refresh must report nothing.
+    /// UNDER INVESTIGATION — asserts the behaviour `28b8630` changed and this branch
+    /// has restored while a device capture confirms the cause of a wake-up regression.
+    ///
+    /// An unchanged refresh reports a crossing, not nothing.
     ///
     /// POI and custom conditions are seeded `.unknown`, so CoreLocation resolves and
     /// reports them again on every re-registration. `forget` retires the prior state and
@@ -719,7 +722,7 @@ final class CLMonitorBackendTests: XCTestCase {
     /// a last state *exists* called the re-report a crossing. The gate in
     /// `handle(transition:)` then let it through, and a stationary refresh ran a full
     /// teardown and restart of every monitored region.
-    func test_unchangedStateAcrossARefresh_reportsNothing() throws {
+    func test_unchangedStateAcrossARefresh_reportsACrossing() throws {
         guard #available(iOS 17.2, *) else { throw XCTSkip("CLMonitor requires iOS 17.2") }
         let session = MonitorSession.shared(named: uniqueName("Unchanged"))
         let poi = "poi<id>stationary<id>"
@@ -737,8 +740,9 @@ final class CLMonitorBackendTests: XCTestCase {
 
         XCTAssertEqual(session.decide(identifier: poi, state: .satisfied,
                                       eventDate: Date().addingTimeInterval(60)),
-                       .undetermined,
-                       "nothing changed, so nothing is reported and no restart is triggered")
+                       .transition(didEnter: true, isInitial: false),
+                       "reaches handle(transition:) as a crossing, which is what restarts "
+                       + "location updates — the duplicate row is stopped downstream")
 
         // And a genuine crossing afterwards still reports.
         XCTAssertEqual(session.decide(identifier: poi, state: .unsatisfied,
