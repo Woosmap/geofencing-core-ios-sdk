@@ -41,6 +41,37 @@ internal struct GeofenceTransition: Sendable {
     /// crossings to `didEnterRegion` / `didExitRegion`. It exists for `CLMonitor`,
     /// which delivers an initial state per region on registration.
     let initialState: Bool
+
+    /// `true` when the region's state has not changed and this exists only to restart
+    /// the location services.
+    ///
+    /// A refresh re-registers a region and `CLMonitor` resolves it again, reporting the
+    /// state it already had. Nothing was crossed, so nothing should be logged or sent to
+    /// the delegate — but the SDK still wants the restart, because that report is what
+    /// drives the wake-up loop on the `CLMonitor` path.
+    ///
+    /// Carried as its own flag rather than inferred downstream. Leaving it to
+    /// `addRegionLogTransition` to notice the duplicate works only while the previous
+    /// `RegionDB` row still exists, and `DataCleaner` deletes those on
+    /// `didBecomeActive()` while this session keeps its in-memory state — after which an
+    /// unchanged refresh took the no-prior-row branch and fired a false enter.
+    ///
+    /// The legacy backend never sets it: `CLLocationManager` reports crossings only.
+    let isWakeOnly: Bool
+
+    init(identifier: String,
+         center: CLLocationCoordinate2D,
+         radius: CLLocationDistance,
+         didEnter: Bool,
+         initialState: Bool,
+         isWakeOnly: Bool = false) {
+        self.identifier = identifier
+        self.center = center
+        self.radius = radius
+        self.didEnter = didEnter
+        self.initialState = initialState
+        self.isWakeOnly = isWakeOnly
+    }
 }
 
 /// Performs circular-region monitoring on behalf of `LocationServiceCoreImpl`.

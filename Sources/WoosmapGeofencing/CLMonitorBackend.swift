@@ -39,6 +39,11 @@ internal enum MonitorStateDecision: Equatable {
     /// `systemDropped` marks one CoreLocation dropped on its own — a condition
     /// limit, an authorization change — rather than one answering our `remove()`.
     case forget(systemDropped: Bool)
+    /// The state has not changed, so there is nothing to report — but the services
+    /// should still restart. A refresh re-registers a region and `CLMonitor` resolves
+    /// it again; that report is what drives the wake-up loop, and suppressing it
+    /// outright cost background wake-ups on device.
+    case wakeOnly(didEnter: Bool)
     /// State could not be determined; nothing to report and nothing forgotten.
     case undetermined
 }
@@ -78,8 +83,9 @@ internal final class CLMonitorBackend: GeofenceMonitoringBackend {
         // on the second. The name also keys the persisted condition store, so it
         // cannot be made unique per instance without stranding conditions.
         session = MonitorSession.shared(named: monitorName)
-        session.addObserver(observerToken) { [weak self] identifier, didEnter, isInitial in
-            self?.publish(identifier: identifier, didEnter: didEnter, isInitial: isInitial)
+        session.addObserver(observerToken) { [weak self] identifier, didEnter, isInitial, isWakeOnly in
+            self?.publish(identifier: identifier, didEnter: didEnter,
+                          isInitial: isInitial, isWakeOnly: isWakeOnly)
         }
         // A condition CoreLocation dropped on its own is gone from its store but
         // still in this registry, and the registry wins in `monitoredGeofences`.
@@ -197,7 +203,8 @@ internal final class CLMonitorBackend: GeofenceMonitoringBackend {
     /// Internal rather than private so tests can reach it. `CLMonitor.Event` has
     /// no public initialiser, so the real event path cannot be driven from a
     /// test — the same reason `decide` is exposed.
-    internal func publish(identifier: String, didEnter: Bool, isInitial: Bool) {
+    internal func publish(identifier: String, didEnter: Bool, isInitial: Bool,
+                          isWakeOnly: Bool = false) {
         // Registry first, then the restored store. The second source is what
         // answers an event replayed on a relaunch, which arrives milliseconds
         // after the monitor opens and long before the SDK registers anything:
@@ -211,7 +218,8 @@ internal final class CLMonitorBackend: GeofenceMonitoringBackend {
                                             center: geofence.center,
                                             radius: geofence.radius,
                                             didEnter: didEnter,
-                                            initialState: isInitial)
+                                            initialState: isInitial,
+                                            isWakeOnly: isWakeOnly)
         // Hop to main. `consume(from:)` runs on the cooperative pool, and
         // everything downstream is main-queue work: `Regions.add` builds
         // entities on `NSPersistentContainer.viewContext`, and the public
@@ -272,9 +280,9 @@ internal final class MonitorSession: @unchecked Sendable {
     /// restored store, two backends on one session would both publish the same
     /// event. That is sound for the single service the SDK creates, and would
     /// need revisiting before a second one exists.
-    private var observers: [UUID: (String, Bool, Bool) -> Void] = [:]
+    private var observers: [UUID: (String, Bool, Bool, Bool) -> Void] = [:]
 
-    func addObserver(_ token: UUID, _ handler: @escaping (String, Bool, Bool) -> Void) {
+    func addObserver(_ token: UUID, _ handler: @escaping (String, Bool, Bool, Bool) -> Void) {
         stateLock.withLock { observers[token] = handler }
     }
 
@@ -427,12 +435,22 @@ internal final class MonitorSession: @unchecked Sendable {
         let monitor = await activeMonitor()
         let condition = CLMonitor.CircularGeographicCondition(center: center, radius: radius)
         let assumed = Self.assumedState(for: identifier)
-        await monitor.add(condition, identifier: identifier, assuming: assumed)
+        // Before the `add`, not after. `assuming:` decides whether CoreLocation
+        // stays silent, and for POI and custom circles it is `.unknown`, which
+        // guarantees an event — one that `consume` can hand to `decide` on its own
+        // task before this function resumes. Recording afterwards meant `decide`
+        // read an empty `lastStates`, called the event a first determination, and
+        // `recordRegistration` then overwrote the state it had just resolved with
+        // the retired one. Every POI re-registration lost its state that way: in
+        // three device captures only 2 of 29 logged POI events carried
+        // `fromPositionDetection = 0`. The grid escaped it because its assumptions
+        // are determinate and usually correct, so nothing raced the seed.
         recordRegistration(identifier: identifier, center: center, radius: radius, assuming: assumed)
+        await monitor.add(condition, identifier: identifier, assuming: assumed)
     }
 
-    /// Everything `add` does to this object's own state once CoreLocation holds
-    /// the condition.
+    /// Everything `add` does to this object's own state, done before CoreLocation
+    /// is asked to hold the condition so that no event can arrive ahead of it.
     ///
     /// Split out for the same reason as `decide`: the path through `add` cannot be
     /// reached from a test. It awaits a real `CLMonitor`, and CoreLocation answers
@@ -443,14 +461,37 @@ internal final class MonitorSession: @unchecked Sendable {
                                      center: CLLocationCoordinate2D,
                                      radius: CLLocationDistance,
                                      assuming assumed: CLMonitor.Event.State) {
-        stateLock.withLock {
+        let resulting = stateLock.withLock { () -> CLMonitor.Event.State? in
             restoreRetiredState(for: identifier, center: center, radius: radius)
             seedLastState(for: identifier, assuming: assumed)
             persisted[identifier] = CircularGeofence(identifier: identifier,
                                                      center: center,
                                                      radius: radius)
+            return lastStates[identifier]
+        }
+        // Whether a re-registration kept its state is the whole question behind the
+        // background wake-up work, and nothing in `RegionDB` records it: position
+        // regions never reach the database, and a POI row shows only the outcome.
+        #if DEBUG
+        WoosFileLog.append(level: "REG",
+                           message: "\(identifier) assuming=\(Self.describe(assumed)) lastState=\(Self.describe(resulting))")
+        #endif
+    }
+
+    #if DEBUG
+    /// `CLMonitor.Event.State` comes from an Objective-C `NS_ENUM`, so the default
+    /// description is a raw value. Debug builds only.
+    internal static func describe(_ state: CLMonitor.Event.State?) -> String {
+        switch state {
+        case .none: return "none"
+        case .some(.satisfied): return "satisfied"
+        case .some(.unsatisfied): return "unsatisfied"
+        case .some(.unknown): return "unknown"
+        case .some(.unmonitored): return "unmonitored"
+        @unknown default: return "other"
         }
     }
+    #endif
 
     /// Prefix of the position grid's concentric rings.
     ///
@@ -857,7 +898,16 @@ internal final class MonitorSession: @unchecked Sendable {
     }
 
     private func handle(_ event: CLMonitor.Event) {
-        switch decide(identifier: event.identifier, state: event.state, eventDate: event.date) {
+        let decision = decide(identifier: event.identifier, state: event.state, eventDate: event.date)
+        // `isInitial` is what reaches the database as `fromPositionDetection`, and a
+        // row only ever appears once the Enterprise filters have passed. Recording
+        // the decision here shows the ones that were dropped on the way, including
+        // every position region, which never reaches `RegionDB` at all.
+        #if DEBUG
+        WoosFileLog.append(level: "EVT",
+                           message: "\(event.identifier) state=\(Self.describe(event.state)) -> \(decision)")
+        #endif
+        switch decision {
         case .duplicate, .undetermined:
             return
         case .forget(let systemDropped):
@@ -872,7 +922,14 @@ internal final class MonitorSession: @unchecked Sendable {
         case .transition(let didEnter, let isInitial):
             let handlers = stateLock.withLock { Array(observers.values) }
             for handler in handlers {
-                handler(event.identifier, didEnter, isInitial)
+                handler(event.identifier, didEnter, isInitial, false)
+            }
+        case .wakeOnly(let didEnter):
+            // Delivered like a crossing so it reaches `handleRegionChange()`, but
+            // flagged so nothing downstream logs it or tells the delegate.
+            let handlers = stateLock.withLock { Array(observers.values) }
+            for handler in handlers {
+                handler(event.identifier, didEnter, false, true)
             }
         }
     }
@@ -898,23 +955,32 @@ internal final class MonitorSession: @unchecked Sendable {
             case .satisfied, .unsatisfied:
                 lastHandled[identifier] = (eventDate, state, now)
 
-                // Three cases, decided by comparing against the previous state rather
-                // than merely testing that one exists.
+                // Three outcomes, because a refresh re-reporting an unchanged state is
+                // neither a crossing nor nothing.
+                //
+                // Returning `.undetermined` for it — standing down because nothing
+                // happened to the region — looks obviously right and shipped for several
+                // days. It cost the wake-up loop: POI and custom conditions are seeded
+                // `.unknown`, so their events are overwhelmingly initial determinations
+                // and the gate in `handle(transition:)` drops those, leaving almost
+                // nothing to reach `handleRegionChange()`. Measured on one device over
+                // the same route: 5 fixes in 47 minutes with 1 in background, against 15
+                // with 12 before the change.
+                //
+                // Reporting it as an ordinary crossing is wrong in the other direction.
+                // Suppressing the duplicate then depends on the previous `RegionDB` row
+                // still existing, and `DataCleaner` deletes those on `didBecomeActive()`
+                // while this session keeps `lastStates` — after which the refresh takes
+                // the no-prior-row branch of `addRegionLogTransition` and fires an enter
+                // for a boundary nobody crossed.
+                //
+                // So it is its own outcome: restart, report nothing.
                 guard let previous = lastStates[identifier] else {
                     lastStates[identifier] = state
                     return .transition(didEnter: state == .satisfied, isInitial: true)
                 }
                 guard previous != state else {
-                    // Unchanged. A refresh is a remove and an immediate re-add of the
-                    // same circle, and POI and custom conditions are seeded `.unknown`,
-                    // so CoreLocation is guaranteed to resolve and report them again.
-                    // `restoreRetiredState` has just put the old state back, so asking
-                    // only whether one exists called that a crossing: the gate in
-                    // `handle(transition:)` then let it through and every unchanged
-                    // refresh ran a full teardown and restart.
-                    //
-                    // Nothing happened, so report nothing.
-                    return .undetermined
+                    return .wakeOnly(didEnter: state == .satisfied)
                 }
                 lastStates[identifier] = state
                 return .transition(didEnter: state == .satisfied, isInitial: false)
