@@ -55,7 +55,8 @@ jobs:
         uses: actions/checkout@v6.1.0
 
       # CocoaPods trunk is read-only from 2 December 2026, so nothing is pushed there.
-      # Pods resolve this repo by Git tag; the lint checks the podspec still installs.
-      - name: Lint podspec
+      # Pods resolve this repo by Git tag. `pod spec lint` fetches s.source at the tag
+      # pre-publish just pushed, so it checks that path rather than this checkout.
+      - name: Lint podspec from its Git tag
         run: |
-          pod lib lint WoosmapGeofencingCore.podspec --allow-warnings
+          pod spec lint WoosmapGeofencingCore.podspec --allow-warnings
