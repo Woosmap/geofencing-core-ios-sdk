@@ -1,4 +1,4 @@
-name: Publish Geofencing SDK on CocoaPods
+name: Publish Geofencing Core release
 
 on:
   push:
@@ -42,7 +42,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  cocoa-pod:
+  lint-podspec:
     runs-on: macos-15
     needs: pre-publish
 
@@ -54,25 +54,8 @@ jobs:
       - name: Checkout default branch
         uses: actions/checkout@v6.1.0
 
+      # CocoaPods trunk is read-only from 2 December 2026, so nothing is pushed there.
+      # Pods resolve this repo by Git tag; the lint checks the podspec still installs.
       - name: Lint podspec
         run: |
           pod lib lint WoosmapGeofencingCore.podspec --allow-warnings
-
-      - name: Push to CocoaPods trunk
-        env:
-          COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
-        run: |
-          mkdir -p ~/.cocoapods/trunk
-          cat <<EOF > ~/.cocoapods/trunk/config.json
-          {
-            "trunk_token": "${COCOAPODS_TRUNK_TOKEN}"
-          }
-          EOF
-
-          pod trunk me
-          pod trunk push WoosmapGeofencingCore.podspec --allow-warnings
-
-      - name: Cleanup credentials
-        if: ${{ always() }}
-        run: |
-          rm -rf ~/.cocoapods
