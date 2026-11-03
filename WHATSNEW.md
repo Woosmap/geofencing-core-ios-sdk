@@ -1,1 +1,1 @@
-- Fixed: background location updates stopped restarting after a geofence refresh on iOS 17.2 and later, so the SDK woke far less often and reported crossings late or not at all
+- Changed: new versions are no longer published to CocoaPods trunk, which is read-only from 2 December 2026. Use Swift Package Manager, or pin this repository's Git tag in your Podfile: pod 'WoosmapGeofencingCore', :git => 'https://github.com/Woosmap/geofencing-core-ios-sdk.git', :tag => '<version>'
